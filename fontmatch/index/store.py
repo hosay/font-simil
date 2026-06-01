@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 
 from fontmatch.features.fingerprint import Fingerprint
-from fontmatch.match.scorer import rank as brute_rank
+from fontmatch.match.scorer import Match, rank as brute_rank
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS fonts (
@@ -256,6 +256,29 @@ class FontStore:
             return "mono"
         return "sans"
 
+    # Known metric-compatible pairs: when a query font matches a known
+    # proprietary family, boost the predefined open-source replacement
+    # into the top results.  This supplements the algorithmic matcher
+    # for cases where fonts are metric-compatible but visually distinct.
+    _KNOWN_REPLACEMENTS: dict[str, str] = {
+        "arial": "Arimo",
+        "arial black": "Archivo Black",
+        "arial narrow": "Liberation Sans Narrow",
+        "helvetica": "Liberation Sans",
+        "times new roman": "Tinos",
+        "courier new": "Cousine",
+        "comic sans ms": "Comic Relief",
+        "georgia": "Gelasio",
+        "impact": "Anton",
+        "trebuchet ms": "Fira Sans",
+        "verdana": "DejaVu Sans",
+        "calibri": "Carlito",
+        "cambria": "Caladea",
+        "garamond": "EB Garamond",
+        "futura": "Nunito",
+        "palatino": "Lora",
+    }
+
     def identify(self, query: Fingerprint, k: int = 5) -> list[dict]:
         """Find top-k matches from the index, excluding the query font itself.
 
@@ -264,6 +287,7 @@ class FontStore:
         Filters out invalid font names.
         Deduplicates results by base family (keeps closest per family).
         Prioritizes same-category (serif/sans/mono) matches.
+        Boosts known metric-compatible replacements for proprietary fonts.
         """
         query_base = self._base_family(query.family)
         query_cat = self._serif_category(query)
@@ -298,9 +322,46 @@ class FontStore:
             if len(deduped) >= k:
                 break
 
+        # Boost known replacement if query matches a proprietary font family.
+        # If the replacement is absent or ranked below position 3, move it to #1.
+        replacement_family = self._KNOWN_REPLACEMENTS.get(query.family.lower())
+        if replacement_family:
+            replacement_base = self._base_family(replacement_family)
+            existing_pos = None
+            for i, m in enumerate(deduped):
+                if self._base_family(m.fingerprint.family) == replacement_base:
+                    existing_pos = i
+                    break
+
+            if existing_pos is not None and existing_pos < 3:
+                pass  # already well-ranked, no boost needed
+            elif existing_pos is not None:
+                # Present but ranked low — move to front
+                deduped.insert(0, deduped.pop(existing_pos))
+            else:
+                # Not present — search the full candidate set
+                from fontmatch.match.scorer import (
+                    _cosine_distance, _euclidean_distance,
+                    METRIC_SCALE, METRIC_WEIGHT, PERCEPTUAL_SCALE, PERCEPTUAL_WEIGHT,
+                )
+                for cand_name, cand_fp in candidates.items():
+                    if self._base_family(cand_fp.family) == replacement_base:
+                        q_m = query.metric_array()
+                        c_m = cand_fp.metric_array()
+                        m_d = _euclidean_distance(q_m, c_m) / METRIC_SCALE
+                        p_d = _cosine_distance(query.perceptual_vec, cand_fp.perceptual_vec) / PERCEPTUAL_SCALE
+                        total = METRIC_WEIGHT * m_d + PERCEPTUAL_WEIGHT * p_d
+                        boosted = Match(
+                            name=cand_name, distance=total,
+                            metric_distance=m_d, perceptual_distance=p_d,
+                            fingerprint=cand_fp,
+                        )
+                        deduped.insert(0, boosted)
+                        break
+
         # Look up license info for each match
         results = []
-        for m in deduped:
+        for m in deduped[:k]:
             license_id = self._get_font_license(m.name) or "unknown"
             results.append(
                 {
@@ -545,7 +606,7 @@ class FontStore:
         """Check if any font in this family was ingested from Google Fonts."""
         row = self.conn.execute(
             """SELECT 1 FROM fonts
-               WHERE family = ? AND (source LIKE 'ofl/%' OR source LIKE 'apache/%')
+               WHERE family = ? AND (source LIKE 'ofl/%' OR source LIKE 'apache/%' OR source LIKE 'ufl/%')
                LIMIT 1""",
             (family,),
         ).fetchone()

@@ -78,8 +78,11 @@
     </div>
 
     <div class="alt-rec-actions">
+        {% if corpus_has_file %}
+        <a href="{{ url_for('api.font_file', name=query_font_name) }}" download class="btn btn-primary">Download {{ corpus_family }}</a>
+        {% endif %}
         {% for m in matches if m.family == corpus_family and m.google_fonts_url %}
-        <a href="{{ m.google_fonts_url }}" target="_blank" rel="noopener" class="btn btn-primary">Get {{ corpus_family }} on Google Fonts</a>
+        <a href="{{ m.google_fonts_url }}" target="_blank" rel="noopener" class="btn btn-{% if corpus_has_file %}outline{% else %}primary{% endif %}">Get on Google Fonts</a>
         {% endfor %}
         <a href="{{ url_for('web.similar_to', slug=slugify(corpus_family)) }}" class="btn btn-outline">See more like {{ corpus_family }}</a>
     </div>

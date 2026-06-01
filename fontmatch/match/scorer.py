@@ -18,6 +18,27 @@ PERCEPTUAL_WEIGHT = 0.6
 METRIC_SCALE = 1.5
 PERCEPTUAL_SCALE = 0.37
 
+# Per-field weights for the metric vector.  Fields like weight_class,
+# width_class, cap_height, x_height, avg_width, and serif_score
+# directly reflect visual appearance.  Ascender/descender are about
+# line spacing and vary a lot between metric-compatible fonts (e.g.
+# Arimo vs Liberation Sans), so they are downweighted.
+# Field order: weight, width, italic, italic_angle, cap_h, x_h,
+#              ascender, descender, avg_width, glyph_count, serif
+_METRIC_FIELD_WEIGHTS = np.array([
+    1.0,   # weight_class
+    1.0,   # width_class
+    1.0,   # is_italic
+    1.0,   # italic_angle
+    1.0,   # cap_height
+    1.0,   # x_height
+    0.3,   # ascender  — line spacing, not glyph shape
+    0.3,   # descender — line spacing, not glyph shape
+    1.0,   # avg_width
+    0.5,   # glyph_count_log — coverage breadth, not visual character
+    1.0,   # serif_score
+], dtype=np.float64)
+
 
 @dataclass
 class Match:
@@ -41,8 +62,11 @@ def _cosine_distance(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def _euclidean_distance(a: np.ndarray, b: np.ndarray) -> float:
-    """Normalized Euclidean distance."""
-    return float(np.linalg.norm(a - b))
+    """Weighted Euclidean distance using per-field importance weights."""
+    diff = a - b
+    if len(diff) == len(_METRIC_FIELD_WEIGHTS):
+        diff = diff * _METRIC_FIELD_WEIGHTS
+    return float(np.linalg.norm(diff))
 
 
 def distance(fp_a: Fingerprint, fp_b: Fingerprint) -> float:

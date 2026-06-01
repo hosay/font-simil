@@ -204,11 +204,19 @@ def similar_to(slug: str):
         return render_template("similar.html", family_name=display_name, matches=None, found=False, prop=None)
 
     results = store.identify(fp, k=DEFAULT_K)
+
+    # Check if the corpus font file is available for download
+    from fontmatch.web.helpers import _is_crawled_source
+
+    corpus_source = store.get_font_source(font_row["name"])
+    corpus_has_file = corpus_source is not None and not _is_crawled_source(corpus_source)
+
     return render_template(
         "similar.html",
         family_name=display_name,
         corpus_family=font_row["family"],
         query_font_name=font_row["name"],
+        corpus_has_file=corpus_has_file,
         matches=enrich_matches(results, store=store),
         found=True,
         slugify=slugify,

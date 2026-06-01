@@ -85,7 +85,13 @@ def create_app(
     if gf_repo_db.is_dir() and str(gf_repo_db) not in corpus_dirs:
         corpus_dirs.append(str(gf_repo_db))
     # System font directories
-    for sys_dir in ["/usr/share/fonts/truetype/liberation", "/usr/share/fonts/truetype/dejavu"]:
+    for sys_dir in [
+        "/usr/share/fonts/truetype/liberation",
+        "/usr/share/fonts/truetype/dejavu",
+        "/usr/share/fonts/truetype/ubuntu",
+        "/usr/share/fonts/truetype/freefont",
+        "/usr/share/fonts/opentype/linux-libertine",
+    ]:
         if Path(sys_dir).is_dir():
             corpus_dirs.append(sys_dir)
     app.config["CORPUS_DIRS"] = corpus_dirs

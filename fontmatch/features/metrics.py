@@ -41,9 +41,16 @@ class MetricVector:
     glyph_count: int
     serif_class: str  # "serif", "sans", or "mono"
 
+    # Cap glyph count for distance purposes: beyond ~1500 glyphs the extra
+    # coverage is language support, not visual character.  Without capping,
+    # fonts with huge Unicode coverage (e.g. Cambria at 7 600 glyphs) are
+    # penalised against metric-compatible replacements that only cover Latin.
+    _GLYPH_COUNT_CAP = 1500
+
     def to_array(self) -> np.ndarray:
         """Convert to a fixed-length float64 vector for distance computation."""
         serif_score = {"sans": 0.0, "mono": 0.5, "serif": 1.0}.get(self.serif_class, 0.0)
+        capped_count = min(self.glyph_count, self._GLYPH_COUNT_CAP)
         return np.array(
             [
                 self.weight_class / 1000.0,  # normalize to ~[0,1]
@@ -55,7 +62,7 @@ class MetricVector:
                 self.ascender,
                 self.descender,
                 self.avg_width,
-                np.log1p(self.glyph_count) / 10.0,  # log-scale
+                np.log1p(capped_count) / 10.0,  # log-scale, capped
                 serif_score,
             ],
             dtype=np.float64,

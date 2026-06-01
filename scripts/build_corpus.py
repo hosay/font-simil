@@ -36,6 +36,9 @@ def main():
         ("Test fixtures", Path("tests/fixtures")),
         ("System Liberation", Path("/usr/share/fonts/truetype/liberation")),
         ("System DejaVu", Path("/usr/share/fonts/truetype/dejavu")),
+        ("System Ubuntu", Path("/usr/share/fonts/truetype/ubuntu")),
+        ("System FreeFonts", Path("/usr/share/fonts/truetype/freefont")),
+        ("Linux Libertine", Path("/usr/share/fonts/opentype/linux-libertine")),
     ]
 
     gf_path = Path(args.google_fonts)
