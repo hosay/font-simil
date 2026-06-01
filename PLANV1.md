@@ -274,15 +274,20 @@ table from §0.
 
 **Tests first** (FastAPI `TestClient` / `httpx`)
 - `GET /health` → 200.
-- `POST /identify` with a fixture font upload → ranked matches; the top match for
-  a ground-truth fixture is the expected open-source font.
+- `POST /identify` with a fixture font upload → response contains a `matches`
+  array with exactly 1 result by default; the match for a ground-truth fixture is
+  the expected open-source font.
+- `POST /identify` with `?n=5` returns up to 5 ranked matches in the `matches`
+  array.
 - Second identical upload is served from cache (assert no recompute via spy).
 - Unsupported/corrupt upload → 400 with a typed error body.
 - Response includes per-match sub-scores and license for explainability.
 
 **Implement**
-- Endpoints: `GET /health`, `POST /identify` (multipart font upload → top-k
-  matches), `GET /fonts/{id}`. Content-hash caching in front of the matcher.
+- Endpoints: `GET /health`, `POST /identify` (multipart font upload; optional
+  query param `n` controls number of results, default 1; response always uses a
+  `matches` array), `GET /fonts/{id}`. Content-hash caching in front of the
+  matcher.
 - Structured error handling mapping `UnsupportedFontError` → 400.
 
 **Acceptance**
