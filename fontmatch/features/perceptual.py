@@ -12,9 +12,9 @@ from fontmatch.fonts.loader import LoadedFont
 # Fixed rendering parameters for determinism
 RENDER_DPI = 72
 FONT_SIZE = 64  # points
-CANVAS_WIDTH = 800
+CANVAS_WIDTH = 1400
 CANVAS_HEIGHT = 120
-REFERENCE_STRING = "Hamburgefonstiv 0123 ,.?!"
+REFERENCE_STRING = "The quick brown fox jumps over the lazy dog."
 
 # Perceptual vector: downsampled to this size
 DOWNSAMPLE_W = 100
@@ -22,7 +22,7 @@ DOWNSAMPLE_H = 15
 
 # Schema versions for cache invalidation
 RENDERER_VERSION = "pillow-freetype-v1"
-FINGERPRINT_SCHEMA_VERSION = 2
+FINGERPRINT_SCHEMA_VERSION = 3
 
 
 def _font_to_bytes(font: LoadedFont) -> bytes:

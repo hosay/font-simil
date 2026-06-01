@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 
 from fontmatch.features.fingerprint import fingerprint
+from fontmatch.features.perceptual import FINGERPRINT_SCHEMA_VERSION
 from fontmatch.fonts.loader import UnsupportedFontError, load
 from fontmatch.index.store import FontStore
 
@@ -68,7 +69,7 @@ def ingest_corpus(corpus_path: Path, store: FontStore) -> int:
             continue
 
         # Check if already stored
-        existing = store.get_fingerprint(loaded.file_hash, 1)
+        existing = store.get_fingerprint(loaded.file_hash, FINGERPRINT_SCHEMA_VERSION)
         if existing is not None:
             count += 1
             continue

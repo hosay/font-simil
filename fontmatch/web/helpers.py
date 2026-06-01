@@ -30,6 +30,93 @@ PROPRIETARY_TO_OPEN_SOURCE = {
     "Cambria": "Caladea",
 }
 
+# Case-insensitive lookup for proprietary font names
+_PROP_LOOKUP = {k.lower(): k for k in PROPRIETARY_TO_OPEN_SOURCE}
+
+# Extra metadata for the /alternative-to/ pages
+PROPRIETARY_FONTS = {
+    "Times New Roman": {
+        "css_family": "'Times New Roman', Times, serif",
+        "category": "serif",
+        "vendor": "Monotype",
+        "description": "The classic serif typeface bundled with Windows and widely used in print and academic documents.",
+    },
+    "Arial": {
+        "css_family": "Arial, Helvetica, sans-serif",
+        "category": "sans-serif",
+        "vendor": "Monotype",
+        "description": "One of the most widely used sans-serif typefaces, bundled with Windows and macOS.",
+    },
+    "Helvetica": {
+        "css_family": "'Helvetica Neue', Helvetica, Arial, sans-serif",
+        "category": "sans-serif",
+        "vendor": "Linotype",
+        "description": "The iconic Swiss sans-serif typeface, a staple of modern graphic design. Bundled with macOS.",
+    },
+    "Georgia": {
+        "css_family": "Georgia, 'Times New Roman', serif",
+        "category": "serif",
+        "vendor": "Microsoft",
+        "description": "A serif typeface designed specifically for screen readability, bundled with Windows and macOS.",
+    },
+    "Courier New": {
+        "css_family": "'Courier New', Courier, monospace",
+        "category": "monospace",
+        "vendor": "Monotype",
+        "description": "The standard monospaced typeface bundled with most operating systems.",
+    },
+    "Verdana": {
+        "css_family": "Verdana, Geneva, sans-serif",
+        "category": "sans-serif",
+        "vendor": "Microsoft",
+        "description": "A humanist sans-serif designed for screen readability at small sizes.",
+    },
+    "Garamond": {
+        "css_family": "Garamond, 'EB Garamond', serif",
+        "category": "serif",
+        "vendor": "Various",
+        "description": "A family of old-style serif typefaces named after the 16th-century engraver Claude Garamond.",
+    },
+    "Futura": {
+        "css_family": "Futura, 'Century Gothic', sans-serif",
+        "category": "sans-serif",
+        "vendor": "Bauer",
+        "description": "An influential geometric sans-serif typeface designed in 1927.",
+    },
+    "Palatino": {
+        "css_family": "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
+        "category": "serif",
+        "vendor": "Linotype",
+        "description": "An old-style serif typeface designed by Hermann Zapf, bundled with macOS and Windows.",
+    },
+    "Trebuchet MS": {
+        "css_family": "'Trebuchet MS', 'Lucida Grande', sans-serif",
+        "category": "sans-serif",
+        "vendor": "Microsoft",
+        "description": "A humanist sans-serif typeface designed by Vincent Connare for Microsoft.",
+    },
+    "Calibri": {
+        "css_family": "Calibri, 'Gill Sans', sans-serif",
+        "category": "sans-serif",
+        "vendor": "Microsoft",
+        "description": "The default font in Microsoft Office since 2007, a modern humanist sans-serif.",
+    },
+    "Cambria": {
+        "css_family": "Cambria, Georgia, serif",
+        "category": "serif",
+        "vendor": "Microsoft",
+        "description": "A transitional serif typeface designed for on-screen reading and body text in Microsoft Office.",
+    },
+}
+
+
+def lookup_proprietary(name: str) -> str | None:
+    """Case-insensitive lookup of a proprietary font name.
+
+    Returns the canonical (correctly cased) name, or None.
+    """
+    return _PROP_LOOKUP.get(name.lower())
+
 
 def slugify(family: str) -> str:
     """Convert 'Open Sans' -> 'open-sans'."""

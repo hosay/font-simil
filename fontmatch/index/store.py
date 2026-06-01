@@ -95,6 +95,7 @@ class FontStore:
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(_SCHEMA)
         self._index: dict[str, Fingerprint] = {}  # in-memory index
+        self._font_licenses: dict[str, str] = {}  # name -> license_id
 
     def store_fingerprint(
         self,
@@ -177,18 +178,27 @@ class FontStore:
 
     def build_index(self):
         """Load all fingerprints into the in-memory index."""
+        from fontmatch.features.perceptual import FINGERPRINT_SCHEMA_VERSION
+
         self._index.clear()
+        self._font_licenses: dict[str, str] = {}  # name -> license_id
         rows = self.conn.execute(
             """SELECT f.file_hash, f.name, f.family, f.subfamily,
+                      f.license_id,
                       fp.metric_vec, fp.perceptual_vec,
                       fp.schema_version, fp.renderer_version
                FROM fingerprints fp
-               JOIN fonts f ON f.id = fp.font_id"""
+               JOIN fonts f ON f.id = fp.font_id
+               WHERE fp.schema_version = ?""",
+            (FINGERPRINT_SCHEMA_VERSION,),
         ).fetchall()
 
         for row in rows:
             metric_arr = np.frombuffer(row["metric_vec"], dtype=np.float64)
             perceptual_arr = np.frombuffer(row["perceptual_vec"], dtype=np.float64)
+            # Skip fonts with zero perceptual vectors (rendering failures)
+            if np.linalg.norm(perceptual_arr) == 0:
+                continue
             fp = _StoredFingerprint(
                 file_hash=row["file_hash"],
                 family=row["family"],
@@ -199,6 +209,7 @@ class FontStore:
                 renderer_version=row["renderer_version"],
             )
             self._index[row["name"]] = fp
+            self._font_licenses[row["name"]] = row["license_id"] or ""
 
     @staticmethod
     def _base_family(family: str) -> str:
@@ -249,6 +260,7 @@ class FontStore:
         """Find top-k matches from the index, excluding the query font itself.
 
         Excludes fonts with the same file_hash or same base family name.
+        Only returns fonts with a known open-source license.
         Filters out invalid font names.
         Deduplicates results by base family (keeps closest per family).
         Prioritizes same-category (serif/sans/mono) matches.
@@ -262,6 +274,7 @@ class FontStore:
             if fp.file_hash != query.file_hash
             and self._base_family(fp.family) != query_base
             and self._is_valid_family(fp.family)
+            and self._font_licenses.get(name, "") != ""
         }
 
         # Two-stage ranking: same-category first, then cross-category
@@ -489,13 +502,30 @@ class FontStore:
             return False
         return True
 
-    def get_font_by_family(self, family: str) -> dict | None:
-        """Look up a font row by family name (case-insensitive)."""
-        row = self.conn.execute(
-            "SELECT * FROM fonts WHERE LOWER(family) = LOWER(?) LIMIT 1",
+    def get_font_by_family(self, family: str, licensed_only: bool = True) -> dict | None:
+        """Look up a font row by family name (case-insensitive).
+
+        Prefers fonts with a known license and 'Regular' subfamily so
+        comparisons use the base weight of an open-source font.
+        """
+        rows = self.conn.execute(
+            "SELECT * FROM fonts WHERE LOWER(family) = LOWER(?)",
             (family,),
-        ).fetchone()
-        return dict(row) if row else None
+        ).fetchall()
+        if not rows:
+            return None
+
+        # Partition into licensed vs unlicensed
+        licensed = [r for r in rows if r["license_id"]]
+        if licensed_only and not licensed:
+            return None
+        pool = licensed if licensed_only else rows
+
+        # Prefer Regular variant
+        for row in pool:
+            if row["subfamily"] and row["subfamily"].lower() == "regular":
+                return dict(row)
+        return dict(pool[0])
 
     def get_font_source(self, name: str) -> str | None:
         """Return the source path for a font by its filename."""

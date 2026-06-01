@@ -20,9 +20,11 @@ from fontmatch.features.fingerprint import fingerprint
 from fontmatch.features.perceptual import FINGERPRINT_SCHEMA_VERSION
 from fontmatch.fonts.loader import UnsupportedFontError, load
 from fontmatch.web.helpers import (
+    PROPRIETARY_FONTS,
     PROPRIETARY_TO_OPEN_SOURCE,
     deslugify,
     enrich_matches,
+    lookup_proprietary,
     slugify,
 )
 
@@ -41,6 +43,8 @@ def sitemap_txt():
     store = current_app.config["STORE"]
     families = store.list_font_families(clean_only=True)
     lines = ["/", "/identify", "/api/docs"]
+    for prop_name in PROPRIETARY_TO_OPEN_SOURCE:
+        lines.append(f"/similar-to/{slugify(prop_name)}")
     for fam in families:
         lines.append(f"/similar-to/{slugify(fam)}")
     return Response("\n".join(lines), mimetype="text/plain")
@@ -79,7 +83,7 @@ def index():
                 {
                     "label": entry["label"],
                     "target_family": row["family"],
-                    "slug": slugify(row["family"]),
+                    "slug": slugify(entry["label"]),
                 }
             )
 
@@ -171,19 +175,33 @@ def similar_to(slug: str):
     # If user searched for a proprietary font name, look up the open-source
     # equivalent but keep the original name as the display title.
     display_name = family_name
+    canonical_prop = lookup_proprietary(family_name)
     oss_name = PROPRIETARY_TO_OPEN_SOURCE.get(family_name)
     lookup_name = oss_name or family_name
 
-    font_row = store.get_font_by_family(lookup_name)
+    # Proprietary font metadata (None for open-source fonts)
+    prop_meta = None
+    if canonical_prop:
+        display_name = canonical_prop
+        meta = PROPRIETARY_FONTS.get(canonical_prop, {})
+        prop_meta = {
+            "name": canonical_prop,
+            "css_family": meta.get("css_family", f"'{canonical_prop}', serif"),
+            "category": meta.get("category", "sans-serif"),
+            "vendor": meta.get("vendor", ""),
+            "description": meta.get("description", ""),
+        }
+
+    font_row = store.get_font_by_family(lookup_name, licensed_only=True)
     if font_row is None:
-        font_row = store.get_font_by_family(slug.replace("-", " "))
+        font_row = store.get_font_by_family(slug.replace("-", " "), licensed_only=True)
 
     if font_row is None:
-        return render_template("similar.html", family_name=display_name, matches=None, found=False)
+        return render_template("similar.html", family_name=display_name, matches=None, found=False, prop=None)
 
     fp = store.get_fingerprint(font_row["file_hash"], FINGERPRINT_SCHEMA_VERSION)
     if fp is None:
-        return render_template("similar.html", family_name=display_name, matches=None, found=False)
+        return render_template("similar.html", family_name=display_name, matches=None, found=False, prop=None)
 
     results = store.identify(fp, k=DEFAULT_K)
     return render_template(
@@ -194,4 +212,5 @@ def similar_to(slug: str):
         matches=enrich_matches(results, store=store),
         found=True,
         slugify=slugify,
+        prop=prop_meta,
     )

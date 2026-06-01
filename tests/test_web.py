@@ -101,3 +101,46 @@ class TestSimilarTo:
             html = resp.data.decode()
             # Should contain match cards or a not-found message
             assert "match-card" in html or "not found" in html.lower()
+
+
+class TestProprietaryFontComparison:
+    def test_proprietary_font_shows_recommendation_card(self, client):
+        resp = client.get("/similar-to/times-new-roman")
+        assert resp.status_code == 200
+        html = resp.data.decode()
+        assert "Times New Roman" in html
+        assert "proprietary" in html.lower()
+        assert "alt-recommendation" in html
+
+    def test_proprietary_font_shows_oss_alternative(self, client):
+        resp = client.get("/similar-to/arial")
+        html = resp.data.decode()
+        assert "Arimo" in html
+
+    def test_proprietary_font_has_font_detection_js(self, client):
+        resp = client.get("/similar-to/times-new-roman")
+        html = resp.data.decode()
+        assert "measureText" in html
+
+    def test_proprietary_font_has_missing_card(self, client):
+        resp = client.get("/similar-to/calibri")
+        html = resp.data.decode()
+        assert "missing-card" in html
+        assert "Carlito" in html
+
+    def test_proprietary_font_in_sitemap(self, client):
+        resp = client.get("/sitemap.txt")
+        html = resp.data.decode()
+        assert "/similar-to/times-new-roman" in html
+
+    def test_regular_font_has_no_proprietary_card(self, client, app):
+        store = app.config["STORE"]
+        families = store.list_font_families()
+        if families:
+            from fontmatch.web.helpers import slugify
+
+            slug = slugify(families[0])
+            resp = client.get(f"/similar-to/{slug}")
+            html = resp.data.decode()
+            assert "alt-recommendation" not in html
+            assert "missing-card" not in html

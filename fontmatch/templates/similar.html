@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Similar to {{ family_name }}{% endblock %}
-{% block meta_description %}Find open-source alternatives to {{ family_name }}. See the top matches ranked by metric and visual similarity.{% endblock %}
-{% block og_title %}Open-source alternatives to {{ family_name }} &mdash; FontMatch{% endblock %}
-{% block og_description %}Find free, open-source fonts similar to {{ family_name }}. Side-by-side comparison with match scores.{% endblock %}
+{% block title %}{% if prop %}Free Open-Source Alternative to {{ family_name }}{% else %}Similar to {{ family_name }}{% endif %}{% endblock %}
+{% block meta_description %}{% if prop %}{{ family_name }} is a proprietary {{ prop.category }} font{% if prop.vendor %} by {{ prop.vendor }}{% endif %}. Find the best free, open-source replacements like {{ corpus_family }} with side-by-side comparison.{% else %}Find open-source alternatives to {{ family_name }}. See the top matches ranked by metric and visual similarity.{% endif %}{% endblock %}
+{% block og_title %}{% if prop %}Free Alternative to {{ family_name }}{% else %}Open-source alternatives to {{ family_name }}{% endif %} &mdash; FontMatch{% endblock %}
+{% block og_description %}{% if prop %}{{ corpus_family }} is a free, open-source {{ prop.category }} font you can use instead of {{ family_name }}. Compare them side by side.{% else %}Find free, open-source fonts similar to {{ family_name }}. Side-by-side comparison with match scores.{% endif %}{% endblock %}
 
 {% block head %}
 {% if matches %}
@@ -35,6 +35,63 @@
 </section>
 
 {% elif matches %}
+
+{# --- Proprietary font: show recommendation card with font detection --- #}
+{% if prop %}
+<section class="results-header">
+    <h1>Free open-source alternative to <em>{{ family_name }}</em></h1>
+    <p class="hero-sub">{{ prop.description }}</p>
+</section>
+
+<div class="alt-recommendation">
+    <div class="alt-rec-badge">Recommended replacement</div>
+    <h2 class="alt-rec-title">{{ corpus_family }}</h2>
+    <p class="alt-rec-sub">A free, open-source {{ prop.category }} font you can use anywhere without licensing fees.</p>
+
+    <div class="comparison alt-comparison">
+        <div class="comparison-col">
+            <div class="comparison-label">{{ family_name }} <span class="proprietary-tag">proprietary</span></div>
+
+            {# Shown when browser HAS the font #}
+            <div class="font-render prop-font-available" style="font-family: {{ prop.css_family }}; display: none;">
+                <p class="preview-lg">The quick brown fox jumps over the lazy dog.</p>
+                <p class="preview-sm">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789</p>
+            </div>
+
+            {# Shown when browser does NOT have the font #}
+            <div class="prop-font-missing">
+                <div class="missing-card">
+                    <div class="missing-icon">&#x1F512;</div>
+                    <p class="missing-title">{{ family_name }} is not installed on your device</p>
+                    <p class="missing-body">{{ family_name }} is a proprietary {{ prop.category }} font{% if prop.vendor %} by {{ prop.vendor }}{% endif %} that requires a commercial license. It isn't available on your current device, but <strong>{{ corpus_family }}</strong> is a high-quality open-source alternative that's free to use in any project.</p>
+                </div>
+            </div>
+        </div>
+        <div class="comparison-divider"></div>
+        <div class="comparison-col">
+            <div class="comparison-label">{{ corpus_family }} <span class="oss-tag">open source</span></div>
+            <div class="font-render" style="font-family: 'query-font', {{ prop.category }};">
+                <p class="preview-lg">The quick brown fox jumps over the lazy dog.</p>
+                <p class="preview-sm">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="alt-rec-actions">
+        {% for m in matches if m.family == corpus_family and m.google_fonts_url %}
+        <a href="{{ m.google_fonts_url }}" target="_blank" rel="noopener" class="btn btn-primary">Get {{ corpus_family }} on Google Fonts</a>
+        {% endfor %}
+        <a href="{{ url_for('web.similar_to', slug=slugify(corpus_family)) }}" class="btn btn-outline">See more like {{ corpus_family }}</a>
+    </div>
+</div>
+
+<section class="section">
+    <h2>More open-source alternatives to {{ family_name }}</h2>
+    <p class="section-sub">Ranked by visual and metric similarity.</p>
+</section>
+
+{# --- Regular open-source font --- #}
+{% else %}
 <section class="results-header">
     <h1>Open-source alternatives to <em>{{ family_name }}</em></h1>
     {% if corpus_family and corpus_family != family_name %}
@@ -49,10 +106,11 @@
     <div class="query-label">{% if corpus_family and corpus_family != family_name %}Based on open-source equivalent{% else %}Source font{% endif %}</div>
     <div class="query-font-name">{{ corpus_family or family_name }}</div>
     <div class="query-preview" style="font-family: 'query-font', serif;">
-        <p class="preview-lg">Hamburgefonstiv 0123 ,.?!</p>
+        <p class="preview-lg">The quick brown fox jumps over the lazy dog.</p>
         <p class="preview-md">The quick brown fox jumps over the lazy dog.</p>
     </div>
 </div>
+{% endif %}
 {% endif %}
 
 {% set query_label = family_name %}
@@ -71,4 +129,40 @@
 <div class="back-link">
     <a href="{{ url_for('web.index') }}" class="btn btn-outline">Back to home</a>
 </div>
+
+{% if prop %}
+<script>
+(function() {
+    function isFontAvailable(fontFamily) {
+        var canvas = document.createElement('canvas');
+        var ctx = canvas.getContext('2d');
+        var testStrings = ['mmmmmmmmmmlli1', 'WWWWWWWWWW', 'The quick brown'];
+        var fallbacks = ['serif', 'sans-serif', 'monospace'];
+        var size = '72px ';
+
+        for (var s = 0; s < testStrings.length; s++) {
+            var str = testStrings[s];
+            var diffCount = 0;
+            for (var f = 0; f < fallbacks.length; f++) {
+                ctx.font = size + fallbacks[f];
+                var baseWidth = ctx.measureText(str).width;
+                ctx.font = size + '"' + fontFamily + '", ' + fallbacks[f];
+                var testWidth = ctx.measureText(str).width;
+                if (Math.abs(testWidth - baseWidth) > 0.5) diffCount++;
+            }
+            if (diffCount === fallbacks.length) return true;
+        }
+        return false;
+    }
+
+    var fontName = {{ prop.name|tojson }};
+    if (isFontAvailable(fontName)) {
+        var previews = document.querySelectorAll('.prop-font-available');
+        var missing = document.querySelectorAll('.prop-font-missing');
+        for (var i = 0; i < previews.length; i++) previews[i].style.display = '';
+        for (var i = 0; i < missing.length; i++) missing[i].style.display = 'none';
+    }
+})();
+</script>
+{% endif %}
 {% endblock %}
