@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Identify Font{% endblock %}
+{% block meta_description %}Upload a TTF, OTF, WOFF, or WOFF2 font file to identify it and find the closest open-source alternatives.{% endblock %}
+
+{% block head %}
+{% if matches is not none %}
+<style>
+@font-face {
+    font-family: "query-font";
+    src: url("{{ query_font_data_uri }}");
+    font-display: swap;
+}
+{% for m in matches %}
+{% if m.has_file %}
+@font-face {
+    font-family: "match-{{ loop.index }}";
+    src: url("{{ url_for('api.font_file', name=m.name) }}");
+    font-display: swap;
+}
+{% endif %}
+{% endfor %}
+</style>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+{% if matches is none %}
+<section class="hero hero-sm">
+    <h1>Identify a font</h1>
+    <p class="hero-sub">Upload a font file and we'll find the closest open-source alternatives.</p>
+</section>
+
+<form method="post" action="{{ url_for('web.identify_submit') }}" enctype="multipart/form-data" class="upload-form" id="upload-form">
+    <label for="file" class="drop-zone" id="drop-zone">
+        <span class="drop-icon">+</span>
+        <span class="drop-label">Drop a font file here, or click to browse</span>
+        <span class="drop-hint">TTF, OTF, WOFF, WOFF2</span>
+        <input type="file" id="file" name="file" accept=".ttf,.otf,.woff,.woff2" required>
+    </label>
+    <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">Find matches</button>
+</form>
+
+{% else %}
+<section class="results-header">
+    <h1>Results for <em>{{ query_family }}</em></h1>
+    <p class="hero-sub">Your font compared against the top {{ matches|length }} open-source matches.</p>
+</section>
+
+<div class="query-showcase">
+    <div class="query-label">Your font</div>
+    <div class="query-font-name">{{ query_family }}</div>
+    <div class="query-preview" style="font-family: 'query-font', serif;">
+        <p class="preview-lg">Hamburgefonstiv 0123 ,.?!</p>
+        <p class="preview-md">The quick brown fox jumps over the lazy dog.</p>
+    </div>
+</div>
+
+{% set query_label = query_family %}
+{% for m in matches %}
+{% set idx = loop.index %}
+{% include "_match_card.html" with context %}
+{% endfor %}
+
+<div class="back-link">
+    <a href="{{ url_for('web.identify_form') }}" class="btn btn-outline">Upload another font</a>
+</div>
+{% endif %}
+{% endblock %}

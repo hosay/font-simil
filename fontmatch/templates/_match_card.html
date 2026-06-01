@@ -1,0 +1,81 @@
+{# Reusable match card — expects: m (match dict), idx, query_label, slugify #}
+<article class="match-card">
+    <div class="match-header">
+        <span class="match-rank">#{{ idx }}</span>
+        <div class="match-title">
+            <h2>{{ m.family }}</h2>
+            <div class="match-links">
+                {% if m.google_fonts_url %}
+                <a href="{{ m.google_fonts_url }}" target="_blank" rel="noopener" class="match-link">Google Fonts</a>
+                {% endif %}
+                {% if m.has_file %}
+                <a href="{{ url_for('api.font_file', name=m.name) }}" download class="match-link">Download</a>
+                {% endif %}
+                <a href="{{ url_for('web.similar_to', slug=slugify(m.family)) }}" class="match-link">See similar fonts</a>
+            </div>
+        </div>
+        <div class="score-badge score-{{ 'great' if m.score >= 70 else ('good' if m.score >= 40 else 'fair') }}" title="Based on weight, proportions, and visual glyph similarity">
+            {{ m.score }}% match
+        </div>
+    </div>
+
+    <div class="score-bar-wrap">
+        <div class="score-bar">
+            <div class="score-marker" style="left: {{ m.score }}%;"></div>
+        </div>
+        <div class="score-labels">
+            <span>Poor match</span>
+            <span title="Scored on weight, proportions, x-height, and visual rendering comparison">Perfect match</span>
+        </div>
+    </div>
+
+    <div class="score-breakdown">
+        <span class="breakdown-item" title="Weight, width, x-height, cap-height, serif classification">Metrics: {{ m.metric_score }}%</span>
+        <span class="breakdown-item" title="Rendered glyph visual similarity">Visual: {{ m.perceptual_score }}%</span>
+        {% if m.license_label and m.license_label != 'Unknown' %}
+        <span class="breakdown-item license-tag">{{ m.license_label }}</span>
+        {% endif %}
+    </div>
+
+    <div class="comparison">
+        <div class="comparison-col">
+            <div class="comparison-label">{{ query_label }}</div>
+            <div class="font-render" style="font-family: 'query-font', serif;">
+                <p class="preview-lg">Hamburgefonstiv</p>
+                <p class="preview-sm">ABCDEFGHIJKabcdefghijk 0123456789</p>
+            </div>
+        </div>
+        <div class="comparison-divider"></div>
+        <div class="comparison-col">
+            <div class="comparison-label">{{ m.family }}</div>
+            {% if m.has_file %}
+            <div class="font-render" style="font-family: 'match-{{ idx }}', serif;">
+            {% else %}
+            <div class="font-render">
+            {% endif %}
+                <p class="preview-lg">Hamburgefonstiv</p>
+                <p class="preview-sm">ABCDEFGHIJKabcdefghijk 0123456789</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="match-footer">
+        <div class="match-footer-row">
+            <div class="star-rating" data-query="{{ query_label }}" data-match="{{ m.name }}">
+                <span class="rate-label">Rate this match:</span>
+                <span class="stars">
+                    {% for i in range(1, 6) %}
+                    <span class="star" data-value="{{ i }}">&#9734;</span>
+                    {% endfor %}
+                </span>
+                <span class="rating-feedback"></span>
+            </div>
+            <div class="match-actions">
+                {% if m.google_fonts_url %}
+                <button class="action-btn copy-css-btn" data-family="{{ m.family }}" title="Copy Google Fonts embed code">Copy CSS</button>
+                {% endif %}
+                <button class="action-btn report-btn" data-query="{{ query_label }}" data-match="{{ m.name }}" title="Report a bad match">Flag</button>
+            </div>
+        </div>
+    </div>
+</article>

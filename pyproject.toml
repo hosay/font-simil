@@ -1,0 +1,18 @@
+[project]
+name = "fontmatch"
+version = "0.1.0"
+description = "Identify the closest open-source font for a given font file"
+requires-python = ">=3.10"
+
+[tool.ruff]
+line-length = 99
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: tests requiring network or browser",
+]

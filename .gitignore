@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.db
+.coverage
+htmlcov/
+.claude/
+google-fonts-repo/
+majestic_million.csv
+crawl_checkpoint.txt
+corpus_fonts/

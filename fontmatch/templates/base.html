@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}FontMatch{% endblock %} &mdash; Open-Source Font Finder</title>
+    <meta name="description" content="{% block meta_description %}Find the perfect open-source replacement for any font. Upload a font file and get instant matches from 5000+ indexed fonts.{% endblock %}">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+
+    {# Open Graph / Social #}
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{% block og_title %}FontMatch &mdash; Open-Source Font Finder{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Upload any font file and find the best open-source alternatives using metric and visual analysis.{% endblock %}">
+    <meta property="og:site_name" content="FontMatch">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="FontMatch &mdash; Open-Source Font Finder">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <nav class="site-nav">
+        <div class="container nav-inner">
+            <a href="{{ url_for('web.index') }}" class="nav-brand">
+                <span class="brand-logo" aria-hidden="true"><span class="logo-a logo-a-back">A</span><span class="logo-a logo-a-front">A</span></span>
+                FontMatch
+            </a>
+            <div class="nav-links">
+                <a href="{{ url_for('web.identify_form') }}">Identify</a>
+                <a href="{{ url_for('api.api_docs') }}">API</a>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <div class="container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            FontMatch &mdash; Find the best open-source replacement for any font.
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

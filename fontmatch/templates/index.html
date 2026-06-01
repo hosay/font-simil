@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<section class="hero">
+    <h1>Find the perfect open-source<br>replacement for any font</h1>
+    <p class="hero-sub">Upload a font file and we'll match it against <strong>{{ font_count }}</strong> indexed fonts using metric and visual analysis.</p>
+    <a href="{{ url_for('web.identify_form') }}" class="btn btn-primary btn-lg">Upload a Font</a>
+</section>
+
+<section class="section">
+    <h2>Popular searches</h2>
+    <p class="section-sub">Looking for an open-source alternative to a well-known font?</p>
+    <div class="pill-grid">
+        {% for link in popular_links %}
+        <a href="{{ url_for('web.similar_to', slug=link.slug) }}" class="pill">{{ link.label }} <span class="pill-arrow">&#8594;</span> {{ link.target_family }}</a>
+        {% endfor %}
+    </div>
+</section>
+
+{% if families %}
+<section class="section" id="browse">
+    <h2>Browse the corpus</h2>
+    <div class="browse-controls">
+        <input type="text" id="corpus-search" class="search-input" placeholder="Search fonts..." autocomplete="off">
+        <div class="category-filters">
+            <button class="filter-btn active" data-category="">All</button>
+            <button class="filter-btn" data-category="sans-serif">Sans-serif</button>
+            <button class="filter-btn" data-category="serif">Serif</button>
+            <button class="filter-btn" data-category="mono">Monospace</button>
+        </div>
+    </div>
+    <div class="pill-grid pill-grid-sm" id="corpus-results">
+        {% for family in families[:40] %}
+        <a href="{{ url_for('web.similar_to', slug=slugify(family)) }}" class="pill pill-outline">{{ family }}</a>
+        {% endfor %}
+    </div>
+    <div class="browse-pagination" id="browse-pagination">
+        {% if families|length > 40 %}
+        <button class="btn btn-outline btn-sm" id="load-more-btn">Show more</button>
+        {% endif %}
+    </div>
+</section>
+{% endif %}
+
+<section class="section how-it-works">
+    <h2>How it works</h2>
+    <div class="steps">
+        <div class="step">
+            <div class="step-num">1</div>
+            <h3>Upload</h3>
+            <p>Drag in any TTF, OTF, WOFF, or WOFF2 font file.</p>
+        </div>
+        <div class="step">
+            <div class="step-num">2</div>
+            <h3>Fingerprint</h3>
+            <p>We measure weight, proportions, and render glyphs for visual comparison. <a href="{{ url_for('api.api_docs') }}">Learn more in the API docs.</a></p>
+        </div>
+        <div class="step">
+            <div class="step-num">3</div>
+            <h3>Match</h3>
+            <p>Every indexed font is scored and ranked. You see the closest open-source alternatives, side by side.</p>
+        </div>
+    </div>
+</section>
+{% endblock %}

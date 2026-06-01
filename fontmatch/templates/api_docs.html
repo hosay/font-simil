@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}API Documentation{% endblock %}
+{% block meta_description %}FontMatch REST API documentation. Identify fonts, search the corpus, and download open-source alternatives programmatically.{% endblock %}
+{% block content %}
+<section class="hero hero-sm">
+    <h1>API Documentation</h1>
+    <p class="hero-sub">All endpoints are prefixed with <code>/api</code> and return JSON. Responses include an <code>X-API-Version</code> header.</p>
+</section>
+
+<div class="api-doc">
+
+<section class="api-endpoint">
+    <h2>GET /api/health</h2>
+    <p>Health check. Returns service status and number of indexed fonts.</p>
+    <pre><code>curl {{ request.host_url }}api/health</code></pre>
+    <pre><code>{
+  "status": "ok",
+  "font_count": {{ font_count }}
+}</code></pre>
+</section>
+
+<section class="api-endpoint">
+    <h2>POST /api/identify</h2>
+    <p>Upload a font file to find the closest open-source matches. <strong>Rate limited: 10 requests/minute per IP.</strong></p>
+    <pre><code>curl -X POST -F "file=@MyFont.ttf" {{ request.host_url }}api/identify</code></pre>
+    <p>Accepts: TTF, OTF, WOFF, WOFF2. Max file size: 10 MB.</p>
+    <h3>Success (200)</h3>
+    <pre><code>{
+  "matches": [
+    {
+      "name": "Roboto-Regular.ttf",
+      "family": "Roboto",
+      "distance": 0.0832,
+      "metric_distance": 0.042,
+      "perceptual_distance": 0.11,
+      "score": 61,
+      "score_breakdown": { "metric": 78, "perceptual": 52 },
+      "license_id": "Apache-2.0",
+      "license_label": "Apache 2.0",
+      "download_url": "/api/font-file/Roboto-Regular.ttf",
+      "google_fonts_url": "https://fonts.google.com/specimen/Roboto"
+    }
+  ],
+  "cached": false
+}</code></pre>
+    <p><code>download_url</code> serves the font file directly. <code>google_fonts_url</code> is <code>null</code> for fonts not on Google Fonts.</p>
+    <h3>Error (400)</h3>
+    <pre><code>{ "error": "Unsupported font format", "type": "UnsupportedFontError" }</code></pre>
+    <h3>Error (413)</h3>
+    <pre><code>{ "error": "File too large. Maximum size is 10 MB." }</code></pre>
+</section>
+
+<section class="api-endpoint">
+    <h2>GET /api/browse</h2>
+    <p>Search and browse fonts in the corpus with optional filters.</p>
+    <pre><code>curl "{{ request.host_url }}api/browse?q=roboto&category=sans-serif&page=1&per_page=20"</code></pre>
+    <h3>Parameters</h3>
+    <ul>
+        <li><code>q</code> &mdash; search query (optional, filters by family name)</li>
+        <li><code>category</code> &mdash; <code>sans-serif</code>, <code>serif</code>, or <code>mono</code> (optional)</li>
+        <li><code>page</code> &mdash; page number, default 1</li>
+        <li><code>per_page</code> &mdash; results per page, default 40, max 100</li>
+    </ul>
+    <pre><code>{
+  "fonts": [
+    { "family": "Roboto", "category": "sans-serif", "license_id": "Apache-2.0" }
+  ],
+  "total": 142,
+  "page": 1,
+  "per_page": 20,
+  "pages": 8
+}</code></pre>
+</section>
+
+<section class="api-endpoint">
+    <h2>GET /api/fonts/&lt;id&gt;</h2>
+    <p>Retrieve metadata for a font by database ID.</p>
+    <pre><code>curl {{ request.host_url }}api/fonts/1</code></pre>
+    <h3>Success (200)</h3>
+    <pre><code>{
+  "id": 1,
+  "file_hash": "abc123...",
+  "name": "Roboto-Regular.ttf",
+  "family": "Roboto",
+  "subfamily": "Regular",
+  "units_per_em": 2048,
+  "license_id": "Apache-2.0",
+  "source": "ofl/roboto/Roboto-Regular.ttf"
+}</code></pre>
+    <h3>Error (404)</h3>
+    <pre><code>{ "error": "Font not found" }</code></pre>
+</section>
+
+<section class="api-endpoint">
+    <h2>GET /api/font-file/&lt;name&gt;</h2>
+    <p>Download a font file from the corpus. Returns the binary font file with the correct MIME type.</p>
+    <pre><code>curl -O {{ request.host_url }}api/font-file/Roboto-Regular.ttf</code></pre>
+    <p>Responses are cached for 24 hours via <code>Cache-Control</code> headers.</p>
+    <h3>Error (404)</h3>
+    <pre><code>{ "error": "Font not found in DB" }</code></pre>
+</section>
+
+<section class="api-endpoint">
+    <h2>POST /api/scores</h2>
+    <p>Submit a 1&ndash;5 quality rating for a match. One rating per IP per font pair.</p>
+    <pre><code>curl -X POST -H "Content-Type: application/json" \
+  -d '{"query_font":"MyFont.ttf","match_font":"Roboto-Regular.ttf","score":4}' \
+  {{ request.host_url }}api/scores</code></pre>
+    <h3>Success (200)</h3>
+    <pre><code>{
+  "average_score": 3.8,
+  "vote_count": 12,
+  "saved": true
+}</code></pre>
+    <h3>Error (400)</h3>
+    <pre><code>{ "error": "score must be integer 1-5" }</code></pre>
+</section>
+
+<section class="api-endpoint">
+    <h2>POST /api/report</h2>
+    <p>Report a bad match. One report per IP per font pair.</p>
+    <pre><code>curl -X POST -H "Content-Type: application/json" \
+  -d '{"query_font":"MyFont.ttf","match_font":"BadMatch.ttf"}' \
+  {{ request.host_url }}api/report</code></pre>
+    <pre><code>{ "reported": true }</code></pre>
+</section>
+
+</div>
+{% endblock %}
