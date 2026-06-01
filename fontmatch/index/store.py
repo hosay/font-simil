@@ -528,11 +528,16 @@ class FontStore:
             if category and cat != category:
                 continue
 
+            from fontmatch.web.helpers import google_fonts_url
+
             results.append(
                 {
                     "family": family,
                     "category": cat,
                     "license_id": row["license_id"] or "unknown",
+                    "google_fonts_url": google_fonts_url(family)
+                    if self.has_google_fonts_source(family)
+                    else None,
                 }
             )
 
@@ -603,10 +608,23 @@ class FontStore:
         return row[0] if row else None
 
     def has_google_fonts_source(self, family: str) -> bool:
-        """Check if any font in this family was ingested from Google Fonts."""
+        """Check if any font in this family was ingested from Google Fonts.
+
+        Matches explicit prefixes (ofl/, apache/, ufl/) as well as the bare
+        ``familyslug/FontFile.ttf`` pattern produced when the google-fonts-repo
+        is walked without a license-category prefix.  Crawled web-font sources
+        are excluded by requiring the source to end with a font extension.
+        """
         row = self.conn.execute(
             """SELECT 1 FROM fonts
-               WHERE family = ? AND (source LIKE 'ofl/%' OR source LIKE 'apache/%' OR source LIKE 'ufl/%')
+               WHERE family = ? AND (
+                   source LIKE 'ofl/%'
+                   OR source LIKE 'apache/%'
+                   OR source LIKE 'ufl/%'
+                   OR (source LIKE '%/%' AND (
+                       source LIKE '%.ttf' OR source LIKE '%.otf'
+                       OR source LIKE '%.woff' OR source LIKE '%.woff2'))
+               )
                LIMIT 1""",
             (family,),
         ).fetchone()

@@ -146,53 +146,6 @@ def google_fonts_url(family: str) -> str:
     return "https://fonts.google.com/specimen/" + base.replace(" ", "+")
 
 
-_KNOWN_GOOGLE_FONTS = {
-    "Roboto",
-    "Roboto Mono",
-    "Arimo",
-    "Tinos",
-    "Cousine",
-    "Carlito",
-    "Caladea",
-    "Gelasio",
-    "Lato",
-    "Open Sans",
-    "Noto Sans",
-    "Noto Serif",
-    "Noto Sans Mono",
-    "Fira Sans",
-    "Fira Mono",
-    "Fira Code",
-    "Source Code Pro",
-    "Source Sans 3",
-    "PT Sans",
-    "PT Serif",
-    "Ubuntu",
-    "Ubuntu Mono",
-    "Montserrat",
-    "Lora",
-    "Merriweather",
-    "EB Garamond",
-    "Alegreya",
-    "Alegreya Sans",
-    "Barlow",
-    "Inconsolata",
-    "Work Sans",
-    "Nunito",
-    "Mulish",
-    "Bitter",
-    "DM Sans",
-    "DM Serif Display",
-    "Spectral",
-    "Vollkorn",
-    "Inter",
-    "Poppins",
-    "Oswald",
-    "Raleway",
-    "Cormorant Garamond",
-    "Space Mono",
-    "JetBrains Mono",
-}
 
 
 def _is_crawled_source(source: str) -> bool:
@@ -247,8 +200,6 @@ def enrich_matches(matches: list[dict], store=None) -> list[dict]:
 
         # Google Fonts link
         if store is not None and store.has_google_fonts_source(m["family"]):
-            m["google_fonts_url"] = google_fonts_url(m["family"])
-        elif base_family_name(m["family"]) in _KNOWN_GOOGLE_FONTS:
             m["google_fonts_url"] = google_fonts_url(m["family"])
 
     return matches
