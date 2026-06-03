@@ -7,10 +7,16 @@
     <div class="hero-actions">
         <div class="hero-search-wrap">
             <input type="text" id="hero-search" class="hero-search-input" placeholder="Search by font name (e.g. Helvetica, Roboto...)" autocomplete="off">
+            <button type="button" class="hero-search-icon" id="hero-search-btn" aria-label="Search">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </button>
             <div class="hero-search-results" id="hero-search-results"></div>
         </div>
         <span class="hero-or">or</span>
-        <a href="{{ url_for('web.identify_form') }}" class="btn btn-primary btn-lg">Upload a Font</a>
+        <form id="hero-upload-form" action="{{ url_for('web.identify_submit') }}" method="post" enctype="multipart/form-data" style="display:contents">
+            <input type="file" id="hero-upload-input" name="file" accept=".ttf,.otf,.woff,.woff2" hidden aria-label="Upload a font file">
+            <button type="button" id="hero-upload-btn" class="btn btn-primary btn-lg">Upload a Font</button>
+        </form>
     </div>
 </section>
 
@@ -21,6 +27,9 @@
         {% for link in popular_links %}
         <a href="{{ url_for('web.similar_to', slug=link.slug) }}" class="pill">{{ link.label }} <span class="pill-arrow">&#8594;</span> {{ link.target_family }}</a>
         {% endfor %}
+    </div>
+    <div class="section-more">
+        <a href="{{ url_for('web.popular') }}" class="btn btn-outline btn-sm">See all {{ total_popular }} popular fonts</a>
     </div>
 </section>
 

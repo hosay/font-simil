@@ -31,7 +31,7 @@
 {% if not found %}
 <section class="hero hero-sm">
     <h1>Font not found</h1>
-    <p class="hero-sub">"{{ family_name }}" isn't in our corpus yet. Try <a href="{{ url_for('web.identify_form') }}">uploading the font file</a> instead.</p>
+    <p class="hero-sub">"{{ family_name }}" isn't in our corpus yet. Try <a href="{{ url_for('web.identify_form') }}">uploading the font file</a> instead, or browse <a href="{{ url_for('web.popular') }}">popular font searches</a>.</p>
 </section>
 
 {% elif matches %}

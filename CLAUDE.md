@@ -3,6 +3,9 @@
 ## Preferences
 Use Python as the primary programming language
 
+## Dev server
+Run dev server on `0.0.0.0:8087` so it is accessible on the LAN
+
 ## Expert subagent review
 
 For any non-trivial feature or fix, use a two-pass review cycle with an expert subagent:

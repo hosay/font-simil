@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Popular Font Searches &mdash; {{ total }} Fonts{% endblock %}
+{% block meta_description %}Browse the {{ total }} most searched fonts and find free, open-source alternatives for each one. From Helvetica to Gotham, Times New Roman to Futura.{% endblock %}
+{% block og_title %}{{ total }} Most Popular Font Searches &mdash; FontMatch{% endblock %}
+{% block og_description %}Find free open-source alternatives to the most commonly searched fonts.{% endblock %}
+
+{% block content %}
+<section class="hero hero-sm">
+    <h1>Popular font searches</h1>
+    <p class="hero-sub">The {{ total }} most searched "similar font to" queries on the web. Each links to free, open-source alternatives.</p>
+</section>
+
+{% for group in groups %}
+<section class="section">
+    <h2>{{ group.label }}</h2>
+    <div class="pill-grid">
+        {% for font in group.fonts %}
+        <a href="{{ url_for('web.similar_to', slug=font.slug) }}" class="pill pill-outline">{{ font.label }}</a>
+        {% endfor %}
+    </div>
+</section>
+{% endfor %}
+
+<div class="back-link">
+    <a href="{{ url_for('web.index') }}" class="btn btn-outline">Back to home</a>
+</div>
+{% endblock %}

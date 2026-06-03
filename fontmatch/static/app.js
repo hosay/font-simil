@@ -166,6 +166,24 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    /* --- Hero upload button (opens file picker, auto-submits) --- */
+    var heroUploadBtn = document.getElementById("hero-upload-btn");
+    var heroUploadInput = document.getElementById("hero-upload-input");
+    var heroUploadForm = document.getElementById("hero-upload-form");
+    if (heroUploadBtn && heroUploadInput && heroUploadForm) {
+        heroUploadBtn.addEventListener("click", function () {
+            if (heroUploadBtn.disabled) return;
+            heroUploadInput.click();
+        });
+        heroUploadInput.addEventListener("change", function () {
+            if (heroUploadInput.files.length) {
+                heroUploadBtn.disabled = true;
+                heroUploadBtn.textContent = "Analyzing font\u2026";
+                heroUploadForm.submit();
+            }
+        });
+    }
+
     /* --- Hero search autocomplete --- */
     var heroSearch = document.getElementById("hero-search");
     var heroResults = document.getElementById("hero-search-results");
@@ -174,6 +192,43 @@ document.addEventListener("DOMContentLoaded", function () {
 
         function heroSlugify(str) {
             return str.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+        }
+
+        function heroFetchAndShow(q, callback) {
+            fetch("/api/browse?q=" + encodeURIComponent(q) + "&per_page=8")
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (!data.fonts || data.fonts.length === 0) {
+                        heroResults.innerHTML = '<div class="hero-search-empty">No fonts found. Try <a href="/identify">uploading the file</a>.</div>';
+                        heroResults.style.display = "block";
+                        if (callback) callback(null);
+                        return;
+                    }
+                    var html = "";
+                    data.fonts.forEach(function (f) {
+                        var slug = f.slug || heroSlugify(f.family);
+                        var catLabel = f.category;
+                        var extra = "";
+                        if (f.category === "proprietary") {
+                            catLabel = "proprietary";
+                            extra = ' <span class="hero-search-arrow">&rarr; ' +
+                                (f.oss_equivalent || "").replace(/</g, "&lt;") + '</span>';
+                        } else if (f.category === "alias") {
+                            catLabel = "";
+                        }
+                        html += '<a href="/similar-to/' + slug +
+                            '" class="hero-search-item"><span class="hero-search-name">' +
+                            f.family.replace(/</g, "&lt;") + extra +
+                            '</span><span class="hero-search-cat">' +
+                            catLabel + '</span></a>';
+                    });
+                    heroResults.innerHTML = html;
+                    heroResults.style.display = "block";
+                    if (callback) callback(heroResults.querySelector(".hero-search-item"));
+                })
+                .catch(function () {
+                    if (callback) callback(null);
+                });
         }
 
         heroSearch.addEventListener("input", function () {
@@ -185,36 +240,43 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
             heroTimer = setTimeout(function () {
-                fetch("/api/browse?q=" + encodeURIComponent(q) + "&per_page=8")
-                    .then(function (r) { return r.json(); })
-                    .then(function (data) {
-                        if (!data.fonts || data.fonts.length === 0) {
-                            heroResults.innerHTML = '<div class="hero-search-empty">No fonts found. Try <a href="/identify">uploading the file</a>.</div>';
-                            heroResults.style.display = "";
-                            return;
-                        }
-                        var html = "";
-                        data.fonts.forEach(function (f) {
-                            html += '<a href="/similar-to/' + heroSlugify(f.family) +
-                                '" class="hero-search-item"><span class="hero-search-name">' +
-                                f.family.replace(/</g, "&lt;") + '</span><span class="hero-search-cat">' +
-                                f.category + '</span></a>';
-                        });
-                        heroResults.innerHTML = html;
-                        heroResults.style.display = "";
-                    });
+                heroFetchAndShow(q);
             }, 200);
         });
 
+        /* Navigate to first result immediately — fetch first if needed */
+        function heroGoToFirst() {
+            var first = heroResults.querySelector(".hero-search-item");
+            if (first) {
+                first.click();
+                return;
+            }
+            var q = heroSearch.value.trim();
+            if (q.length < 2) return;
+            clearTimeout(heroTimer);
+            heroFetchAndShow(q, function (item) {
+                if (item) item.click();
+            });
+        }
+
         heroSearch.addEventListener("keydown", function (e) {
             if (e.key === "Enter") {
-                var first = heroResults.querySelector(".hero-search-item");
-                if (first) { e.preventDefault(); first.click(); }
+                e.preventDefault();
+                heroGoToFirst();
             }
         });
 
+        /* Search icon click */
+        var heroSearchBtn = document.getElementById("hero-search-btn");
+        if (heroSearchBtn) {
+            heroSearchBtn.addEventListener("click", function () {
+                heroGoToFirst();
+            });
+        }
+
+        var heroWrap = document.querySelector(".hero-search-wrap");
         document.addEventListener("click", function (e) {
-            if (!heroSearch.contains(e.target) && !heroResults.contains(e.target)) {
+            if (!heroWrap.contains(e.target) && !heroResults.contains(e.target)) {
                 heroResults.style.display = "none";
             }
         });

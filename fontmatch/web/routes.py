@@ -20,10 +20,12 @@ from fontmatch.features.fingerprint import fingerprint
 from fontmatch.features.perceptual import FINGERPRINT_SCHEMA_VERSION
 from fontmatch.fonts.loader import UnsupportedFontError, load
 from fontmatch.web.helpers import (
+    CORPUS_ALIASES,
     PROPRIETARY_FONTS,
     PROPRIETARY_TO_OPEN_SOURCE,
     deslugify,
     enrich_matches,
+    lookup_corpus_alias,
     lookup_proprietary,
     slugify,
 )
@@ -44,28 +46,107 @@ def sitemap_txt():
     store = current_app.config["STORE"]
     families = store.list_font_families(clean_only=True, indexed_only=True)
     base = request.host_url.rstrip("/")
-    lines = [f"{base}/", f"{base}/identify", f"{base}/api/docs"]
+    lines = [f"{base}/", f"{base}/popular", f"{base}/identify", f"{base}/api/docs"]
+    # All proprietary font pages
     for prop_name in PROPRIETARY_TO_OPEN_SOURCE:
         lines.append(f"{base}/similar-to/{slugify(prop_name)}")
+    # All corpus alias pages
+    for alias_name in CORPUS_ALIASES:
+        lines.append(f"{base}/similar-to/{slugify(alias_name)}")
+    # All corpus font pages
     for fam in families:
         lines.append(f"{base}/similar-to/{slugify(fam)}")
     return Response("\n".join(lines), mimetype="text/plain")
 
 
-# Popular fonts shown on the homepage.
-# Each maps a well-known proprietary name to its open-source equivalent in our
-# corpus, so the link actually works.
+# Popular fonts shown on the homepage — ordered by Google search volume for
+# "similar font to X".  Only the top entries are displayed; the full list
+# lives on the /popular page.
 POPULAR_FONTS = [
     {"label": "Times New Roman", "target": "Tinos"},
-    {"label": "Arial", "target": "Arimo"},
     {"label": "Helvetica", "target": "Liberation Sans"},
-    {"label": "Courier New", "target": "Cousine"},
+    {"label": "Proxima Nova", "target": "Nunito"},
+    {"label": "Futura", "target": "Nunito ExtraLight"},
+    {"label": "Impact", "target": "Anton"},
+    {"label": "Arial", "target": "Arimo"},
+    {"label": "Gotham", "target": "Montserrat"},
     {"label": "Calibri", "target": "Carlito"},
-    {"label": "Cambria", "target": "Caladea"},
-    {"label": "Georgia", "target": "Gelasio"},
-    {"label": "Garamond", "target": "EB Garamond"},
-    {"label": "Palatino", "target": "Lora"},
+    {"label": "Comic Sans", "target": "Comic Neue"},
+    {"label": "Avenir", "target": "Nunito"},
+    {"label": "Century Gothic", "target": "Poppins"},
     {"label": "Verdana", "target": "DejaVu Sans"},
+    {"label": "Garamond", "target": "EB Garamond"},
+    {"label": "Georgia", "target": "Gelasio"},
+    {"label": "Bodoni", "target": "Libre Bodoni"},
+]
+
+# Complete list of popular font searches, ordered by Google search volume.
+# Includes both proprietary fonts (mapped to OSS equivalents) and fonts
+# already in the corpus.  Used on the /popular index page.
+ALL_POPULAR_FONTS = [
+    # --- Proprietary / commercial fonts (mapped via PROPRIETARY_TO_OPEN_SOURCE) ---
+    {"label": "Times New Roman", "slug": "times-new-roman", "category": "serif"},
+    {"label": "Helvetica", "slug": "helvetica", "category": "sans-serif"},
+    {"label": "Proxima Nova", "slug": "proxima-nova", "category": "sans-serif"},
+    {"label": "Futura", "slug": "futura", "category": "sans-serif"},
+    {"label": "Impact", "slug": "impact", "category": "sans-serif"},
+    {"label": "Arial", "slug": "arial", "category": "sans-serif"},
+    {"label": "Gotham", "slug": "gotham", "category": "sans-serif"},
+    {"label": "Calibri", "slug": "calibri", "category": "sans-serif"},
+    {"label": "Comic Sans", "slug": "comic-sans", "category": "sans-serif"},
+    {"label": "Avenir", "slug": "avenir", "category": "sans-serif"},
+    {"label": "Century Gothic", "slug": "century-gothic", "category": "sans-serif"},
+    {"label": "Verdana", "slug": "verdana", "category": "sans-serif"},
+    {"label": "Helvetica Neue", "slug": "helvetica-neue", "category": "sans-serif"},
+    {"label": "Myriad Pro", "slug": "myriad-pro", "category": "sans-serif"},
+    {"label": "Trajan", "slug": "trajan", "category": "serif"},
+    {"label": "Optima", "slug": "optima", "category": "sans-serif"},
+    {"label": "Eurostile", "slug": "eurostile", "category": "sans-serif"},
+    {"label": "Trajan Pro", "slug": "trajan-pro", "category": "serif"},
+    {"label": "Bodoni", "slug": "bodoni", "category": "serif"},
+    {"label": "Didot", "slug": "didot", "category": "serif"},
+    {"label": "Gill Sans", "slug": "gill-sans", "category": "sans-serif"},
+    {"label": "San Francisco", "slug": "san-francisco", "category": "sans-serif"},
+    {"label": "Avant Garde", "slug": "avant-garde", "category": "sans-serif"},
+    {"label": "DIN", "slug": "din", "category": "sans-serif"},
+    {"label": "Univers", "slug": "univers", "category": "sans-serif"},
+    {"label": "Frutiger", "slug": "frutiger", "category": "sans-serif"},
+    {"label": "Monotype Corsiva", "slug": "monotype-corsiva", "category": "script"},
+    {"label": "Museo Sans", "slug": "museo-sans", "category": "sans-serif"},
+    {"label": "Knockout", "slug": "knockout", "category": "sans-serif"},
+    {"label": "SF Pro", "slug": "sf-pro", "category": "sans-serif"},
+    {"label": "Aptos", "slug": "aptos", "category": "sans-serif"},
+    {"label": "Georgia", "slug": "georgia", "category": "serif"},
+    {"label": "Brandon Grotesque", "slug": "brandon-grotesque", "category": "sans-serif"},
+    {"label": "Copperplate", "slug": "copperplate", "category": "serif"},
+    {"label": "Cooper Black", "slug": "cooper-black", "category": "serif"},
+    {"label": "Garamond", "slug": "garamond", "category": "serif"},
+    {"label": "Segoe UI", "slug": "segoe-ui", "category": "sans-serif"},
+    {"label": "Spotify", "slug": "spotify", "category": "sans-serif"},
+    {"label": "Satoshi", "slug": "satoshi", "category": "sans-serif"},
+    {"label": "Sofia Pro", "slug": "sofia-pro", "category": "sans-serif"},
+    {"label": "Recoleta", "slug": "recoleta", "category": "serif"},
+    {"label": "Product Sans", "slug": "product-sans", "category": "sans-serif"},
+    {"label": "Google Sans", "slug": "google-sans", "category": "sans-serif"},
+    {"label": "Canva Sans", "slug": "canva-sans", "category": "sans-serif"},
+    {"label": "Gilroy", "slug": "gilroy", "category": "sans-serif"},
+    {"label": "Garet", "slug": "garet", "category": "sans-serif"},
+    # --- Fonts already in the corpus ---
+    {"label": "Montserrat", "slug": "montserrat", "category": "sans-serif"},
+    {"label": "Roboto", "slug": "roboto", "category": "sans-serif"},
+    {"label": "Bebas Neue", "slug": "bebas-neue", "category": "sans-serif"},
+    {"label": "Open Sans", "slug": "open-sans", "category": "sans-serif"},
+    {"label": "DejaVu Sans", "slug": "dejavu-sans", "category": "sans-serif"},
+    {"label": "DM Sans", "slug": "dm-sans", "category": "sans-serif"},
+    {"label": "Cinzel", "slug": "cinzel", "category": "serif"},
+    {"label": "Cormorant Garamond", "slug": "cormorant-garamond", "category": "serif"},
+    {"label": "Great Vibes", "slug": "great-vibes", "category": "script"},
+    {"label": "Source Sans Pro", "slug": "source-sans-pro", "category": "sans-serif"},
+    {"label": "Lato", "slug": "lato", "category": "sans-serif"},
+    {"label": "League Spartan", "slug": "league-spartan", "category": "sans-serif"},
+    {"label": "Raleway", "slug": "raleway", "category": "sans-serif"},
+    {"label": "Playfair Display", "slug": "playfair-display", "category": "serif"},
+    {"label": "Poppins", "slug": "poppins", "category": "sans-serif"},
 ]
 
 DEFAULT_K = 10
@@ -96,6 +177,37 @@ def index():
         popular_links=popular_links,
         families=families[:40],
         slugify=slugify,
+        total_popular=len(ALL_POPULAR_FONTS),
+    )
+
+
+@web_bp.get("/popular")
+def popular():
+    """Full index of popular font searches, grouped by category."""
+    groups = {}
+    for entry in ALL_POPULAR_FONTS:
+        cat = entry["category"]
+        groups.setdefault(cat, []).append(entry)
+
+    # Sort categories in a sensible display order
+    category_order = ["sans-serif", "serif", "script"]
+    category_labels = {
+        "sans-serif": "Sans-Serif",
+        "serif": "Serif",
+        "script": "Script & Decorative",
+    }
+    ordered_groups = []
+    for cat in category_order:
+        if cat in groups:
+            items = sorted(groups[cat], key=lambda e: e["label"].lower())
+            ordered_groups.append(
+                {"label": category_labels.get(cat, cat.title()), "fonts": items}
+            )
+
+    return render_template(
+        "popular.html",
+        groups=ordered_groups,
+        total=len(ALL_POPULAR_FONTS),
     )
 
 
@@ -178,8 +290,10 @@ def similar_to(slug: str):
     # equivalent but keep the original name as the display title.
     display_name = family_name
     canonical_prop = lookup_proprietary(family_name)
-    oss_name = PROPRIETARY_TO_OPEN_SOURCE.get(family_name)
-    lookup_name = oss_name or family_name
+    oss_name = PROPRIETARY_TO_OPEN_SOURCE.get(canonical_prop) if canonical_prop else None
+    # Also check corpus aliases (e.g. "DM Sans" -> "DM Sans 9pt")
+    alias_target = lookup_corpus_alias(family_name)
+    lookup_name = oss_name or alias_target or family_name
 
     # Proprietary font metadata (None for open-source fonts)
     prop_meta = None

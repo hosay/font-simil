@@ -11,7 +11,12 @@ from flask import Blueprint, current_app, jsonify, request, send_file
 from fontmatch.features.fingerprint import fingerprint
 from fontmatch.features.perceptual import FINGERPRINT_SCHEMA_VERSION
 from fontmatch.fonts.loader import UnsupportedFontError, load
-from fontmatch.web.helpers import enrich_matches
+from fontmatch.web.helpers import (
+    CORPUS_ALIASES,
+    PROPRIETARY_TO_OPEN_SOURCE,
+    enrich_matches,
+    slugify,
+)
 
 _MIME_TYPES = {
     ".ttf": "font/ttf",
@@ -125,9 +130,43 @@ def save_score():
     return jsonify({"average_score": avg, "vote_count": count, "saved": saved})
 
 
+def _proprietary_matches(query: str) -> list[dict]:
+    """Return proprietary/alias font entries that match the search query.
+
+    Each result has ``family``, ``category``, and ``slug`` keys so the
+    client can build a link to ``/similar-to/<slug>``.
+    """
+    if not query:
+        return []
+    q = query.lower()
+    hits: list[dict] = []
+    # Search proprietary names
+    for prop_name, oss_name in PROPRIETARY_TO_OPEN_SOURCE.items():
+        if q in prop_name.lower():
+            hits.append(
+                {
+                    "family": prop_name,
+                    "category": "proprietary",
+                    "slug": slugify(prop_name),
+                    "oss_equivalent": oss_name,
+                }
+            )
+    # Search corpus aliases (e.g. "DM Sans" -> "DM Sans 9pt")
+    for alias_name in CORPUS_ALIASES:
+        if q in alias_name.lower():
+            hits.append(
+                {
+                    "family": alias_name,
+                    "category": "alias",
+                    "slug": slugify(alias_name),
+                }
+            )
+    return hits
+
+
 @api_bp.get("/browse")
 def browse_fonts():
-    """Search and filter fonts in the corpus."""
+    """Search and filter fonts in the corpus, including proprietary names."""
     store = current_app.config["STORE"]
     query = request.args.get("q", "").strip()
     category = request.args.get("category", "").strip()
@@ -141,6 +180,19 @@ def browse_fonts():
         offset=offset,
         limit=per_page,
     )
+
+    # On the first page, prepend proprietary / alias matches so that
+    # typing "Helvetica" shows a result even though it's not in the corpus.
+    if query and page == 1 and not category:
+        prop_hits = _proprietary_matches(query)
+        # Deduplicate: remove proprietary hits whose slug already
+        # appears in the corpus results.
+        corpus_slugs = {slugify(r["family"]) for r in results}
+        new_hits = [h for h in prop_hits if h["slug"] not in corpus_slugs]
+        if new_hits:
+            results = new_hits[:per_page] + results
+            total += len(new_hits[:per_page])
+
     return jsonify(
         {
             "fonts": results,

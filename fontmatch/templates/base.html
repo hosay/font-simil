@@ -31,6 +31,7 @@
                 FontMatch
             </a>
             <div class="nav-links">
+                <a href="{{ url_for('web.popular') }}">Popular</a>
                 <a href="{{ url_for('web.identify_form') }}">Identify</a>
                 <a href="{{ url_for('api.api_docs') }}">API</a>
             </div>
@@ -67,10 +68,11 @@
                     </div>
                     <div class="footer-col">
                         <h4>Popular Alternatives</h4>
-                        <a href="{{ url_for('web.similar_to', slug='arial') }}">Arial Alternatives</a>
-                        <a href="{{ url_for('web.similar_to', slug='times-new-roman') }}">Times New Roman Alternatives</a>
                         <a href="{{ url_for('web.similar_to', slug='helvetica') }}">Helvetica Alternatives</a>
-                        <a href="{{ url_for('web.similar_to', slug='calibri') }}">Calibri Alternatives</a>
+                        <a href="{{ url_for('web.similar_to', slug='times-new-roman') }}">Times New Roman Alternatives</a>
+                        <a href="{{ url_for('web.similar_to', slug='gotham') }}">Gotham Alternatives</a>
+                        <a href="{{ url_for('web.similar_to', slug='futura') }}">Futura Alternatives</a>
+                        <a href="{{ url_for('web.popular') }}">All popular fonts</a>
                     </div>
                 </div>
             </div>
