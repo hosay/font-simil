@@ -122,3 +122,23 @@ class TestFontFile:
     def test_serve_unknown_font_returns_404(self, client):
         resp = client.get("/api/font-file/nonexistent.ttf")
         assert resp.status_code == 404
+
+    def test_concurrent_font_file_requests(self, app):
+        """Multiple simultaneous font-file requests must not cause 500 errors.
+
+        Regression test: a shared SQLite connection without locking caused
+        'cannot start a transaction within a transaction' under concurrency.
+        """
+        import concurrent.futures
+
+        def fetch_font():
+            with app.test_client() as c:
+                return c.get("/api/font-file/Cousine-Regular.ttf").status_code
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+            futures = [pool.submit(fetch_font) for _ in range(20)]
+            results = [f.result() for f in futures]
+
+        assert all(code == 200 for code in results), (
+            f"Expected all 200s, got: {results}"
+        )

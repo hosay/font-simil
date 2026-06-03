@@ -76,10 +76,11 @@ from fontmatch.features.perceptual import FINGERPRINT_SCHEMA_VERSION
 store = FontStore('$DB_PATH')
 
 # Check if we already have v4 fingerprints
-v4_count = store.conn.execute(
-    'SELECT COUNT(*) FROM fingerprints WHERE schema_version = ?',
-    (FINGERPRINT_SCHEMA_VERSION,)
-).fetchone()[0]
+with store._lock:
+    v4_count = store.conn.execute(
+        'SELECT COUNT(*) FROM fingerprints WHERE schema_version = ?',
+        (FINGERPRINT_SCHEMA_VERSION,)
+    ).fetchone()[0]
 
 if v4_count > 100:
     print(f'Corpus already ingested ({v4_count} fingerprints). Skipping.')

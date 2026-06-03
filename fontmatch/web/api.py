@@ -95,12 +95,13 @@ def identify():
 @api_bp.get("/fonts/<int:font_id>")
 def get_font(font_id: int):
     store = current_app.config["STORE"]
-    row = store.conn.execute(
-        """SELECT id, file_hash, name, family, subfamily,
-                  units_per_em, license_id, source
-           FROM fonts WHERE id = ?""",
-        (font_id,),
-    ).fetchone()
+    with store._lock:
+        row = store.conn.execute(
+            """SELECT id, file_hash, name, family, subfamily,
+                      units_per_em, license_id, source
+               FROM fonts WHERE id = ?""",
+            (font_id,),
+        ).fetchone()
     if row is None:
         return jsonify({"error": "Font not found"}), 404
     return jsonify(dict(row))

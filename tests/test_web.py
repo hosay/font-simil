@@ -84,11 +84,17 @@ class TestSimilarTo:
             resp = client.get(f"/similar-to/{slug}")
             assert resp.status_code == 200
 
-    def test_similar_to_unknown_font_shows_not_found(self, client):
+    def test_similar_to_unknown_font_returns_404(self, client):
         resp = client.get("/similar-to/nonexistent-font-xyz")
-        assert resp.status_code == 200
-        html = resp.data.decode()
-        assert "not found" in html.lower() or "upload" in html.lower()
+        assert resp.status_code == 404
+
+    def test_similar_to_very_long_slug_returns_404(self, client):
+        resp = client.get("/similar-to/" + "a" * 200)
+        assert resp.status_code == 404
+
+    def test_similar_to_null_byte_slug_returns_404(self, client):
+        resp = client.get("/similar-to/font%00name")
+        assert resp.status_code == 404
 
     def test_similar_to_shows_match_results(self, client, app):
         store = app.config["STORE"]

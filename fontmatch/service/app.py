@@ -11,6 +11,7 @@ from flask import Flask, g, jsonify, render_template, request
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from fontmatch.index.ingest import ingest_corpus
 from fontmatch.index.store import FontStore
@@ -36,6 +37,9 @@ def create_app(
         template_folder=str(Path(__file__).parent.parent / "templates"),
         static_folder=str(Path(__file__).parent.parent / "static"),
     )
+    # Trust one level of X-Forwarded-For so rate limiting works behind a
+    # reverse proxy (nginx, caddy, etc.).
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
     app.secret_key = os.environ.get("SECRET_KEY", "dev-key-change-me")
     app.config["TESTING"] = testing
     app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_SIZE

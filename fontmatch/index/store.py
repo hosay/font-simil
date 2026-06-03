@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import threading
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -99,6 +100,7 @@ class FontStore:
 
     def __init__(self, db_path: str | Path):
         self.db_path = Path(db_path)
+        self._lock = threading.RLock()
         self.conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(_SCHEMA)
@@ -114,54 +116,56 @@ class FontStore:
         source: str = "",
     ) -> int:
         """Store a font and its fingerprint. Idempotent by file_hash."""
-        cur = self.conn.cursor()
+        with self._lock:
+            cur = self.conn.cursor()
 
-        # Upsert font
-        cur.execute(
-            """INSERT INTO fonts
-               (file_hash, name, family, subfamily, units_per_em, license_id, source)
-               VALUES (?, ?, ?, ?, ?, ?, ?)
-               ON CONFLICT(file_hash) DO UPDATE SET name=excluded.name""",
-            (
-                fp.file_hash,
-                name,
-                fp.family,
-                fp.subfamily,
-                fp.metric_vec.units_per_em,
-                license_id,
-                source,
-            ),
-        )
-        font_id = cur.execute(
-            "SELECT id FROM fonts WHERE file_hash = ?", (fp.file_hash,)
-        ).fetchone()[0]
+            # Upsert font
+            cur.execute(
+                """INSERT INTO fonts
+                   (file_hash, name, family, subfamily, units_per_em, license_id, source)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(file_hash) DO UPDATE SET name=excluded.name""",
+                (
+                    fp.file_hash,
+                    name,
+                    fp.family,
+                    fp.subfamily,
+                    fp.metric_vec.units_per_em,
+                    license_id,
+                    source,
+                ),
+            )
+            font_id = cur.execute(
+                "SELECT id FROM fonts WHERE file_hash = ?", (fp.file_hash,)
+            ).fetchone()[0]
 
-        # Store fingerprint
-        metric_blob = fp.metric_array().tobytes()
-        perceptual_blob = fp.perceptual_vec.tobytes()
-        cur.execute(
-            """INSERT INTO fingerprints
-               (font_id, schema_version, renderer_version, metric_vec, perceptual_vec)
-               VALUES (?, ?, ?, ?, ?)
-               ON CONFLICT(font_id, schema_version) DO UPDATE SET
-                 renderer_version=excluded.renderer_version,
-                 metric_vec=excluded.metric_vec,
-                 perceptual_vec=excluded.perceptual_vec""",
-            (font_id, fp.schema_version, fp.renderer_version, metric_blob, perceptual_blob),
-        )
-        self.conn.commit()
-        return font_id
+            # Store fingerprint
+            metric_blob = fp.metric_array().tobytes()
+            perceptual_blob = fp.perceptual_vec.tobytes()
+            cur.execute(
+                """INSERT INTO fingerprints
+                   (font_id, schema_version, renderer_version, metric_vec, perceptual_vec)
+                   VALUES (?, ?, ?, ?, ?)
+                   ON CONFLICT(font_id, schema_version) DO UPDATE SET
+                     renderer_version=excluded.renderer_version,
+                     metric_vec=excluded.metric_vec,
+                     perceptual_vec=excluded.perceptual_vec""",
+                (font_id, fp.schema_version, fp.renderer_version, metric_blob, perceptual_blob),
+            )
+            self.conn.commit()
+            return font_id
 
     def get_fingerprint(self, file_hash: str, schema_version: int) -> Fingerprint | None:
         """Retrieve a stored fingerprint by file hash and schema version."""
-        row = self.conn.execute(
-            """SELECT f.family, f.subfamily, fp.metric_vec, fp.perceptual_vec,
-                      fp.schema_version, fp.renderer_version
-               FROM fingerprints fp
-               JOIN fonts f ON f.id = fp.font_id
-               WHERE f.file_hash = ? AND fp.schema_version = ?""",
-            (file_hash, schema_version),
-        ).fetchone()
+        with self._lock:
+            row = self.conn.execute(
+                """SELECT f.family, f.subfamily, fp.metric_vec, fp.perceptual_vec,
+                          fp.schema_version, fp.renderer_version
+                   FROM fingerprints fp
+                   JOIN fonts f ON f.id = fp.font_id
+                   WHERE f.file_hash = ? AND fp.schema_version = ?""",
+                (file_hash, schema_version),
+            ).fetchone()
 
         if row is None:
             return None
@@ -181,7 +185,8 @@ class FontStore:
         )
 
     def font_count(self) -> int:
-        row = self.conn.execute("SELECT COUNT(*) FROM fonts").fetchone()
+        with self._lock:
+            row = self.conn.execute("SELECT COUNT(*) FROM fonts").fetchone()
         return row[0]
 
     def build_index(self):
@@ -190,16 +195,17 @@ class FontStore:
 
         self._index.clear()
         self._font_licenses: dict[str, str] = {}  # name -> license_id
-        rows = self.conn.execute(
-            """SELECT f.file_hash, f.name, f.family, f.subfamily,
-                      f.license_id,
-                      fp.metric_vec, fp.perceptual_vec,
-                      fp.schema_version, fp.renderer_version
-               FROM fingerprints fp
-               JOIN fonts f ON f.id = fp.font_id
-               WHERE fp.schema_version = ?""",
-            (FINGERPRINT_SCHEMA_VERSION,),
-        ).fetchall()
+        with self._lock:
+            rows = self.conn.execute(
+                """SELECT f.file_hash, f.name, f.family, f.subfamily,
+                          f.license_id,
+                          fp.metric_vec, fp.perceptual_vec,
+                          fp.schema_version, fp.renderer_version
+                   FROM fingerprints fp
+                   JOIN fonts f ON f.id = fp.font_id
+                   WHERE fp.schema_version = ?""",
+                (FINGERPRINT_SCHEMA_VERSION,),
+            ).fetchall()
 
         for row in rows:
             metric_arr = np.frombuffer(row["metric_vec"], dtype=np.float64)
@@ -384,35 +390,39 @@ class FontStore:
         return results
 
     def cache_result(self, query_hash: str, schema_version: int, result: list[dict]):
-        self.conn.execute(
-            """INSERT OR REPLACE INTO match_cache (query_hash, schema_version, result_json)
-               VALUES (?, ?, ?)""",
-            (query_hash, schema_version, json.dumps(result)),
-        )
-        self.conn.commit()
+        with self._lock:
+            self.conn.execute(
+                """INSERT OR REPLACE INTO match_cache (query_hash, schema_version, result_json)
+                   VALUES (?, ?, ?)""",
+                (query_hash, schema_version, json.dumps(result)),
+            )
+            self.conn.commit()
 
     def get_cached_result(self, query_hash: str, schema_version: int) -> list[dict] | None:
-        row = self.conn.execute(
-            "SELECT result_json FROM match_cache WHERE query_hash = ? AND schema_version = ?",
-            (query_hash, schema_version),
-        ).fetchone()
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT result_json FROM match_cache WHERE query_hash = ? AND schema_version = ?",
+                (query_hash, schema_version),
+            ).fetchone()
         if row is None:
             return None
         return json.loads(row["result_json"])
 
     def log_request(self, endpoint: str) -> None:
         """Record an API request for counting."""
-        self.conn.execute("INSERT INTO request_log (endpoint) VALUES (?)", (endpoint,))
-        self.conn.commit()
+        with self._lock:
+            self.conn.execute("INSERT INTO request_log (endpoint) VALUES (?)", (endpoint,))
+            self.conn.commit()
 
     def request_count(self, endpoint: str | None = None) -> int:
         """Count logged requests, optionally filtered by endpoint."""
-        if endpoint:
-            row = self.conn.execute(
-                "SELECT COUNT(*) FROM request_log WHERE endpoint = ?", (endpoint,)
-            ).fetchone()
-        else:
-            row = self.conn.execute("SELECT COUNT(*) FROM request_log").fetchone()
+        with self._lock:
+            if endpoint:
+                row = self.conn.execute(
+                    "SELECT COUNT(*) FROM request_log WHERE endpoint = ?", (endpoint,)
+                ).fetchone()
+            else:
+                row = self.conn.execute("SELECT COUNT(*) FROM request_log").fetchone()
         return row[0]
 
     def save_user_score(
@@ -427,21 +437,22 @@ class FontStore:
 
         Returns True if saved, False if this IP already rated this pair.
         """
-        existing = self.conn.execute(
-            """SELECT id FROM user_scores
-               WHERE ip_address = ? AND query_font = ? AND match_font = ?""",
-            (ip_address, query_font, match_font),
-        ).fetchone()
-        if existing is not None:
-            return False
-        self.conn.execute(
-            """INSERT INTO user_scores
-               (query_font, match_font, score, ip_address, session_id)
-               VALUES (?, ?, ?, ?, ?)""",
-            (query_font, match_font, score, ip_address, session_id),
-        )
-        self.conn.commit()
-        return True
+        with self._lock:
+            existing = self.conn.execute(
+                """SELECT id FROM user_scores
+                   WHERE ip_address = ? AND query_font = ? AND match_font = ?""",
+                (ip_address, query_font, match_font),
+            ).fetchone()
+            if existing is not None:
+                return False
+            self.conn.execute(
+                """INSERT INTO user_scores
+                   (query_font, match_font, score, ip_address, session_id)
+                   VALUES (?, ?, ?, ?, ?)""",
+                (query_font, match_font, score, ip_address, session_id),
+            )
+            self.conn.commit()
+            return True
 
     def save_report(
         self,
@@ -450,28 +461,30 @@ class FontStore:
         ip_address: str,
     ) -> bool:
         """Save a 'bad match' report. One per IP per pair. Returns True if saved."""
-        existing = self.conn.execute(
-            """SELECT id FROM match_reports
-               WHERE ip_address = ? AND query_font = ? AND match_font = ?""",
-            (ip_address, query_font, match_font),
-        ).fetchone()
-        if existing is not None:
-            return False
-        self.conn.execute(
-            """INSERT INTO match_reports (query_font, match_font, ip_address)
-               VALUES (?, ?, ?)""",
-            (query_font, match_font, ip_address),
-        )
-        self.conn.commit()
-        return True
+        with self._lock:
+            existing = self.conn.execute(
+                """SELECT id FROM match_reports
+                   WHERE ip_address = ? AND query_font = ? AND match_font = ?""",
+                (ip_address, query_font, match_font),
+            ).fetchone()
+            if existing is not None:
+                return False
+            self.conn.execute(
+                """INSERT INTO match_reports (query_font, match_font, ip_address)
+                   VALUES (?, ?, ?)""",
+                (query_font, match_font, ip_address),
+            )
+            self.conn.commit()
+            return True
 
     def get_average_score(self, query_font: str, match_font: str) -> tuple[float | None, int]:
         """Return (average_score, vote_count) for a match pair."""
-        row = self.conn.execute(
-            """SELECT AVG(score), COUNT(*) FROM user_scores
-               WHERE query_font = ? AND match_font = ?""",
-            (query_font, match_font),
-        ).fetchone()
+        with self._lock:
+            row = self.conn.execute(
+                """SELECT AVG(score), COUNT(*) FROM user_scores
+                   WHERE query_font = ? AND match_font = ?""",
+                (query_font, match_font),
+            ).fetchone()
         return (row[0], row[1])
 
     def list_font_families(self, clean_only: bool = False, indexed_only: bool = False) -> list[str]:
@@ -484,16 +497,18 @@ class FontStore:
         if indexed_only:
             from fontmatch.features.perceptual import FINGERPRINT_SCHEMA_VERSION
 
-            rows = self.conn.execute(
-                """SELECT DISTINCT f.family FROM fonts f
-                   JOIN fingerprints fp ON fp.font_id = f.id
-                     AND fp.schema_version = ?
-                   WHERE f.license_id != ''
-                   ORDER BY f.family""",
-                (FINGERPRINT_SCHEMA_VERSION,),
-            ).fetchall()
+            with self._lock:
+                rows = self.conn.execute(
+                    """SELECT DISTINCT f.family FROM fonts f
+                       JOIN fingerprints fp ON fp.font_id = f.id
+                         AND fp.schema_version = ?
+                       WHERE f.license_id != ''
+                       ORDER BY f.family""",
+                    (FINGERPRINT_SCHEMA_VERSION,),
+                ).fetchall()
         else:
-            rows = self.conn.execute("SELECT DISTINCT family FROM fonts ORDER BY family").fetchall()
+            with self._lock:
+                rows = self.conn.execute("SELECT DISTINCT family FROM fonts ORDER BY family").fetchall()
         families = [row[0] for row in rows]
         if clean_only:
             families = [f for f in families if self._is_clean_family(f)]
@@ -531,7 +546,8 @@ class FontStore:
 
         sql += " GROUP BY f.family ORDER BY f.family"
 
-        rows = self.conn.execute(sql, params).fetchall()
+        with self._lock:
+            rows = self.conn.execute(sql, params).fetchall()
 
         # Post-filter: clean names and category
         results = []
@@ -597,18 +613,19 @@ class FontStore:
         Prefers fonts with a known license and 'Regular' subfamily so
         comparisons use the base weight of an open-source font.
         """
-        rows = self.conn.execute(
-            "SELECT * FROM fonts WHERE LOWER(family) = LOWER(?)",
-            (family,),
-        ).fetchall()
-
-        # Fallback: normalize hyphens/spaces for slug round-trip mismatches
-        # e.g. "Thabit Bold" should match "Thabit-Bold"
-        if not rows:
+        with self._lock:
             rows = self.conn.execute(
-                "SELECT * FROM fonts WHERE LOWER(REPLACE(family, '-', ' ')) = LOWER(REPLACE(?, '-', ' '))",
+                "SELECT * FROM fonts WHERE LOWER(family) = LOWER(?)",
                 (family,),
             ).fetchall()
+
+            # Fallback: normalize hyphens/spaces for slug round-trip mismatches
+            # e.g. "Thabit Bold" should match "Thabit-Bold"
+            if not rows:
+                rows = self.conn.execute(
+                    "SELECT * FROM fonts WHERE LOWER(REPLACE(family, '-', ' ')) = LOWER(REPLACE(?, '-', ' '))",
+                    (family,),
+                ).fetchall()
 
         if not rows:
             return None
@@ -627,16 +644,18 @@ class FontStore:
 
     def get_font_source(self, name: str) -> str | None:
         """Return the source path for a font by its filename."""
-        row = self.conn.execute(
-            "SELECT source FROM fonts WHERE name = ? LIMIT 1", (name,)
-        ).fetchone()
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT source FROM fonts WHERE name = ? LIMIT 1", (name,)
+            ).fetchone()
         return row[0] if row else None
 
     def _get_font_license(self, name: str) -> str | None:
         """Return the license_id for a font by filename."""
-        row = self.conn.execute(
-            "SELECT license_id FROM fonts WHERE name = ? LIMIT 1", (name,)
-        ).fetchone()
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT license_id FROM fonts WHERE name = ? LIMIT 1", (name,)
+            ).fetchone()
         return row[0] if row else None
 
     def has_google_fonts_source(self, family: str) -> bool:
@@ -647,71 +666,76 @@ class FontStore:
         is walked without a license-category prefix.  Crawled web-font sources
         are excluded by requiring the source to end with a font extension.
         """
-        row = self.conn.execute(
-            """SELECT 1 FROM fonts
-               WHERE family = ? AND (
-                   source LIKE 'ofl/%'
-                   OR source LIKE 'apache/%'
-                   OR source LIKE 'ufl/%'
-                   OR (source LIKE '%/%' AND (
-                       source LIKE '%.ttf' OR source LIKE '%.otf'
-                       OR source LIKE '%.woff' OR source LIKE '%.woff2'))
-               )
-               LIMIT 1""",
-            (family,),
-        ).fetchone()
+        with self._lock:
+            row = self.conn.execute(
+                """SELECT 1 FROM fonts
+                   WHERE family = ? AND (
+                       source LIKE 'ofl/%'
+                       OR source LIKE 'apache/%'
+                       OR source LIKE 'ufl/%'
+                       OR (source LIKE '%/%' AND (
+                           source LIKE '%.ttf' OR source LIKE '%.otf'
+                           OR source LIKE '%.woff' OR source LIKE '%.woff2'))
+                   )
+                   LIMIT 1""",
+                (family,),
+            ).fetchone()
         return row is not None
 
     def increment_daily_usage(self, ip: str) -> int:
         """Atomically increment today's request count for an IP. Returns the new count."""
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        cur = self.conn.cursor()
-        try:
-            cur.execute("BEGIN IMMEDIATE")
-            cur.execute(
-                """INSERT INTO daily_usage (ip_address, date, request_count)
-                   VALUES (?, ?, 1)
-                   ON CONFLICT(ip_address, date) DO UPDATE
-                   SET request_count = request_count + 1""",
-                (ip, today),
-            )
-            row = cur.execute(
-                "SELECT request_count FROM daily_usage WHERE ip_address = ? AND date = ?",
-                (ip, today),
-            ).fetchone()
-            self.conn.commit()
-            return row[0]
-        except Exception:
-            self.conn.rollback()
-            raise
+        with self._lock:
+            cur = self.conn.cursor()
+            try:
+                cur.execute("BEGIN IMMEDIATE")
+                cur.execute(
+                    """INSERT INTO daily_usage (ip_address, date, request_count)
+                       VALUES (?, ?, 1)
+                       ON CONFLICT(ip_address, date) DO UPDATE
+                       SET request_count = request_count + 1""",
+                    (ip, today),
+                )
+                row = cur.execute(
+                    "SELECT request_count FROM daily_usage WHERE ip_address = ? AND date = ?",
+                    (ip, today),
+                ).fetchone()
+                self.conn.commit()
+                return row[0]
+            except Exception:
+                self.conn.rollback()
+                raise
 
     def get_daily_usage(self, ip: str) -> int:
         """Return today's request count for an IP (0 if none)."""
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        row = self.conn.execute(
-            "SELECT request_count FROM daily_usage WHERE ip_address = ? AND date = ?",
-            (ip, today),
-        ).fetchone()
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT request_count FROM daily_usage WHERE ip_address = ? AND date = ?",
+                (ip, today),
+            ).fetchone()
         return row[0] if row else 0
 
     def list_heavy_users(self, threshold: int = 200) -> list[dict]:
         """Return IPs exceeding the threshold today, with their counts."""
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        rows = self.conn.execute(
-            """SELECT ip_address, request_count FROM daily_usage
-               WHERE date = ? AND request_count > ?
-               ORDER BY request_count DESC""",
-            (today, threshold),
-        ).fetchall()
+        with self._lock:
+            rows = self.conn.execute(
+                """SELECT ip_address, request_count FROM daily_usage
+                   WHERE date = ? AND request_count > ?
+                   ORDER BY request_count DESC""",
+                (today, threshold),
+            ).fetchall()
         return [{"ip_address": r[0], "request_count": r[1]} for r in rows]
 
     def cleanup_old_usage(self, days: int = 90) -> int:
         """Delete daily_usage rows older than N days. Returns rows deleted."""
         cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
-        cur = self.conn.execute(
-            "DELETE FROM daily_usage WHERE date < ?", (cutoff,)
-        )
-        self.conn.commit()
+        with self._lock:
+            cur = self.conn.execute(
+                "DELETE FROM daily_usage WHERE date < ?", (cutoff,)
+            )
+            self.conn.commit()
         return cur.rowcount
 
     def close(self):

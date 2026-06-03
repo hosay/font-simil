@@ -358,7 +358,49 @@ geometric fit.
 
 ---
 
-## 12. Future phases (outline only)
+## 12. SQLite thread-safety & hammer testing (COMPLETED 2026-06-03)
+
+**Problem:** `FontStore` used a single `sqlite3` connection with
+`check_same_thread=False`, shared across all Flask request threads. When a
+browser loaded a `/similar-to/` page, it triggered multiple concurrent
+`@font-face` requests to `/api/font-file/`, causing:
+- `sqlite3.OperationalError: cannot start a transaction within a transaction`
+- `sqlite3.InterfaceError: bad parameter or other API misuse`
+
+**Solution implemented:**
+
+1. **`threading.RLock` on all DB access.** Every method in `FontStore` that
+   touches `self.conn` is wrapped with `with self._lock:`. Uses `RLock`
+   (reentrant) because `search_font_families()` calls `has_google_fonts_source()`
+   while holding the lock.
+
+2. **`ProxyFix` for reverse-proxy support.** Added `ProxyFix(x_for=1)` so
+   `X-Forwarded-For` is respected by both Flask-Limiter and the daily rate
+   limiter when running behind nginx/caddy.
+
+3. **404 for unknown font slugs.** `/similar-to/<slug>` now returns HTTP 404
+   (not 200) when the font is not in the database. Slugs >100 chars or
+   containing null bytes are rejected with 404.
+
+**Hammer test results (38,066 requests, 0 5xx errors):**
+- 9 phases: edge cases, cache effectiveness, uncached search, read stress
+  (50 visitors), write stress (20 visitors), mixed read/write (30 visitors),
+  DB locking stress (50 visitors), font-file storm (50 visitors), rate limits.
+- Each thread simulates a distinct visitor via `X-Forwarded-For`.
+- Zero server errors across all phases.
+
+**Files changed:**
+- `fontmatch/index/store.py` — `threading.RLock`, all methods wrapped.
+- `fontmatch/service/app.py` — `ProxyFix(x_for=1)`.
+- `fontmatch/web/routes.py` — 404 for unknown fonts, slug validation, `abort`.
+- `fontmatch/web/api.py` — `store._lock` on direct `store.conn.execute()`.
+- `tests/test_api.py` — `test_concurrent_font_file_requests`.
+- `tests/test_web.py` — 404 tests for unknown/long/null-byte slugs.
+- `hammer_test.py` — 9-phase multi-visitor stress test.
+
+---
+
+## 13. Future phases (outline only)
 
 - **Image input / font recognition.** Detect and segment glyphs from an image,
   normalize, then match in glyph space against the existing corpus (render

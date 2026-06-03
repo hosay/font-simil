@@ -82,6 +82,8 @@ sudo systemctl restart fontmatch
 
 ### Nginx reverse proxy (optional)
 
+The app includes `ProxyFix(x_for=1)` so rate limiting uses the real client IP from `X-Forwarded-For` when running behind a reverse proxy.
+
 ```nginx
 server {
     listen 80;

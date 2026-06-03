@@ -8,6 +8,7 @@ import hashlib
 from flask import (
     Blueprint,
     Response,
+    abort,
     current_app,
     flash,
     redirect,
@@ -283,6 +284,10 @@ def identify_submit():
 
 @web_bp.get("/similar-to/<slug>")
 def similar_to(slug: str):
+    # Validate slug: reject overlong or null-byte-containing slugs
+    if len(slug) > 100 or "\x00" in slug:
+        abort(404)
+
     store = current_app.config["STORE"]
     family_name = deslugify(slug)
 
@@ -313,7 +318,7 @@ def similar_to(slug: str):
         font_row = store.get_font_by_family(slug.replace("-", " "), licensed_only=True)
 
     if font_row is None:
-        return render_template("similar.html", family_name=display_name, matches=None, found=False, prop=None)
+        return render_template("similar.html", family_name=display_name, matches=None, found=False, prop=None), 404
 
     # Use the actual family name from the DB for display (not the deslugified guess)
     if not canonical_prop:
@@ -321,7 +326,7 @@ def similar_to(slug: str):
 
     fp = store.get_fingerprint(font_row["file_hash"], FINGERPRINT_SCHEMA_VERSION)
     if fp is None:
-        return render_template("similar.html", family_name=display_name, matches=None, found=False, prop=None)
+        return render_template("similar.html", family_name=display_name, matches=None, found=False, prop=None), 404
 
     # Use cached results if available
     cached = store.get_cached_result(font_row["file_hash"], FINGERPRINT_SCHEMA_VERSION)
