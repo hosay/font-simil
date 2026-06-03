@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import calendar
 import os
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from flask import Flask, jsonify
+from flask import Flask, g, jsonify, render_template, request
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -59,12 +61,21 @@ def create_app(
         flash("File too large. Maximum size is 10 MB.", "error")
         return redirect(url_for("web.identify_form"))
 
+    # Daily rate limit configuration
+    app.config["DAILY_RATE_LIMIT"] = int(
+        os.environ.get("DAILY_RATE_LIMIT", 1000)
+    )
+    app.config["DAILY_RATE_TRACK_THRESHOLD"] = int(
+        os.environ.get("DAILY_RATE_TRACK_THRESHOLD", 200)
+    )
+
     store = FontStore(db_path or DEFAULT_DB_PATH)
 
     if fixture_dir is not None:
         ingest_corpus(fixture_dir, store)
 
     store.build_index()
+    store.cleanup_old_usage(days=90)
     app.config["STORE"] = store
 
     # Directories to search for font files (for @font-face serving)
@@ -95,6 +106,65 @@ def create_app(
         if Path(sys_dir).is_dir():
             corpus_dirs.append(sys_dir)
     app.config["CORPUS_DIRS"] = corpus_dirs
+
+    # Paths exempt from daily rate limiting
+    _EXEMPT_PREFIXES = ("/static/", "/api/health")
+    _EXEMPT_PATHS = {"/robots.txt", "/sitemap.txt", "/favicon.ico"}
+
+    @app.before_request
+    def check_daily_rate_limit():
+        path = request.path
+        if path.startswith(_EXEMPT_PREFIXES) or path in _EXEMPT_PATHS:
+            return None
+
+        ip = get_remote_address() or "unknown"
+        count = store.increment_daily_usage(ip)
+        g.daily_usage_count = count
+        g.daily_rate_limit = app.config["DAILY_RATE_LIMIT"]
+
+        if count > g.daily_rate_limit:
+            tomorrow = datetime.now(timezone.utc).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            ) + timedelta(days=1)
+            reset_at = tomorrow.strftime("%Y-%m-%dT%H:%M:%SZ")
+            reset_unix = str(calendar.timegm(tomorrow.timetuple()))
+
+            if path.startswith("/api"):
+                resp = jsonify({
+                    "error": "Daily rate limit exceeded",
+                    "limit": g.daily_rate_limit,
+                    "reset_at": reset_at,
+                })
+                resp.status_code = 429
+                resp.headers["X-RateLimit-Limit"] = str(g.daily_rate_limit)
+                resp.headers["X-RateLimit-Remaining"] = "0"
+                resp.headers["X-RateLimit-Reset"] = reset_unix
+                return resp
+
+            return render_template(
+                "rate_limited.html",
+                limit=g.daily_rate_limit,
+                reset_at=reset_at,
+            ), 429
+
+        return None
+
+    @app.after_request
+    def add_rate_limit_headers(response):
+        count = getattr(g, "daily_usage_count", None)
+        if count is None:
+            return response
+        limit = getattr(g, "daily_rate_limit", app.config["DAILY_RATE_LIMIT"])
+        remaining = max(0, limit - count)
+        tomorrow = datetime.now(timezone.utc).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        ) + timedelta(days=1)
+        response.headers["X-RateLimit-Limit"] = str(limit)
+        response.headers["X-RateLimit-Remaining"] = str(remaining)
+        response.headers["X-RateLimit-Reset"] = str(
+            calendar.timegm(tomorrow.timetuple())
+        )
+        return response
 
     # Register blueprints
     from fontmatch.web.api import api_bp

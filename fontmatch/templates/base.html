@@ -3,17 +3,19 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}FontMatch{% endblock %} &mdash; Open-Source Font Finder</title>
-    <meta name="description" content="{% block meta_description %}Find the perfect open-source replacement for any font. Upload a font file and get instant matches from 5000+ indexed fonts.{% endblock %}">
+    <title>{% block title %}Find Free Open-Source Font Alternatives{% endblock %} | FontMatch</title>
+    <meta name="description" content="{% block meta_description %}Find the perfect open-source replacement for any font. Upload a font file and get instant matches from {{ font_count|default('5000+') }} indexed fonts.{% endblock %}">
+    <link rel="canonical" href="{{ request.url_root.rstrip('/') }}{{ request.path }}">
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
 
     {# Open Graph / Social #}
     <meta property="og:type" content="website">
-    <meta property="og:title" content="{% block og_title %}FontMatch &mdash; Open-Source Font Finder{% endblock %}">
+    <meta property="og:url" content="{{ request.url_root.rstrip('/') }}{{ request.path }}">
+    <meta property="og:title" content="{% block og_title %}FontMatch &mdash; Find Free Open-Source Alternatives to Any Font{% endblock %}">
     <meta property="og:description" content="{% block og_description %}Upload any font file and find the best open-source alternatives using metric and visual analysis.{% endblock %}">
     <meta property="og:site_name" content="FontMatch">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="FontMatch &mdash; Open-Source Font Finder">
+    <meta name="twitter:title" content="FontMatch &mdash; Find Free Open-Source Font Alternatives">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -51,7 +53,27 @@
 
     <footer class="site-footer">
         <div class="container">
-            FontMatch &mdash; Find the best open-source replacement for any font.
+            <div class="footer-inner">
+                <div>
+                    <div class="footer-brand">FontMatch</div>
+                    <p class="footer-tagline">Find free, open-source replacements for any font. We analyze OpenType metrics and use CLIP neural embeddings of individual glyph shapes to rank the closest matches from thousands of open-source fonts.</p>
+                </div>
+                <div class="footer-links">
+                    <div class="footer-col">
+                        <h4>Tools</h4>
+                        <a href="{{ url_for('web.identify_form') }}">Upload &amp; Identify</a>
+                        <a href="{{ url_for('web.index') }}#browse">Browse Fonts</a>
+                        <a href="{{ url_for('api.api_docs') }}">API Documentation</a>
+                    </div>
+                    <div class="footer-col">
+                        <h4>Popular Alternatives</h4>
+                        <a href="{{ url_for('web.similar_to', slug='arial') }}">Arial Alternatives</a>
+                        <a href="{{ url_for('web.similar_to', slug='times-new-roman') }}">Times New Roman Alternatives</a>
+                        <a href="{{ url_for('web.similar_to', slug='helvetica') }}">Helvetica Alternatives</a>
+                        <a href="{{ url_for('web.similar_to', slug='calibri') }}">Calibri Alternatives</a>
+                    </div>
+                </div>
+            </div>
         </div>
     </footer>
 

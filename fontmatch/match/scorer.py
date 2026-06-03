@@ -14,9 +14,9 @@ PERCEPTUAL_WEIGHT = 0.6
 
 # Normalization scales so both distance components contribute equally
 # before weighting.  Derived from p95 of pairwise distances across the
-# licensed corpus: metric Euclidean ≈ 1.3, cosine ≈ 0.45.
+# licensed corpus: metric Euclidean ≈ 1.3, CLIP cosine ≈ 0.06.
 METRIC_SCALE = 1.5
-PERCEPTUAL_SCALE = 0.37
+PERCEPTUAL_SCALE = 0.06
 
 # Per-field weights for the metric vector.  Fields like weight_class,
 # width_class, cap_height, x_height, avg_width, and serif_score

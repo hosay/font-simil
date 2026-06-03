@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from pathlib import Path
 
 from flask import Blueprint, current_app, jsonify, request, send_file
@@ -186,16 +187,29 @@ def font_file(name: str):
         if font_path and font_path.is_file():
             return _serve_font(font_path)
 
-    # If source is a bare filename, search for it by name in corpus dirs
+    # Google Fonts sources may be stored without the license-category prefix
+    # (e.g. "familyslug/Font.ttf" instead of "ofl/familyslug/Font.ttf").
+    # Try common prefixes.
+    for prefix in ("ofl", "apache", "ufl"):
+        prefixed = f"{prefix}/{source}"
+        for corpus_dir in corpus_dirs:
+            font_path = _safe_resolve(corpus_dir, prefixed)
+            if font_path and font_path.is_file():
+                return _serve_font(font_path)
+
+    # If source is a bare filename, search for it by name in corpus dirs.
+    # Use os.walk instead of rglob because rglob treats [] as glob patterns
+    # and variable fonts use [axis].ttf naming.
     bare_name = Path(source).name
     for corpus_dir in corpus_dirs:
         direct = _safe_resolve(corpus_dir, bare_name)
         if direct and direct.is_file():
             return _serve_font(direct)
-        # Recursive search (for google-fonts-repo/ofl/family/Font.ttf)
-        for match in Path(corpus_dir).rglob(bare_name):
-            if match.is_file() and _is_within(match, corpus_dir):
-                return _serve_font(match)
+        for dirpath, _dirnames, filenames in os.walk(corpus_dir):
+            if bare_name in filenames:
+                candidate = Path(dirpath) / bare_name
+                if _is_within(candidate, corpus_dir):
+                    return _serve_font(candidate)
 
     return jsonify({"error": "Font file not on disk"}), 404
 

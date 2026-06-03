@@ -10,8 +10,9 @@ from fontmatch.features.metrics import MetricVector, metrics
 from fontmatch.features.perceptual import (
     FINGERPRINT_SCHEMA_VERSION,
     RENDERER_VERSION,
+    compose_sheet,
     perceptual,
-    render,
+    render_glyphs,
 )
 from fontmatch.fonts.loader import LoadedFont
 
@@ -35,8 +36,9 @@ class Fingerprint:
 def fingerprint(font: LoadedFont) -> Fingerprint:
     """Compute a full fingerprint for a loaded font."""
     metric_vec = metrics(font)
-    rendered = render(font)
-    perceptual_vec = perceptual(rendered)
+    glyphs = render_glyphs(font)
+    sheet = compose_sheet(glyphs)
+    perceptual_vec = perceptual(sheet)
 
     return Fingerprint(
         file_hash=font.file_hash,

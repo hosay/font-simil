@@ -11,3 +11,4 @@ flask-cors==6.0.2
 flask-limiter==4.1.1
 httpx==0.28.1
 scikit-image==0.25.2
+open_clip_torch==3.3.0

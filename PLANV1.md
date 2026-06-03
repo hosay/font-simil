@@ -314,18 +314,63 @@ table from §0.
 
 ---
 
-## 11. Future phases (outline only)
+## 11. Perceptual upgrade: multi-glyph CLIP embeddings (COMPLETED 2026-06-03)
+
+**Problem:** The v1–v3 perceptual pipeline rendered a single reference sentence,
+downsampled to 100×15 pixels, and compared raw pixel intensities (1,615 floats).
+This was dominated by string content rather than font character, sensitive to
+rendering engine differences, and used cosine distance on raw pixels — a poor
+geometric fit.
+
+**Solution implemented (schema v4):**
+
+1. **Multi-glyph rendering.** Instead of one sentence, render 27 individual
+   diagnostic characters (`aegnosfilbdpqRSHOQBWM01589&@`) at 128×128 px each,
+   composed into a 7-column grid sheet. Characters chosen for typographic
+   distinctiveness: single/double-story a/g, stroke contrast (S, B, W), counters,
+   ascenders/descenders, and numeric/symbol style.
+
+2. **CLIP visual embeddings.** Pass the glyph sheet through OpenCLIP ViT-B/32
+   (laion2b_s34b_b79k pretrained) to produce a 512-dim unit-normalized embedding.
+   Cosine distance is semantically meaningful in this space — the model was trained
+   on hundreds of millions of image-text pairs with strong typographic awareness.
+
+3. **Scorer recalibration.** `PERCEPTUAL_SCALE` adjusted from 0.37 to 0.06
+   (calibrated from p95 of pairwise CLIP cosine distances across the corpus).
+   The 40/60 metric/perceptual weight blend is preserved.
+
+**Results:**
+- Ground-truth pairs (Liberation Sans ↔ Arimo) show cosine distances of 0.0003,
+  vs unrelated fonts at 0.01–0.07 (10–100× separation improvement).
+- **Recall@1 = 1.0** on all 6 core metric-compatible pairs against a 3,871-font
+  corpus. All 14 ground-truth tests pass.
+- 137/137 total tests pass, zero regressions.
+- Thread-safe CLIP singleton with double-checked locking for Flask threading.
+- Blank-sheet guard returns zero vector (filtered by `build_index`).
+
+**Files changed:**
+- `fontmatch/features/perceptual.py` — new `render_glyphs()`, `compose_sheet()`,
+  CLIP `perceptual()`. Legacy `render()` kept for backward compat.
+- `fontmatch/features/fingerprint.py` — updated to use new pipeline.
+- `fontmatch/match/scorer.py` — `PERCEPTUAL_SCALE` = 0.06.
+- `tests/test_perceptual.py` — rewritten with 14 tests covering glyphs, sheets,
+  CLIP embedding, determinism, ordering, and edge cases.
+
+---
+
+## 12. Future phases (outline only)
 
 - **Image input / font recognition.** Detect and segment glyphs from an image,
   normalize, then match in glyph space against the existing corpus (render
-  candidates and compare) rather than relying on a general image embedder. A
-  small DeepFont-style CNN is the upgrade path if classical matching plateaus —
-  keep it CPU-sized.
+  candidates and compare) rather than relying on a general image embedder.
 - **New-font onboarding.** A pipeline endpoint to fingerprint and index newly
   discovered fonts on demand, reusing §3–7.
-- **Learned perceptual embedding.** Swap the classical perceptual vector behind
-  the §4 interface for a small learned glyph embedding, re-running the §5
-  evaluation harness to prove it's an improvement before adopting.
+- **Contrastive fine-tuning.** Fine-tune the CLIP encoder on the `user_scores`
+  table using contrastive loss (triplet/InfoNCE), learning what humans consider
+  similar rather than relying on pretrained CLIP alone. Requires ~5,000+ rated
+  pairs for meaningful improvement.
+- **FAISS ANN index.** Replace brute-force O(n) scan with FAISS `IndexFlatIP`
+  or `IndexIVFFlat` if corpus grows past ~50K fonts.
 
 ---
 

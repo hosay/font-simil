@@ -1,10 +1,17 @@
 {% extends "base.html" %}
-{% block title %}Home{% endblock %}
+{% block title %}Find Free Open-Source Font Alternatives{% endblock %}
 {% block content %}
 <section class="hero">
     <h1>Find the perfect open-source<br>replacement for any font</h1>
-    <p class="hero-sub">Upload a font file and we'll match it against <strong>{{ font_count }}</strong> indexed fonts using metric and visual analysis.</p>
-    <a href="{{ url_for('web.identify_form') }}" class="btn btn-primary btn-lg">Upload a Font</a>
+    <p class="hero-sub">Search by name or upload a font file to match against <strong>{{ font_count }}</strong> indexed fonts.</p>
+    <div class="hero-actions">
+        <div class="hero-search-wrap">
+            <input type="text" id="hero-search" class="hero-search-input" placeholder="Search by font name (e.g. Helvetica, Roboto...)" autocomplete="off">
+            <div class="hero-search-results" id="hero-search-results"></div>
+        </div>
+        <span class="hero-or">or</span>
+        <a href="{{ url_for('web.identify_form') }}" class="btn btn-primary btn-lg">Upload a Font</a>
+    </div>
 </section>
 
 <section class="section">

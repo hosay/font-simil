@@ -166,6 +166,60 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    /* --- Hero search autocomplete --- */
+    var heroSearch = document.getElementById("hero-search");
+    var heroResults = document.getElementById("hero-search-results");
+    if (heroSearch && heroResults) {
+        var heroTimer = null;
+
+        function heroSlugify(str) {
+            return str.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+        }
+
+        heroSearch.addEventListener("input", function () {
+            clearTimeout(heroTimer);
+            var q = heroSearch.value.trim();
+            if (q.length < 2) {
+                heroResults.innerHTML = "";
+                heroResults.style.display = "none";
+                return;
+            }
+            heroTimer = setTimeout(function () {
+                fetch("/api/browse?q=" + encodeURIComponent(q) + "&per_page=8")
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (!data.fonts || data.fonts.length === 0) {
+                            heroResults.innerHTML = '<div class="hero-search-empty">No fonts found. Try <a href="/identify">uploading the file</a>.</div>';
+                            heroResults.style.display = "";
+                            return;
+                        }
+                        var html = "";
+                        data.fonts.forEach(function (f) {
+                            html += '<a href="/similar-to/' + heroSlugify(f.family) +
+                                '" class="hero-search-item"><span class="hero-search-name">' +
+                                f.family.replace(/</g, "&lt;") + '</span><span class="hero-search-cat">' +
+                                f.category + '</span></a>';
+                        });
+                        heroResults.innerHTML = html;
+                        heroResults.style.display = "";
+                    });
+            }, 200);
+        });
+
+        heroSearch.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") {
+                var first = heroResults.querySelector(".hero-search-item");
+                if (first) { e.preventDefault(); first.click(); }
+            }
+        });
+
+        document.addEventListener("click", function (e) {
+            if (!heroSearch.contains(e.target) && !heroResults.contains(e.target)) {
+                heroResults.style.display = "none";
+            }
+        });
+    }
+
     /* --- Corpus browse: search, filter, pagination --- */
     var searchInput = document.getElementById("corpus-search");
     var resultsDiv = document.getElementById("corpus-results");

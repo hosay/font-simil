@@ -33,7 +33,8 @@ web_bp = Blueprint("web", __name__)
 
 @web_bp.get("/robots.txt")
 def robots_txt():
-    content = "User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: /sitemap.txt\n"
+    base = request.host_url.rstrip("/")
+    content = f"User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: {base}/sitemap.txt\n"
     return Response(content, mimetype="text/plain")
 
 
@@ -41,12 +42,13 @@ def robots_txt():
 def sitemap_txt():
     """Simple text sitemap listing all browsable pages."""
     store = current_app.config["STORE"]
-    families = store.list_font_families(clean_only=True)
-    lines = ["/", "/identify", "/api/docs"]
+    families = store.list_font_families(clean_only=True, indexed_only=True)
+    base = request.host_url.rstrip("/")
+    lines = [f"{base}/", f"{base}/identify", f"{base}/api/docs"]
     for prop_name in PROPRIETARY_TO_OPEN_SOURCE:
-        lines.append(f"/similar-to/{slugify(prop_name)}")
+        lines.append(f"{base}/similar-to/{slugify(prop_name)}")
     for fam in families:
-        lines.append(f"/similar-to/{slugify(fam)}")
+        lines.append(f"{base}/similar-to/{slugify(fam)}")
     return Response("\n".join(lines), mimetype="text/plain")
 
 
@@ -72,7 +74,7 @@ DEFAULT_K = 10
 @web_bp.get("/")
 def index():
     store = current_app.config["STORE"]
-    families = store.list_font_families(clean_only=True)
+    families = store.list_font_families(clean_only=True, indexed_only=True)
 
     # Only include popular links whose target family actually exists in the corpus
     popular_links = []
@@ -199,11 +201,21 @@ def similar_to(slug: str):
     if font_row is None:
         return render_template("similar.html", family_name=display_name, matches=None, found=False, prop=None)
 
+    # Use the actual family name from the DB for display (not the deslugified guess)
+    if not canonical_prop:
+        display_name = font_row["family"]
+
     fp = store.get_fingerprint(font_row["file_hash"], FINGERPRINT_SCHEMA_VERSION)
     if fp is None:
         return render_template("similar.html", family_name=display_name, matches=None, found=False, prop=None)
 
-    results = store.identify(fp, k=DEFAULT_K)
+    # Use cached results if available
+    cached = store.get_cached_result(font_row["file_hash"], FINGERPRINT_SCHEMA_VERSION)
+    if cached is not None:
+        results = cached
+    else:
+        results = store.identify(fp, k=DEFAULT_K)
+        store.cache_result(font_row["file_hash"], FINGERPRINT_SCHEMA_VERSION, results)
 
     # Check if the corpus font file is available for download
     from fontmatch.web.helpers import _is_crawled_source

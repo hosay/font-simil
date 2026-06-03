@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{% if prop %}Free Open-Source Alternative to {{ family_name }}{% else %}Similar to {{ family_name }}{% endif %}{% endblock %}
+{% block title %}{% if prop %}Free Open-Source Alternative to {{ family_name }}{% else %}Fonts Similar to {{ family_name }} &mdash; Free Alternatives{% endif %}{% endblock %}
 {% block meta_description %}{% if prop %}{{ family_name }} is a proprietary {{ prop.category }} font{% if prop.vendor %} by {{ prop.vendor }}{% endif %}. Find the best free, open-source replacements like {{ corpus_family }} with side-by-side comparison.{% else %}Find open-source alternatives to {{ family_name }}. See the top matches ranked by metric and visual similarity.{% endif %}{% endblock %}
 {% block og_title %}{% if prop %}Free Alternative to {{ family_name }}{% else %}Open-source alternatives to {{ family_name }}{% endif %} &mdash; FontMatch{% endblock %}
 {% block og_description %}{% if prop %}{{ corpus_family }} is a free, open-source {{ prop.category }} font you can use instead of {{ family_name }}. Compare them side by side.{% else %}Find free, open-source fonts similar to {{ family_name }}. Side-by-side comparison with match scores.{% endif %}{% endblock %}
@@ -127,6 +127,56 @@
     <h1>No matches</h1>
     <p class="hero-sub">We couldn't find any matches for "{{ family_name }}".</p>
 </section>
+{% endif %}
+
+{% if prop and matches %}
+<section class="faq-section">
+    <h2>Frequently Asked Questions</h2>
+    <div class="faq-item">
+        <h3>What is a free alternative to {{ family_name }}?</h3>
+        <p>{{ corpus_family }} is the best free, open-source alternative to {{ family_name }}. It is licensed under the SIL Open Font License, so you can use it in any project without fees.</p>
+    </div>
+    <div class="faq-item">
+        <h3>Is {{ family_name }} free to use?</h3>
+        <p>No. {{ family_name }} is a proprietary {{ prop.category }} font{% if prop.vendor %} by {{ prop.vendor }}{% endif %} that requires a commercial license. You can use {{ corpus_family }} as a free drop-in replacement.</p>
+    </div>
+    <div class="faq-item">
+        <h3>Can I use {{ corpus_family }} instead of {{ family_name }}?</h3>
+        <p>Yes. {{ corpus_family }} is designed to be metrically compatible with {{ family_name }}, meaning it has similar character widths and spacing. Documents formatted with {{ family_name }} will look nearly identical when switched to {{ corpus_family }}.</p>
+    </div>
+</section>
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+        {
+            "@type": "Question",
+            "name": "What is a free alternative to {{ family_name }}?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "{{ corpus_family }} is the best free, open-source alternative to {{ family_name }}. It is licensed under the SIL Open Font License, so you can use it in any project without fees."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Is {{ family_name }} free to use?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "No. {{ family_name }} is a proprietary {{ prop.category }} font{% if prop.vendor %} by {{ prop.vendor }}{% endif %} that requires a commercial license. You can use {{ corpus_family }} as a free drop-in replacement."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Can I use {{ corpus_family }} instead of {{ family_name }}?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. {{ corpus_family }} is designed to be metrically compatible with {{ family_name }}, meaning it has similar character widths and spacing."
+            }
+        }
+    ]
+}
+</script>
 {% endif %}
 
 <div class="back-link">

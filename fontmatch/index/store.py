@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import numpy as np
@@ -82,6 +83,13 @@ CREATE TABLE IF NOT EXISTS user_scores (
     ip_address TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(ip_address, query_font, match_font)
+);
+
+CREATE TABLE IF NOT EXISTS daily_usage (
+    ip_address TEXT NOT NULL,
+    date TEXT NOT NULL,
+    request_count INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (ip_address, date)
 );
 """
 
@@ -466,12 +474,26 @@ class FontStore:
         ).fetchone()
         return (row[0], row[1])
 
-    def list_font_families(self, clean_only: bool = False) -> list[str]:
+    def list_font_families(self, clean_only: bool = False, indexed_only: bool = False) -> list[str]:
         """Return all distinct font families sorted alphabetically.
 
         If clean_only is True, filter out garbage names from crawled data.
+        If indexed_only is True, only return families that have a fingerprint
+        and a known license (i.e. fonts whose /similar-to/ page will work).
         """
-        rows = self.conn.execute("SELECT DISTINCT family FROM fonts ORDER BY family").fetchall()
+        if indexed_only:
+            from fontmatch.features.perceptual import FINGERPRINT_SCHEMA_VERSION
+
+            rows = self.conn.execute(
+                """SELECT DISTINCT f.family FROM fonts f
+                   JOIN fingerprints fp ON fp.font_id = f.id
+                     AND fp.schema_version = ?
+                   WHERE f.license_id != ''
+                   ORDER BY f.family""",
+                (FINGERPRINT_SCHEMA_VERSION,),
+            ).fetchall()
+        else:
+            rows = self.conn.execute("SELECT DISTINCT family FROM fonts ORDER BY family").fetchall()
         families = [row[0] for row in rows]
         if clean_only:
             families = [f for f in families if self._is_clean_family(f)]
@@ -499,6 +521,7 @@ class FontStore:
             FROM fonts f
             JOIN fingerprints fp ON fp.font_id = f.id
                 AND fp.schema_version = ?
+            WHERE f.license_id != ''
         """
         params: list = [FINGERPRINT_SCHEMA_VERSION]
 
@@ -578,6 +601,15 @@ class FontStore:
             "SELECT * FROM fonts WHERE LOWER(family) = LOWER(?)",
             (family,),
         ).fetchall()
+
+        # Fallback: normalize hyphens/spaces for slug round-trip mismatches
+        # e.g. "Thabit Bold" should match "Thabit-Bold"
+        if not rows:
+            rows = self.conn.execute(
+                "SELECT * FROM fonts WHERE LOWER(REPLACE(family, '-', ' ')) = LOWER(REPLACE(?, '-', ' '))",
+                (family,),
+            ).fetchall()
+
         if not rows:
             return None
 
@@ -629,6 +661,58 @@ class FontStore:
             (family,),
         ).fetchone()
         return row is not None
+
+    def increment_daily_usage(self, ip: str) -> int:
+        """Atomically increment today's request count for an IP. Returns the new count."""
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        cur = self.conn.cursor()
+        try:
+            cur.execute("BEGIN IMMEDIATE")
+            cur.execute(
+                """INSERT INTO daily_usage (ip_address, date, request_count)
+                   VALUES (?, ?, 1)
+                   ON CONFLICT(ip_address, date) DO UPDATE
+                   SET request_count = request_count + 1""",
+                (ip, today),
+            )
+            row = cur.execute(
+                "SELECT request_count FROM daily_usage WHERE ip_address = ? AND date = ?",
+                (ip, today),
+            ).fetchone()
+            self.conn.commit()
+            return row[0]
+        except Exception:
+            self.conn.rollback()
+            raise
+
+    def get_daily_usage(self, ip: str) -> int:
+        """Return today's request count for an IP (0 if none)."""
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        row = self.conn.execute(
+            "SELECT request_count FROM daily_usage WHERE ip_address = ? AND date = ?",
+            (ip, today),
+        ).fetchone()
+        return row[0] if row else 0
+
+    def list_heavy_users(self, threshold: int = 200) -> list[dict]:
+        """Return IPs exceeding the threshold today, with their counts."""
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        rows = self.conn.execute(
+            """SELECT ip_address, request_count FROM daily_usage
+               WHERE date = ? AND request_count > ?
+               ORDER BY request_count DESC""",
+            (today, threshold),
+        ).fetchall()
+        return [{"ip_address": r[0], "request_count": r[1]} for r in rows]
+
+    def cleanup_old_usage(self, days: int = 90) -> int:
+        """Delete daily_usage rows older than N days. Returns rows deleted."""
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+        cur = self.conn.execute(
+            "DELETE FROM daily_usage WHERE date < ?", (cutoff,)
+        )
+        self.conn.commit()
+        return cur.rowcount
 
     def close(self):
         self.conn.close()
