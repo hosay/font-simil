@@ -648,7 +648,7 @@ pre code { background: none; padding: 0; color: inherit; }
     margin-bottom: .35rem;
 }
 .footer-tagline {
-    max-width: 280px;
+    max-width: 480px;
     line-height: 1.5;
 }
 .footer-links {
