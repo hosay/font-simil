@@ -17,7 +17,7 @@ Similarity is a weighted blend of metric Euclidean distance (40%) and perceptual
 
 ## Production setup (start here)
 
-> State as of 2026-10-03. **Update this section whenever the setup changes.**
+> State as of 2026-10-03 (after the image-matching deploy). **Update this section whenever the setup changes.**
 
 The public site is **https://dupefont.com**. This repo checkout **is production**: `/opt/projects/font_simil` on host `a01` is the code the live service runs.
 
@@ -39,7 +39,9 @@ nginx config on mr02: `/etc/nginx/sites-available/dupefont.com`. It has `locatio
 | Unit | What | Runs as | Notes |
 |---|---|---|---|
 | `fontmatch.service` | gunicorn, 2 workers, `--preload`, `0.0.0.0:8087`, `WorkingDirectory=/opt/projects/font_simil` | `fontmatch` | `HF_HOME=/var/lib/fontmatch/.cache/huggingface`, `HF_HUB_OFFLINE=1` (CLIP weights are cached there). Hardened: `ProtectSystem=strict`, writable paths are the repo dir + `/var/lib/fontmatch` only |
-| `dupefont-mcp.service` | MCP server for ChatGPT, `uvicorn --factory fontmatch.mcp_server.server:create_app` on `100.67.193.2:8088` | `fontmatch` | **Currently runs the Phase 0 spike from the worktree `/opt/projects/font_simil-img`.** The new code refuses to start without `FONTMATCH_INTERNAL_TOKEN`, so don't restart it before deploy step 5 (see below) |
+| `dupefont-mcp.service` | MCP server for ChatGPT, `uvicorn --factory fontmatch.mcp_server.server:create_app` on `100.67.193.2:8088`, `WorkingDirectory=/opt/projects/font_simil` | `fontmatch` | Calls the Flask API on 127.0.0.1:8087 with `X-Internal-Token`; refuses to start without `FONTMATCH_INTERNAL_TOKEN` |
+
+Both units load secrets from **`/etc/fontmatch/env`** (root:fontmatch, 0640) via `EnvironmentFile=`: `SECRET_KEY` and `FONTMATCH_INTERNAL_TOKEN` (shared by both services). Unit backups from before the change are in `/root/*.service.bak-*`.
 
 Code changes take effect only on restart: gunicorn `--preload` holds the code in memory. `systemctl restart fontmatch` and `journalctl -u fontmatch -f` / `journalctl -u dupefont-mcp -f` are the usual commands.
 
@@ -50,17 +52,18 @@ Code changes take effect only on restart: gunicorn `--preload` holds the code in
 | `fontmatch.db` | SQLite (WAL). Fonts, fingerprints (one row per `schema_version`), caches, ratings, rate-limit counters. **Owned by `fontmatch`**: write to it only as that user (see gotchas) |
 | `fontmatch-pre-v6.db` | Backup taken before the v6 re-embed (2026-10-03) |
 | `google-fonts-repo/` | Sparse clone of google/fonts (`ofl`, `apache`, `ufl`); source of all candidate fonts |
-| `glyph_atlas/` | Image-matcher atlas (~700 MB, memory-mapped, with `catalog.json`). **Not built yet in prod**; build with `scripts/build_glyph_index.py` |
+| `glyph_atlas/` | Image-matcher atlas (~700 MB, memory-mapped, with `catalog.json`), built 2026-10-03. Rebuild as the `fontmatch` user with `scripts/build_glyph_index.py` whenever the corpus changes (atomic swap; restart afterwards so workers map the new files) |
 | `/var/lib/fontmatch/.cache/huggingface` | OpenCLIP ViT-B/32 weights used by the service |
 
 Fingerprint schema versions: the code only uses rows matching `FINGERPRINT_SCHEMA_VERSION` in `fontmatch/features/perceptual.py`. Code in `master` is **v6** (CLIP on square tiles, variable fonts rendered at their Regular instance); older v2–v4 rows stay in the DB, unused. After any schema bump the corpus must be re-embedded *before* restarting the service, or every lookup returns nothing.
 
-### Current deploy state (image matching / ChatGPT app)
+### Current deploy state
 
-- `master` (commit `3f954c1`) contains the feature. The **running** `fontmatch` still serves the previous code from memory.
-- v6 re-embed of the live DB was started 2026-10-03 (it adds rows, so the live site is unaffected). Check it with `sqlite3 fontmatch.db "select schema_version,count(*) from fingerprints group by 1"`; it's done when v6 ≈ 3,900 rows. Once v6 is complete, restarting `fontmatch` is safe for the existing site.
-- Remaining steps are in the **Deploy runbook** in `docs/image-matching.md`: build the atlas; create `/etc/fontmatch/env` (0640, root:fontmatch) with `SECRET_KEY` (move it out of the unit file, where it currently sits in plain text) and a new `FONTMATCH_INTERNAL_TOKEN`, then add `EnvironmentFile=` to both units; point `dupefont-mcp` at `/opt/projects/font_simil`; restart both; smoke test; then run the ChatGPT golden prompts (`docs/chatgpt-golden-prompts.md`).
-- ChatGPT side: the app is added in ChatGPT Developer mode with MCP URL `https://dupefont.com/mcp`, no auth. As of 2026-10-03 no real ChatGPT call has been seen yet, so image forwarding through `openai/fileParams` is still unverified.
+- **Deployed 2026-10-03** (commit `d918afc`): image matching (`/api/identify-image`), `/api/similar-to`, the ChatGPT MCP app, fingerprint schema v6, and the Dupefont rebrand. The live DB has v6 fingerprints (3,935 rows; the index loads 3,899).
+- Smoke-tested after the restart: health, rebranded pages, `/similar-to/*`, image API through `https://dupefont.com` (Playfair Display screenshot → Playfair Display, 95%), MCP `tools/list` and both tools through `https://dupefont.com/mcp`.
+- **ChatGPT**: the app is added in Developer mode with MCP URL `https://dupefont.com/mcp`, no auth. Next: run the golden prompts in `docs/chatgpt-golden-prompts.md` and record the results there. Directory submission needs a privacy policy page.
+- Known limitations: text in several colours (e.g. Google's logo) breaks the light/dark separation step and gives poor matches; photos are the weakest tier (see the eval log in `docs/image-matching.md`). The website has no image-upload UI yet (API only).
+- Rollback: `git checkout ea5b334 && systemctl restart fontmatch` (v4 rows remain in the DB; stop `dupefont-mcp` too, since the old code has no `/api/identify-image`). The DB backup from before the re-embed is `fontmatch-pre-v6.db`.
 
 ### Gotchas for operators and new sessions
 

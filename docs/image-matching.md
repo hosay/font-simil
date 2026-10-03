@@ -1,7 +1,8 @@
 # Image → free font matching, and the Dupefont ChatGPT app
 
-Status: **Phases 0–3 built and reviewed on branch `feature/image-identify` (uncommitted); not
-yet deployed** (Phase 4). 319 tests pass.
+Status: **Deployed 2026-10-03** (master `d918afc`, see README "Current deploy state"). Phases
+0–3 were built and reviewed on branch `feature/image-identify`; the Phase 4 runbook below was executed
+on 2026-10-03. Next: ChatGPT golden prompts (L5) and real-image evaluation.
 This document is updated at the end of every phase.
 
 ## What it does
@@ -249,7 +250,7 @@ until the new code is deployed).
 - MCP SDK is v2 (`mcp==2.3.0`, `MCPServer`, protocol up to 2026-07-28). We use the SDK rather
   than a hand-rolled JSON-RPC endpoint inside Flask so protocol negotiation stays correct.
 
-## Deploy runbook (Phase 4, not yet executed)
+## Deploy runbook (Phase 4, executed 2026-10-03)
 
 System packages: `apt install tesseract-ocr` (done on a01). Everything below runs on a01.
 
