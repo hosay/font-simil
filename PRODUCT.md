@@ -8,7 +8,7 @@ product
 Frontend developers searching for open-source font alternatives to commercial/proprietary fonts. They arrive from search engines ("free alternative to Helvetica") or directly when they need a license-safe replacement for a specific font in a web project. Context: mid-task, comparing options, checking licenses, copying CSS embed codes.
 
 ## Product Purpose
-FontMatch helps developers find the closest open-source replacement for any font. It analyzes OpenType metrics and CLIP neural embeddings to rank matches from thousands of indexed fonts. Success: the user leaves with a specific, free font they can drop into their project.
+Dupefont helps developers find the closest open-source replacement for any font. It analyzes OpenType metrics and CLIP neural embeddings to rank matches from thousands of indexed fonts. Success: the user leaves with a specific, free font they can drop into their project.
 
 ## Brand Personality
 Precise, trustworthy, utilitarian. The tool should feel like a well-organized reference: fast to scan, confident in its recommendations, zero friction. Not flashy, not playful.

@@ -33,7 +33,20 @@ class TestHomepage:
         resp = client.get("/")
         html = resp.data.decode()
         assert "Identify Font" in html or "Upload" in html
-        assert "FontMatch" in html
+        assert "Dupefont" in html
+
+
+class TestBranding:
+    """The site is branded Dupefont; the old FontMatch name must not appear."""
+
+    @pytest.mark.parametrize(
+        "path", ["/", "/identify", "/popular", "/api/docs", "/similar-to/nonexistent-font-xyz"]
+    )
+    def test_pages_say_dupefont_not_fontmatch(self, client, path):
+        html = client.get(path).data.decode()
+        assert "Dupefont" in html
+        assert "fontmatch" not in html.lower().replace("/static/", "")
+        assert "font match" not in html.lower()
 
 
 class TestIdentifyPage:

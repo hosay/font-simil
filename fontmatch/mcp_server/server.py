@@ -56,7 +56,7 @@ class OpenAIFile(BaseModel):
     file_name: str = Field(default="", description="Original file name")
 
 
-class FontMatch(BaseModel):
+class FontResult(BaseModel):
     family: str
     style: str
     license: str = Field(description="SPDX license id, e.g. OFL-1.1")
@@ -73,7 +73,7 @@ class FontMatch(BaseModel):
 class ImageMatchResult(BaseModel):
     transcript: str = Field(description="The text that was matched")
     transcript_source: str = Field(description="'hint' (your reading) or 'ocr'")
-    matches: list[FontMatch]
+    matches: list[FontResult]
     note: str
 
 
@@ -81,7 +81,7 @@ class AlternativesResult(BaseModel):
     query: str
     matched_font: str = Field(description="Corpus font the query resolved to")
     is_proprietary: bool
-    matches: list[FontMatch]
+    matches: list[FontResult]
     note: str
 
 
@@ -234,10 +234,10 @@ _GENERIC = {
 }
 
 
-def _font_match(m: dict) -> FontMatch:
+def _font_match(m: dict) -> FontResult:
     family = m["family"]
     generic = _GENERIC.get(m.get("category", ""), "sans-serif")
-    return FontMatch(
+    return FontResult(
         family=family,
         style=m.get("style") or "Regular",
         license=m.get("license_id") or "unknown",

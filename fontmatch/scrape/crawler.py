@@ -125,7 +125,7 @@ def crawl(
     client = httpx.Client(
         headers={
             "User-Agent": (
-                "Mozilla/5.0 (compatible; FontMatcher/1.0; +https://github.com/fontmatch)"
+                "Mozilla/5.0 (compatible; Dupefont/1.0; +https://dupefont.com)"
             ),
         },
         follow_redirects=True,

@@ -1,4 +1,6 @@
-# FontMatch
+# Dupefont
+
+Public name **Dupefont** (https://dupefont.com). Internally the Python package, systemd units, service user and database are still named `fontmatch`.
 
 Find the closest **open-source** font for any given font file. Upload a TTF, OTF, WOFF, or WOFF2 font and get ranked matches from a corpus of thousands of open-source fonts, complete with license info and Google Fonts links.
 

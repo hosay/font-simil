@@ -1,4 +1,4 @@
-# Font Matcher Skill
+# Dupefont Skill
 
 **When to use:** Identify the closest open-source font for a given font file
 (TTF, OTF, WOFF, WOFF2).

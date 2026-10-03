@@ -1,4 +1,4 @@
-/* FontMatch — UI interactions */
+/* Dupefont — UI interactions */
 document.addEventListener("DOMContentLoaded", function () {
 
     /* --- Toast notification --- */
