@@ -176,3 +176,131 @@ class TestLegacyRender:
         assert img.ndim == 2
         assert img.dtype == np.uint8
         assert img.max() > 0
+
+
+class TestClipSeesWholeSheet:
+    """Regression: CLIP's preprocess center-crops to a square, which used to
+    discard the left/right glyph columns of the 896x512 sheet."""
+
+    def test_edge_columns_affect_embedding(self):
+        from fontmatch.features.perceptual import (
+            GLYPH_SIZE,
+            compose_sheet,
+            perceptual,
+            render_glyphs,
+        )
+
+        sheet = compose_sheet(render_glyphs(_load("Roboto-Regular.ttf")))
+        edited = sheet.copy()
+        edited[:, :GLYPH_SIZE] = 0  # blank the leftmost glyph column
+        edited[:, -GLYPH_SIZE:] = 0  # and the rightmost one
+
+        assert not np.array_equal(perceptual(sheet), perceptual(edited))
+
+    def test_clip_input_is_square_and_keeps_all_content(self):
+        from fontmatch.features.perceptual import SHEET_HEIGHT, SHEET_WIDTH, pad_to_square
+
+        sheet = np.full((SHEET_HEIGHT, SHEET_WIDTH), 255, dtype=np.uint8)
+        padded = pad_to_square(sheet)
+        assert padded.shape == (SHEET_WIDTH, SHEET_WIDTH)
+        assert int(padded.astype(np.int64).sum()) == int(sheet.astype(np.int64).sum())
+
+
+class TestVariableFontInstance:
+    """Variable fonts must render their Regular instance, not the default
+    (Josefin Slab's default instance is Thin)."""
+
+    VF = Path(__file__).parent / "fixtures_variable" / "JosefinSlab[wght].ttf"
+
+    def test_pil_font_selects_regular_instance(self):
+        from PIL import ImageFont
+
+        from fontmatch.features.perceptual import pil_font
+        from fontmatch.fonts import load
+
+        font = load(self.VF)
+        chosen = pil_font(font, size=40)
+        expected = ImageFont.truetype(str(self.VF), size=40)
+        expected.set_variation_by_name("Regular")
+        assert chosen.getbbox("Hamburg") == expected.getbbox("Hamburg")
+        img_c = chosen.getmask("Hamburg")
+        img_e = expected.getmask("Hamburg")
+        assert bytes(img_c) == bytes(img_e)
+
+    def test_rendered_glyphs_heavier_than_thin_default(self):
+        from fontmatch.features.perceptual import render_glyphs
+        from fontmatch.fonts import load
+
+        glyphs = render_glyphs(load(self.VF))
+        ink = sum(int(g.sum()) for g in glyphs.values())
+
+        from PIL import Image, ImageDraw, ImageFont
+
+        thin = ImageFont.truetype(str(self.VF), size=80)  # default = Thin
+        thin_ink = 0
+        for ch in glyphs:
+            img = Image.new("L", (128, 128))
+            ImageDraw.Draw(img).text((10, 10), ch, fill=255, font=thin)
+            thin_ink += int(np.asarray(img).sum())
+        assert ink > thin_ink * 1.3
+
+    def test_static_font_unaffected(self):
+        from fontmatch.features.perceptual import pil_font
+
+        font = _load("Roboto-Regular.ttf")
+        assert pil_font(font, size=40).getbbox("Hamburg")
+
+
+class TestVariableFontCrashRegression:
+    """Pillow's get_variation_names() segfaults on some fonts (Jaro[opsz]).
+    Instance selection must go through fontTools' fvar table instead."""
+
+    JARO = Path(__file__).parent / "fixtures_variable" / "Jaro[opsz].ttf"
+
+    def test_render_glyphs_in_subprocess_does_not_crash(self):
+        import subprocess
+        import sys
+
+        code = (
+            "from fontmatch.fonts import load; "
+            "from fontmatch.features.perceptual import render_glyphs; "
+            f"g = render_glyphs(load({str(self.JARO)!r})); assert g"
+        )
+        proc = subprocess.run(
+            [sys.executable, "-c", code], capture_output=True, text=True, timeout=120
+        )
+        assert proc.returncode == 0, proc.stderr[-2000:]
+
+    def test_duplicate_instance_names_choose_default_coordinates(self):
+        from fontmatch.fonts import load
+        from fontmatch.fonts.variable import choose_instance
+
+        tt = load(self.JARO).tt
+        name, coords = choose_instance(tt, ["Regular"])
+        assert name == "Regular" and coords == {"opsz": 14.0}
+
+
+class TestSquareTiles:
+    """v6: the sheet is embedded as square tiles at the original glyph
+    resolution (padding the whole sheet to a square halved it)."""
+
+    def test_wide_sheet_splits_into_square_tiles_keeping_all_ink(self):
+        from fontmatch.features.perceptual import SHEET_HEIGHT, SHEET_WIDTH, square_tiles
+
+        sheet = np.random.default_rng(0).integers(0, 256, (SHEET_HEIGHT, SHEET_WIDTH), dtype=np.uint8)
+        tiles = square_tiles(sheet)
+        assert len(tiles) == 2
+        assert all(t.shape == (SHEET_HEIGHT, SHEET_HEIGHT) for t in tiles)
+        total = sum(int(t.astype(np.int64).sum()) for t in tiles)
+        assert total == int(sheet.astype(np.int64).sum())
+
+    def test_square_input_is_one_tile(self):
+        from fontmatch.features.perceptual import square_tiles
+
+        assert len(square_tiles(np.ones((64, 64), dtype=np.uint8))) == 1
+
+    def test_tall_input_is_padded(self):
+        from fontmatch.features.perceptual import square_tiles
+
+        tiles = square_tiles(np.ones((100, 40), dtype=np.uint8))
+        assert len(tiles) == 1 and tiles[0].shape == (100, 100)

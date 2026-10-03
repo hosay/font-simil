@@ -33,8 +33,12 @@ SHEET_WIDTH = _GRID_COLS * GLYPH_SIZE   # 896
 SHEET_HEIGHT = _GRID_ROWS * GLYPH_SIZE  # 512
 
 # Schema versions for cache invalidation
-RENDERER_VERSION = "pillow-freetype-clip-v4"
-FINGERPRINT_SCHEMA_VERSION = 4
+# v4 lost the outer glyph columns to CLIP's center crop. v5 padded the whole
+# sheet to a square (all glyphs, but at ~half the resolution; measured no
+# better than v4). v6 embeds square tiles at full glyph resolution and
+# averages them. See docs/image-matching.md.
+RENDERER_VERSION = "pillow-freetype-clip-v6-tiles"
+FINGERPRINT_SCHEMA_VERSION = 6
 
 # CLIP embedding dimension
 CLIP_DIM = 512
@@ -55,14 +59,28 @@ def _font_to_bytes(font: LoadedFont) -> bytes:
     return buf.read()
 
 
+def pil_font(font: LoadedFont, size: int) -> ImageFont.FreeTypeFont:
+    """Pillow font for rendering. Variable fonts get their Regular (or Italic)
+    named instance: the default instance is often Thin or Light."""
+    from fontmatch.fonts.variable import apply_instance, choose_instance
+
+    pil = ImageFont.truetype(io.BytesIO(_font_to_bytes(font)), size=size)
+    if "fvar" in font.tt:
+        is_italic = "italic" in font.subfamily.lower() or "italic" in font.postscript_name.lower()
+        wanted = ["Italic", "Regular Italic"] if is_italic else ["Regular"]
+        chosen = choose_instance(font.tt, wanted)
+        if chosen is not None:
+            apply_instance(pil, font.tt, chosen[1])
+    return pil
+
+
 def render_glyphs(font: LoadedFont) -> dict[str, np.ndarray]:
     """Render each diagnostic character as an individual grayscale image.
 
     Returns a dict mapping character to a GLYPH_SIZE x GLYPH_SIZE uint8 array.
     Characters missing from the font's cmap are skipped.
     """
-    font_bytes = _font_to_bytes(font)
-    pil_font = ImageFont.truetype(io.BytesIO(font_bytes), size=FONT_SIZE)
+    face = pil_font(font, FONT_SIZE)
 
     # Check which chars the font supports via its cmap
     cmap = font.tt.getBestCmap() or {}
@@ -76,7 +94,7 @@ def render_glyphs(font: LoadedFont) -> dict[str, np.ndarray]:
         draw = ImageDraw.Draw(img)
 
         # Get bounding box for centering
-        bbox = draw.textbbox((0, 0), char, font=pil_font)
+        bbox = draw.textbbox((0, 0), char, font=face)
         text_w = bbox[2] - bbox[0]
         text_h = bbox[3] - bbox[1]
 
@@ -84,7 +102,7 @@ def render_glyphs(font: LoadedFont) -> dict[str, np.ndarray]:
         x_offset = max(0, (GLYPH_SIZE - text_w) // 2 - bbox[0])
         y_offset = max(0, (GLYPH_SIZE - text_h) // 2 - bbox[1])
 
-        draw.text((x_offset, y_offset), char, fill=255, font=pil_font)
+        draw.text((x_offset, y_offset), char, fill=255, font=face)
         glyphs[char] = np.array(img, dtype=np.uint8)
 
     return glyphs
@@ -109,6 +127,36 @@ def compose_sheet(glyphs: dict[str, np.ndarray]) -> np.ndarray:
         sheet[y : y + GLYPH_SIZE, x : x + GLYPH_SIZE] = glyphs[char]
 
     return sheet
+
+
+def pad_to_square(img: np.ndarray) -> np.ndarray:
+    """Center a 2D image on a black square canvas (side = longest edge).
+
+    CLIP's preprocess resizes the short side to 224 and then center-crops,
+    so a non-square input loses its edges. Padding first keeps all content.
+    """
+    h, w = img.shape
+    side = max(h, w)
+    out = np.zeros((side, side), dtype=img.dtype)
+    y = (side - h) // 2
+    x = (side - w) // 2
+    out[y : y + h, x : x + w] = img
+    return out
+
+
+def square_tiles(img: np.ndarray) -> list[np.ndarray]:
+    """Split a wide image into square tiles of side = height (last one padded
+    with black); a square or tall image becomes one padded square."""
+    h, w = img.shape
+    if w <= h:
+        return [pad_to_square(img)]
+    tiles = []
+    for x in range(0, w, h):
+        tile = np.zeros((h, h), dtype=img.dtype)
+        part = img[:, x : x + h]
+        tile[:, : part.shape[1]] = part
+        tiles.append(tile)
+    return tiles
 
 
 # --- CLIP encoder (lazy-loaded singleton, thread-safe) ---
@@ -161,17 +209,19 @@ def perceptual(rendered: np.ndarray) -> np.ndarray:
 
     model, preprocess = _get_clip()
 
-    # Convert grayscale sheet to RGB PIL image for CLIP preprocessing
-    img = Image.fromarray(rendered).convert("RGB")
-    img_tensor = preprocess(img).unsqueeze(0)  # (1, 3, H, W)
+    # Square tiles so CLIP's center crop discards nothing; one batched pass.
+    batch = torch.stack(
+        [preprocess(Image.fromarray(tile).convert("RGB")) for tile in square_tiles(rendered)]
+    )
 
     with torch.no_grad():
-        features = model.encode_image(img_tensor)
-        # L2-normalize (safe: CLIP never produces zero vectors for real images)
+        features = model.encode_image(batch)
         features = features / features.norm(dim=-1, keepdim=True)
+        pooled = features.mean(dim=0)
+        # L2-normalize (safe: CLIP never produces zero vectors for real images)
+        pooled = pooled / pooled.norm()
 
-    vec = features.squeeze(0).cpu().numpy().astype(np.float64)
-    return vec
+    return pooled.cpu().numpy().astype(np.float64)
 
 
 # --- Legacy render function (backward compatibility) ---

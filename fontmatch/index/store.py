@@ -738,6 +738,17 @@ class FontStore:
             self.conn.commit()
         return cur.rowcount
 
+    def cleanup_image_cache(self, days: int = 30) -> int:
+        """Delete cached image-match results (``img:`` keys) older than N days."""
+        with self._lock:
+            cur = self.conn.execute(
+                "DELETE FROM match_cache WHERE query_hash LIKE 'img:%' "
+                "AND created_at < datetime('now', ?)",
+                (f"-{int(days)} days",),
+            )
+            self.conn.commit()
+        return cur.rowcount
+
     def close(self):
         self.conn.close()
 

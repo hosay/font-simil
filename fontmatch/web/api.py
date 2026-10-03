@@ -15,6 +15,7 @@ from fontmatch.web.helpers import (
     CORPUS_ALIASES,
     PROPRIETARY_TO_OPEN_SOURCE,
     enrich_matches,
+    google_fonts_url,
     slugify,
 )
 
@@ -90,6 +91,94 @@ def identify():
     results = store.identify(fp, k=DEFAULT_K)
     store.cache_result(file_hash, fp.schema_version, results)
     return jsonify({"matches": _add_urls(results, store), "cached": False})
+
+
+def _image_cache_key(version: str, raw: bytes, hint: str) -> str:
+    digest = hashlib.sha256(raw + b"\0" + hint.encode("utf-8", "replace")).hexdigest()
+    return f"img:{version}:{digest}"
+
+
+def _add_image_urls(result: dict, store) -> dict:
+    """Derived per request (never cached): sources and Google Fonts presence can change."""
+    for m in result["matches"]:
+        m["similar_url"] = f"/similar-to/{slugify(m['family'])}"
+        has_gf = store.has_google_fonts_source(m["family"])
+        m["google_fonts_url"] = google_fonts_url(m["family"]) if has_gf else None
+        source = store.get_font_source(m["name"])
+        m["download_url"] = f"/api/font-file/{m['name']}" if source else None
+    return result
+
+
+@api_bp.post("/identify-image")
+def identify_image():
+    """Closest free fonts to the text in an uploaded image.
+
+    multipart/form-data: ``image`` (PNG/JPEG/WebP, <= 10 MB) and optional
+    ``text_hint`` (the text in the image, improves accuracy a lot).
+    """
+    from fontmatch.image.prep import ImageError
+    from fontmatch.image.service import (
+        IMAGE_SCHEMA_VERSION,
+        MAX_HINT_CHARS,
+        EngineUnavailable,
+        NoTextFound,
+    )
+
+    store = current_app.config["STORE"]
+    f = request.files.get("image")
+    if f is None:
+        return jsonify({"error": "No image uploaded (form field 'image')"}), 400
+    raw = f.read()
+    hint = (request.form.get("text_hint") or "")[:MAX_HINT_CHARS]
+    store.log_request("/api/identify-image")
+    identifier = current_app.config["IMAGE_IDENTIFIER"]
+    unavailable = {"error": "Image matching is temporarily unavailable, please try again."}
+
+    try:
+        key = _image_cache_key(getattr(identifier, "version", ""), raw, hint)
+        cached = store.get_cached_result(key, IMAGE_SCHEMA_VERSION)
+        if cached is not None:
+            result = _add_image_urls(cached[0], store)
+            result["cached"] = True
+            return jsonify(result)
+        result = identifier.identify(raw, hint=hint, k=5)
+    except ImageError as exc:
+        return jsonify({"error": str(exc), "type": "ImageError"}), 400
+    except NoTextFound as exc:
+        return jsonify({"error": str(exc), "type": "NoTextFound"}), 422
+    except EngineUnavailable:
+        return jsonify(unavailable), 503
+
+    store.cache_result(key, IMAGE_SCHEMA_VERSION, [result])
+    result = _add_image_urls(result, store)
+    result["cached"] = False
+    return jsonify(result)
+
+
+@api_bp.get("/similar-to")
+def similar_to_api():
+    """Closest free fonts to a font given by name (proprietary names allowed)."""
+    from fontmatch.web.similar import find_similar
+
+    name = request.args.get("font", "").strip()
+    if not name or len(name) > 100 or "\x00" in name:
+        return jsonify({"error": "Query parameter 'font' must be 1-100 characters"}), 400
+    store = current_app.config["STORE"]
+    store.log_request("/api/similar-to")
+    result = find_similar(store, name, k=DEFAULT_K)
+    if result is None:
+        return jsonify({"error": f"Font '{name}' is not in our catalog", "query": name}), 404
+    matches = _add_urls([dict(m) for m in result.matches], store)
+    for m in matches:
+        m["similar_url"] = f"/similar-to/{slugify(m['family'])}"
+    return jsonify(
+        {
+            "query": result.display_name,
+            "matched_font": result.font_row["family"],
+            "proprietary": result.prop,
+            "matches": matches,
+        }
+    )
 
 
 @api_bp.get("/fonts/<int:font_id>")

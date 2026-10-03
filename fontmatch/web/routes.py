@@ -19,6 +19,7 @@ from flask import (
 
 from fontmatch.features.fingerprint import fingerprint
 from fontmatch.features.perceptual import FINGERPRINT_SCHEMA_VERSION
+from fontmatch.web.similar import find_similar
 from fontmatch.fonts.loader import UnsupportedFontError, load
 from fontmatch.web.helpers import (
     CORPUS_ALIASES,
@@ -291,50 +292,12 @@ def similar_to(slug: str):
     store = current_app.config["STORE"]
     family_name = deslugify(slug)
 
-    # If user searched for a proprietary font name, look up the open-source
-    # equivalent but keep the original name as the display title.
-    display_name = family_name
-    canonical_prop = lookup_proprietary(family_name)
-    oss_name = PROPRIETARY_TO_OPEN_SOURCE.get(canonical_prop) if canonical_prop else None
-    # Also check corpus aliases (e.g. "DM Sans" -> "DM Sans 9pt")
-    alias_target = lookup_corpus_alias(family_name)
-    lookup_name = oss_name or alias_target or family_name
-
-    # Proprietary font metadata (None for open-source fonts)
-    prop_meta = None
-    if canonical_prop:
-        display_name = canonical_prop
-        meta = PROPRIETARY_FONTS.get(canonical_prop, {})
-        prop_meta = {
-            "name": canonical_prop,
-            "css_family": meta.get("css_family", f"'{canonical_prop}', serif"),
-            "category": meta.get("category", "sans-serif"),
-            "vendor": meta.get("vendor", ""),
-            "description": meta.get("description", ""),
-        }
-
-    font_row = store.get_font_by_family(lookup_name, licensed_only=True)
-    if font_row is None:
-        font_row = store.get_font_by_family(slug.replace("-", " "), licensed_only=True)
-
-    if font_row is None:
+    result = find_similar(store, family_name, slug=slug, k=DEFAULT_K)
+    if result is None:
+        display_name = lookup_proprietary(family_name) or family_name
         return render_template("similar.html", family_name=display_name, matches=None, found=False, prop=None), 404
-
-    # Use the actual family name from the DB for display (not the deslugified guess)
-    if not canonical_prop:
-        display_name = font_row["family"]
-
-    fp = store.get_fingerprint(font_row["file_hash"], FINGERPRINT_SCHEMA_VERSION)
-    if fp is None:
-        return render_template("similar.html", family_name=display_name, matches=None, found=False, prop=None), 404
-
-    # Use cached results if available
-    cached = store.get_cached_result(font_row["file_hash"], FINGERPRINT_SCHEMA_VERSION)
-    if cached is not None:
-        results = cached
-    else:
-        results = store.identify(fp, k=DEFAULT_K)
-        store.cache_result(font_row["file_hash"], FINGERPRINT_SCHEMA_VERSION, results)
+    display_name, font_row = result.display_name, result.font_row
+    prop_meta, results = result.prop, result.matches
 
     # Check if the corpus font file is available for download
     from fontmatch.web.helpers import _is_crawled_source

@@ -123,7 +123,10 @@ class TestCategoryCoherence:
             "JetBrains Mono", "Inconsolata", "Ubuntu Mono",
             "Noto Sans Mono",
         }
-        mono_hits = [f for f in top5 if any(m in f for m in mono_families)]
+        # Any family named "... Mono" is monospace too (Roboto Mono, Fragment Mono, ...).
+        mono_hits = [
+            f for f in top5 if any(m in f for m in mono_families) or f.split()[-1] == "Mono"
+        ]
         assert len(mono_hits) >= 3, (
             f"Expected >=3 mono fonts in top 5, got {len(mono_hits)}: {top5}"
         )

@@ -1,0 +1,14 @@
+{
+  "_comment": "Hand labels for the external (not-in-corpus) eval set. category: sans|serif|mono|display|handwriting. acceptable: free families (base-family names) a typographer would accept as a substitute. exclude: not text fonts.",
+  "nimbus sans": {"original": "Helvetica", "category": "sans", "acceptable": ["liberation sans", "arimo", "freesans", "nimbus sans l", "inter", "roboto"]},
+  "nimbus roman": {"original": "Times", "category": "serif", "acceptable": ["liberation serif", "tinos", "freeserif", "times new roman", "stix two text", "libre caslon text"]},
+  "nimbus mono ps": {"original": "Courier", "category": "mono", "acceptable": ["liberation mono", "cousine", "freemono", "courier prime", "courier"]},
+  "p052": {"original": "Palatino", "category": "serif", "acceptable": ["tex gyre pagella", "domitian", "lora", "crimson text", "eb garamond", "libre baskerville"]},
+  "c059": {"original": "Century Schoolbook", "category": "serif", "acceptable": ["tex gyre schola", "gelasio", "libre baskerville", "old standard tt", "century"]},
+  "urw bookman": {"original": "ITC Bookman", "category": "serif", "acceptable": ["tex gyre bonum", "libre bodoni", "gelasio", "bookman"]},
+  "urw gothic": {"original": "ITC Avant Garde Gothic", "category": "sans", "acceptable": ["tex gyre adventor", "questrial", "didact gothic", "poppins", "century gothic", "muli", "mulish"]},
+  "lato hairline": {"original": "Lato Hairline", "category": "sans", "acceptable": ["lato"]},
+  "noto mono": {"original": "Noto Mono", "category": "mono", "acceptable": ["noto sans mono", "cousine", "dejavu sans mono", "liberation mono"]},
+  "d050000l": {"exclude": true},
+  "standard symbols ps": {"exclude": true}
+}

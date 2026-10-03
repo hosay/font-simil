@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import calendar
+import hmac
 import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -47,6 +48,24 @@ def create_app(
     # CORS — allow API access from any origin
     CORS(app, resources={r"/api/*": {"origins": "*"}})
 
+    # Calls from the local MCP service (ChatGPT app) carry a shared token and
+    # skip the per-IP limits: every MCP request arrives from 127.0.0.1, so
+    # per-IP limits would throttle all ChatGPT users together. The MCP
+    # service applies its own per-user limit instead.
+    internal_token = os.environ.get("FONTMATCH_INTERNAL_TOKEN", "")
+
+    def is_internal_request() -> bool:
+        if not internal_token:
+            return False
+        if request.headers.get("X-Forwarded-For"):
+            return False  # came through nginx, not from the local MCP service
+        if request.remote_addr not in ("127.0.0.1", "::1"):
+            return False
+        supplied = request.headers.get("X-Internal-Token", "").encode("utf-8", "surrogateescape")
+        return hmac.compare_digest(supplied, internal_token.encode())
+
+    app.config["IS_INTERNAL_REQUEST"] = is_internal_request
+
     # Rate limiting
     limiter = Limiter(
         get_remote_address,
@@ -55,10 +74,11 @@ def create_app(
         storage_uri="memory://",
     )
     app.config["LIMITER"] = limiter
+    limiter.request_filter(is_internal_request)
 
     @app.errorhandler(413)
     def too_large(e):
-        if "api" in (getattr(e, "description", "") or ""):
+        if request.path.startswith("/api/"):
             return jsonify({"error": "File too large. Maximum size is 10 MB."}), 413
         from flask import flash, redirect, url_for
 
@@ -80,6 +100,7 @@ def create_app(
 
     store.build_index()
     store.cleanup_old_usage(days=90)
+    store.cleanup_image_cache(days=30)
     app.config["STORE"] = store
 
     # Directories to search for font files (for @font-face serving)
@@ -111,6 +132,14 @@ def create_app(
             corpus_dirs.append(sys_dir)
     app.config["CORPUS_DIRS"] = corpus_dirs
 
+    # Image -> font matcher (glyph atlas + catalog load lazily on first use)
+    from fontmatch.image.service import LazyImageIdentifier
+
+    app.config["IMAGE_IDENTIFIER"] = LazyImageIdentifier(
+        db_path or DEFAULT_DB_PATH,
+        os.environ.get("FONTMATCH_GLYPH_ATLAS") or None,
+    )
+
     # Paths exempt from daily rate limiting
     _EXEMPT_PREFIXES = ("/static/", "/api/health")
     _EXEMPT_PATHS = {"/robots.txt", "/sitemap.txt", "/favicon.ico"}
@@ -119,6 +148,8 @@ def create_app(
     def check_daily_rate_limit():
         path = request.path
         if path.startswith(_EXEMPT_PREFIXES) or path in _EXEMPT_PATHS:
+            return None
+        if is_internal_request():
             return None
 
         ip = get_remote_address() or "unknown"
@@ -178,8 +209,10 @@ def create_app(
     app.register_blueprint(api_bp, url_prefix="/api")
 
     # Apply stricter rate limits to CPU-intensive identify endpoints
-    limiter.limit("10 per minute")(app.view_functions["api.identify"])
-    limiter.limit("10 per minute")(app.view_functions["web.identify_submit"])
+    # The wrapped function must replace the registered view, or the limit is
+    # silently ignored (it was, before image matching was added).
+    for endpoint in ("api.identify", "api.identify_image", "web.identify_submit"):
+        app.view_functions[endpoint] = limiter.limit("10 per minute")(app.view_functions[endpoint])
 
     # Make slugify available in all templates
     app.jinja_env.globals["slugify"] = slugify

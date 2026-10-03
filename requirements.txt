@@ -12,3 +12,7 @@ flask-limiter==4.1.1
 httpx==0.28.1
 scikit-image==0.25.2
 open_clip_torch==3.3.0
+pytesseract==0.3.13
+mcp==2.3.0
+uvicorn==0.54.0
+psutil==7.2.2
