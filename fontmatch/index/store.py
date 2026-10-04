@@ -749,6 +749,21 @@ class FontStore:
             self.conn.commit()
         return cur.rowcount
 
+    def forget_old_rating_ips(self, days: int = 365) -> int:
+        """Drop the IP address from ratings and reports older than N days
+        (the privacy policy promises 12 months). Returns rows changed."""
+        changed = 0
+        with self._lock:
+            for table in ("user_scores", "match_reports"):
+                cur = self.conn.execute(
+                    f"UPDATE {table} SET ip_address = NULL "
+                    "WHERE ip_address IS NOT NULL AND created_at < datetime('now', ?)",
+                    (f"-{int(days)} days",),
+                )
+                changed += cur.rowcount
+            self.conn.commit()
+        return changed
+
     def close(self):
         self.conn.close()
 

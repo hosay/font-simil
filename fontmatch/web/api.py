@@ -109,6 +109,30 @@ def _add_image_urls(result: dict, store) -> dict:
     return result
 
 
+def identify_image_cached(raw: bytes, hint: str) -> dict:
+    """Shared by the API and the website: cached engine result plus links.
+
+    Raises ImageError / NoTextFound / EngineUnavailable for the caller to map.
+    """
+    from fontmatch.image.service import IMAGE_SCHEMA_VERSION, MAX_HINT_CHARS
+
+    store = current_app.config["STORE"]
+    identifier = current_app.config["IMAGE_IDENTIFIER"]
+    hint = (hint or "")[:MAX_HINT_CHARS]
+    key = _image_cache_key(getattr(identifier, "version", ""), raw, hint)
+    cached = store.get_cached_result(key, IMAGE_SCHEMA_VERSION)
+    if cached is not None:
+        result = _add_image_urls(cached[0], store)
+        result["cached"] = True
+        return result
+    result = identifier.identify(raw, hint=hint, k=5)
+    # Cache before _add_image_urls mutates it: links are derived per request.
+    store.cache_result(key, IMAGE_SCHEMA_VERSION, [result])
+    result = _add_image_urls(result, store)
+    result["cached"] = False
+    return result
+
+
 @api_bp.post("/identify-image")
 def identify_image():
     """Closest free fonts to the text in an uploaded image.
@@ -117,42 +141,24 @@ def identify_image():
     ``text_hint`` (the text in the image, improves accuracy a lot).
     """
     from fontmatch.image.prep import ImageError
-    from fontmatch.image.service import (
-        IMAGE_SCHEMA_VERSION,
-        MAX_HINT_CHARS,
-        EngineUnavailable,
-        NoTextFound,
-    )
+    from fontmatch.image.service import EngineUnavailable, NoTextFound
 
     store = current_app.config["STORE"]
     f = request.files.get("image")
     if f is None:
         return jsonify({"error": "No image uploaded (form field 'image')"}), 400
     raw = f.read()
-    hint = (request.form.get("text_hint") or "")[:MAX_HINT_CHARS]
-    store.log_request("/api/identify-image")
-    identifier = current_app.config["IMAGE_IDENTIFIER"]
-    unavailable = {"error": "Image matching is temporarily unavailable, please try again."}
+    internal = current_app.config["IS_INTERNAL_REQUEST"]()
+    store.log_request("/api/identify-image (chatgpt)" if internal else "/api/identify-image")
 
     try:
-        key = _image_cache_key(getattr(identifier, "version", ""), raw, hint)
-        cached = store.get_cached_result(key, IMAGE_SCHEMA_VERSION)
-        if cached is not None:
-            result = _add_image_urls(cached[0], store)
-            result["cached"] = True
-            return jsonify(result)
-        result = identifier.identify(raw, hint=hint, k=5)
+        return jsonify(identify_image_cached(raw, request.form.get("text_hint") or ""))
     except ImageError as exc:
         return jsonify({"error": str(exc), "type": "ImageError"}), 400
     except NoTextFound as exc:
         return jsonify({"error": str(exc), "type": "NoTextFound"}), 422
     except EngineUnavailable:
-        return jsonify(unavailable), 503
-
-    store.cache_result(key, IMAGE_SCHEMA_VERSION, [result])
-    result = _add_image_urls(result, store)
-    result["cached"] = False
-    return jsonify(result)
+        return jsonify({"error": "Image matching is temporarily unavailable, please try again."}), 503
 
 
 @api_bp.get("/similar-to")
@@ -164,7 +170,8 @@ def similar_to_api():
     if not name or len(name) > 100 or "\x00" in name:
         return jsonify({"error": "Query parameter 'font' must be 1-100 characters"}), 400
     store = current_app.config["STORE"]
-    store.log_request("/api/similar-to")
+    internal = current_app.config["IS_INTERNAL_REQUEST"]()
+    store.log_request("/api/similar-to (chatgpt)" if internal else "/api/similar-to")
     result = find_similar(store, name, k=DEFAULT_K)
     if result is None:
         return jsonify({"error": f"Font '{name}' is not in our catalog", "query": name}), 404
@@ -317,27 +324,29 @@ def report_match():
 def font_file(name: str):
     """Serve a font file from the corpus for @font-face rendering."""
     store = current_app.config["STORE"]
+    if store.get_font_source(name) is None:
+        return jsonify({"error": "Font not found in DB"}), 404
+    font_path = resolve_font_file(store, current_app.config.get("CORPUS_DIRS", []), name)
+    if font_path is None:
+        return jsonify({"error": "Font not on disk"}), 404
+    return _serve_font(font_path)
+
+
+def resolve_font_file(store, corpus_dirs: list[str], name: str, walk: bool = True) -> Path | None:
+    """Corpus font name -> file on disk (None if unknown). The name is only a DB
+    key; paths come from the DB ``source`` and stay inside the corpus dirs.
+    ``walk=False`` skips the slow directory-walk fallback."""
     source = store.get_font_source(name)
     if source is None:
-        return jsonify({"error": "Font not found in DB"}), 404
-
-    corpus_dirs = current_app.config.get("CORPUS_DIRS", [])
-
-    # Try the source path directly in each corpus dir
-    for corpus_dir in corpus_dirs:
-        font_path = _safe_resolve(corpus_dir, source)
-        if font_path and font_path.is_file():
-            return _serve_font(font_path)
+        return None
 
     # Google Fonts sources may be stored without the license-category prefix
     # (e.g. "familyslug/Font.ttf" instead of "ofl/familyslug/Font.ttf").
-    # Try common prefixes.
-    for prefix in ("ofl", "apache", "ufl"):
-        prefixed = f"{prefix}/{source}"
+    for relative in [source] + [f"{prefix}/{source}" for prefix in ("ofl", "apache", "ufl")]:
         for corpus_dir in corpus_dirs:
-            font_path = _safe_resolve(corpus_dir, prefixed)
+            font_path = _safe_resolve(corpus_dir, relative)
             if font_path and font_path.is_file():
-                return _serve_font(font_path)
+                return font_path
 
     # If source is a bare filename, search for it by name in corpus dirs.
     # Use os.walk instead of rglob because rglob treats [] as glob patterns
@@ -346,30 +355,30 @@ def font_file(name: str):
     for corpus_dir in corpus_dirs:
         direct = _safe_resolve(corpus_dir, bare_name)
         if direct and direct.is_file():
-            return _serve_font(direct)
+            return direct
+        if not walk:
+            continue
         for dirpath, _dirnames, filenames in os.walk(corpus_dir):
             if bare_name in filenames:
                 candidate = Path(dirpath) / bare_name
                 if _is_within(candidate, corpus_dir):
-                    return _serve_font(candidate)
-
-    return jsonify({"error": "Font file not on disk"}), 404
+                    return candidate
+    return None
 
 
 def _is_within(path: Path, directory: str) -> bool:
     """Check that a resolved path stays within the given directory."""
     try:
-        return str(path.resolve()).startswith(str(Path(directory).resolve()))
+        return path.resolve().is_relative_to(Path(directory).resolve())
     except (OSError, ValueError):
         return False
 
 
 def _safe_resolve(corpus_dir: str, relative: str) -> Path | None:
     """Resolve a path within a corpus dir, returning None if it escapes."""
-    candidate = (Path(corpus_dir) / relative).resolve()
-    if str(candidate).startswith(str(Path(corpus_dir).resolve())):
-        return candidate
-    return None
+    root = Path(corpus_dir).resolve()
+    candidate = (root / relative).resolve()
+    return candidate if candidate.is_relative_to(root) else None
 
 
 def _serve_font(font_path: Path):

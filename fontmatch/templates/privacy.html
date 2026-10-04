@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Privacy Policy{% endblock %}
+{% block meta_description %}How Dupefont handles the images, font files and usage data it receives, including the Dupefont app for ChatGPT.{% endblock %}
+{% block content %}
+<article class="policy">
+<h1>Privacy Policy</h1>
+<p>Effective date: October 3, 2026</p>
+<p>This policy explains what information Dupefont collects when you use dupefont.com, its API and the Dupefont app for ChatGPT (together, the &quot;Service&quot;), how we use it, and the choices you have.</p>
+<h2>Who we are</h2>
+<p>Dupefont (&quot;we&quot;, &quot;us&quot;) runs the Service and is the controller of the personal data described here. {% if config.OPERATOR %}It is operated by {{ config.OPERATOR }}. {% endif %}You can reach us at <a href="mailto:privacy@dupefont.com">privacy@dupefont.com</a>.</p>
+<h2>Summary</h2>
+<ul>
+<li>You don't need an account. We don't ask for your name, email address or payment details.</li>
+<li>We don't save the images or font files you upload. We keep the match results, filed under a one-way fingerprint (hash) of the file, so repeat requests are fast.</li>
+<li>We keep some technical data, such as IP addresses and request counts, to run the Service and stop abuse.</li>
+<li>With your consent where the law requires it, we use Microsoft Clarity to see how people use the website.</li>
+<li>We don't sell personal information and we don't use advertising cookies.</li>
+</ul>
+<h2>What we collect</h2>
+<h3>Images and font files you upload</h3>
+<p>When you upload an image on the website, send one through the API, or share one with the Dupefont app in ChatGPT, we read the text in it and compare the letter shapes with our font library. Font files are compared the same way. We don't save uploaded files: they are processed in memory and discarded when the request finishes. Transient operating-system copies, such as swap, may exist briefly; we don't access or keep them. We store the result (the fonts we matched and, for images, the text we read) under a SHA-256 hash of the file. Image results are deleted after 30 days.</p>
+<h3>Text you type</h3>
+<p>Text you enter to help us read an image, and font names you search for, are used to produce results. We don't store the text you type for images. Font names searched through the ChatGPT app are kept in our usage records (below).</p>
+<h3>Ratings and reports</h3>
+<p>If you rate or report a match, we store the fonts involved, your rating and your IP address, which we use to stop duplicate votes. We remove the IP address after 12 months.</p>
+<h3>Logs and rate limits</h3>
+<p>Our servers record standard request data: IP address, time, page requested, referrer and browser user agent. These logs are kept for about 14 days. We also count requests per IP address per day to prevent abuse, and keep those counts for up to 90 days.</p>
+<h3>The Dupefont app in ChatGPT</h3>
+<p>When you use the app, OpenAI sends us a temporary link to the image you share, plus a pseudonymous identifier for your ChatGPT account, and may send your locale and coarse location (such as country). We download the image to process your request and don't keep it. We store a one-way hash of the identifier (not the identifier itself) with the tool used, the time, whether the call succeeded, how long it took, the top font returned, your locale and country, and, for name searches, the font name. We keep these records for up to 180 days to measure usage, fix errors and prevent abuse. We don't receive your name, email address or ChatGPT conversation, and we don't use app data for advertising.</p>
+<h3 id="analytics">Analytics (Microsoft Clarity)</h3>
+<p>The website uses Microsoft Clarity, which uses cookies and similar technology to record how visitors interact with pages (clicks, scrolling, mouse movement, pages viewed) along with device and browser details. In the EEA, the UK and Switzerland we load Clarity only after you accept it in the cookie banner. Elsewhere it loads by default unless you decline or your browser sends a Global Privacy Control signal. You can change your choice at any time with &quot;Cookie settings&quot; at the bottom of every page. Clarity never runs on the pages where you upload files or see results for your uploads. Microsoft may use Clarity data as described in the Microsoft Privacy Statement (<a href="https://privacy.microsoft.com/privacystatement" rel="noopener" target="_blank">https://privacy.microsoft.com/privacystatement</a>).</p>
+<h3>Cookies</h3>
+<p>Besides Clarity, we use a short-lived session cookie to show you messages, such as an upload error, and we keep your analytics choice in your browser's local storage. We don't use advertising cookies.</p>
+<h2>How we use information and why (legal bases)</h2>
+<div class="table-scroll"><table class="policy-table">
+<thead>
+<tr>
+<th>Purpose</th>
+<th>Legal basis (EEA/UK)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Matching fonts and caching results</td>
+<td>Legitimate interests: providing the tool you asked to use</td>
+</tr>
+<tr>
+<td>Security, rate limiting and server logs</td>
+<td>Legitimate interests: keeping the Service available and preventing abuse</td>
+</tr>
+<tr>
+<td>Ratings and reports</td>
+<td>Legitimate interests: improving match quality</td>
+</tr>
+<tr>
+<td>ChatGPT app usage records</td>
+<td>Legitimate interests: operating and debugging the app</td>
+</tr>
+<tr>
+<td>Microsoft Clarity analytics</td>
+<td>Consent (where required)</td>
+</tr>
+</tbody>
+</table></div>
+<p>We don't use your uploads to train machine-learning models. We don't make decisions based solely on automated processing that have legal or similarly significant effects on you.</p>
+<h2>Sharing</h2>
+<p>We don't sell personal information or use advertising cookies. We share information only:</p>
+<ul>
+<li>with service providers that host and run the Service (cloud hosting and network providers) and with Microsoft for Clarity analytics, as described above;</li>
+<li>with OpenAI, as part of running the ChatGPT app (OpenAI's own privacy policy covers your ChatGPT data);</li>
+<li>when the law requires it, or to protect the rights, safety and security of Dupefont, our users or others;</li>
+<li>as part of a merger, acquisition, financing or sale of assets. In that case we will require the recipient to honor this policy for information collected under it, or give you notice before any material change.</li>
+</ul>
+<h2>How long we keep it</h2>
+<div class="table-scroll"><table class="policy-table">
+<thead>
+<tr>
+<th>Data</th>
+<th>Kept for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Uploaded images and font files</td>
+<td>Not saved; discarded after processing</td>
+</tr>
+<tr>
+<td>Image match results (by hash)</td>
+<td>30 days</td>
+</tr>
+<tr>
+<td>Font-file match results (by hash)</td>
+<td>Until our font index changes</td>
+</tr>
+<tr>
+<td>Server logs</td>
+<td>About 14 days</td>
+</tr>
+<tr>
+<td>Daily request counts by IP</td>
+<td>Up to 90 days</td>
+</tr>
+<tr>
+<td>ChatGPT app usage records</td>
+<td>Up to 180 days</td>
+</tr>
+<tr>
+<td>Ratings and reports</td>
+<td>Kept; IP address removed after 12 months</td>
+</tr>
+</tbody>
+</table></div>
+<p>We may keep information longer when the law requires it or to investigate abuse.</p>
+<h2>Security</h2>
+<p>We protect data with encrypted connections (HTTPS), restricted server access and short retention periods. No system is completely secure, and we can't promise that ours is.</p>
+<h2>Your rights</h2>
+<p>Depending on where you live, you may have the right to access, correct, delete or get a copy of your personal information, to object to or restrict how we use it, and to withdraw consent. Because we don't ask who you are, we usually can't link data to you. If you send a request, we may ask for details such as your IP address and the time of your visit to find the records. Email <a href="mailto:privacy@dupefont.com">privacy@dupefont.com</a>. If you're in the EEA or UK, you can also complain to your local data protection authority.</p>
+<h3>California</h3>
+<p>In the last 12 months we collected these categories: identifiers (IP address and pseudonymous IDs), internet activity (pages viewed and interactions), coarse location, and content you submit. They come from you, your browser and OpenAI. We use them for the purposes and keep them for the periods above. We don't collect sensitive personal information, we don't sell personal information, and we won't treat you differently for exercising your rights.</p>
+<h2>Children</h2>
+<p>The Service isn't directed to children under 13, or under the age of digital consent where you live (up to 16 in some EEA countries), and we don't knowingly collect their personal information. If you think a child has given us personal information, contact us and we'll delete it.</p>
+<h2>International transfers</h2>
+<p>We run the Service from the United States. If you use it from elsewhere, your information is transferred to and processed in the United States. Microsoft participates in the EU-U.S. Data Privacy Framework.</p>
+<h2>Changes</h2>
+<p>If we update this policy, we'll post the new version here with a new effective date. For material changes we'll also put a notice on the site. Material changes apply only going forward, and where the law requires it we'll ask for your consent.</p>
+<h2>Contact</h2>
+<p><a href="mailto:privacy@dupefont.com">privacy@dupefont.com</a></p>
+</article>
+{% endblock %}

@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #ffffff; --fg: #111111; --muted: #6b6b6b; --line: #e6e6e6;
+    --card: #fafafa; --accent: #2f6fed; --good: #12805c; --sample-filter: none; --sample-blend: multiply;
+  }
+  :root[data-theme="dark"] {
+    --bg: #212121; --fg: #f2f2f2; --muted: #a3a3a3; --line: #3a3a3a;
+    --card: #2a2a2a; --accent: #7aa7ff; --good: #4fd1a1; --sample-filter: invert(1); --sample-blend: screen;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { padding: 14px 16px 16px; }
+  .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+  .title { font-weight: 600; font-size: 15px; }
+  .sub { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .list { display: grid; gap: 8px; }
+  .item { border: 1px solid var(--line); border-radius: 12px; background: var(--card); padding: 10px 12px; }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .rank { color: var(--muted); font-variant-numeric: tabular-nums; width: 1.4em; }
+  .name { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .style { color: var(--muted); font-weight: 400; }
+  .score { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+  .pill.same { color: var(--good); border-color: currentColor; }
+  .sample { display: block; margin: 8px 0 6px; max-width: 100%; height: 34px; width: auto; object-fit: contain; object-position: left; filter: var(--sample-filter); mix-blend-mode: var(--sample-blend); }
+  .meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
+  .meta a { color: var(--accent); text-decoration: none; cursor: pointer; }
+  .meta a:hover { text-decoration: underline; }
+  .foot { margin-top: 10px; font-size: 11px; color: var(--muted); }
+  .empty { color: var(--muted); padding: 8px 0; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><div class="empty">Finding free fonts&hellip;</div></div>
+<script>
+(function () {
+  "use strict";
+  var SITE = "https://dupefont.com";
+  var app = document.getElementById("app");
+  var nextId = 1;
+  var pending = {};
+
+  function rpc(method, params) {
+    var id = nextId++;
+    window.parent.postMessage({ jsonrpc: "2.0", id: id, method: method, params: params || {} }, "*");
+    return new Promise(function (resolve) { pending[id] = resolve; });
+  }
+  function notify(method, params) {
+    window.parent.postMessage({ jsonrpc: "2.0", method: method, params: params || {} }, "*");
+  }
+
+  function setTheme(theme) {
+    if (theme === "dark" || theme === "light") document.documentElement.dataset.theme = theme;
+  }
+  if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) setTheme("dark");
+
+  function openLink(url) {
+    if (window.openai && typeof window.openai.openExternal === "function") {
+      window.openai.openExternal({ href: url });
+    } else {
+      rpc("ui/open-link", { url: url });
+    }
+  }
+
+  function el(tag, cls, text) {
+    var node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (text != null) node.textContent = text;
+    return node;
+  }
+  function link(label, url) {
+    var a = el("a", null, label);
+    a.href = url;
+    a.addEventListener("click", function (e) { e.preventDefault(); openLink(url); });
+    return a;
+  }
+  function absolute(url) {
+    if (!url) return null;
+    return url.charAt(0) === "/" ? SITE + url : url;
+  }
+
+  function render(data) {
+    if (!data || !Array.isArray(data.matches)) return;
+    app.textContent = "";
+    var head = el("div", "head");
+    head.appendChild(el("div", "title", "Free fonts that look like this"));
+    var sub = data.transcript ? "“" + data.transcript + "”"
+      : (data.query ? "Alternatives to " + data.query : "");
+    if (sub) head.appendChild(el("div", "sub", sub));
+    app.appendChild(head);
+
+    if (!data.matches.length) {
+      app.appendChild(el("div", "empty", "No matches found."));
+      return resize();
+    }
+    var list = el("div", "list");
+    data.matches.forEach(function (m, i) {
+      var item = el("div", "item");
+      var row = el("div", "row");
+      row.appendChild(el("span", "rank", String(i + 1)));
+      var name = el("span", "name", m.family + " ");
+      if (m.style && m.style !== "Regular") name.appendChild(el("span", "style", m.style));
+      row.appendChild(name);
+      if (m.match === "likely the same font") row.appendChild(el("span", "pill same", "likely the same font"));
+      row.appendChild(el("span", "score", m.similarity + "/100"));
+      item.appendChild(row);
+
+      var sampleUrl = absolute(m.sample_image_url);
+      if (sampleUrl) {
+        var img = el("img", "sample");
+        img.alt = m.family + " sample: The quick brown fox jumps over the lazy dog";
+        img.loading = "lazy";
+        img.src = sampleUrl;
+        img.addEventListener("error", function () { img.remove(); resize(); });
+        img.addEventListener("load", resize);
+        item.appendChild(img);
+      }
+
+      var meta = el("div", "meta");
+      meta.appendChild(el("span", null, m.license));
+      if (m.google_fonts_url) meta.appendChild(link("Google Fonts", m.google_fonts_url));
+      if (m.dupefont_url) meta.appendChild(link("More like this", m.dupefont_url));
+      item.appendChild(meta);
+      list.appendChild(item);
+    });
+    app.appendChild(list);
+    app.appendChild(el("div", "foot", data.note || "Similarity is visual, not a guaranteed identification."));
+    resize();
+  }
+
+  function showError(result) {
+    var text = "";
+    (result.content || []).forEach(function (c) { if (c && c.type === "text") text += c.text; });
+    app.textContent = "";
+    app.appendChild(el("div", "empty", text || "Couldn\u2019t match fonts this time."));
+    resize();
+  }
+
+  function resize() {
+    notify("ui/notifications/size-changed", {
+      width: document.documentElement.scrollWidth,
+      height: document.documentElement.scrollHeight
+    });
+  }
+
+  // MCP Apps bridge (standard).
+  window.addEventListener("message", function (event) {
+    if (event.source !== window.parent) return;
+    var msg = event.data;
+    if (!msg || msg.jsonrpc !== "2.0") return;
+    if (msg.id != null && pending[msg.id]) {
+      pending[msg.id](msg.result);
+      delete pending[msg.id];
+      return;
+    }
+    if (msg.method === "ui/notifications/tool-result" && msg.params) {
+      if (msg.params.isError || !msg.params.structuredContent) {
+        showError(msg.params);
+      } else {
+        render(msg.params.structuredContent);
+      }
+    } else if (msg.method === "ui/notifications/host-context-changed" && msg.params) {
+      setTheme(msg.params.theme);
+    }
+  }, { passive: true });
+
+  rpc("ui/initialize", {
+    appCapabilities: {},
+    clientInfo: { name: "Dupefont results", version: "1.0.0" },
+    protocolVersion: "2026-01-26"
+  }).then(function (result) {
+    if (result && result.hostContext) setTheme(result.hostContext.theme);
+    notify("ui/notifications/initialized");
+  });
+
+  // ChatGPT's window.openai globals (older hosts / first paint).
+  function fromOpenAI() {
+    if (!window.openai) return;
+    setTheme(window.openai.theme);
+    if (window.openai.toolOutput) render(window.openai.toolOutput);
+  }
+  window.addEventListener("openai:set_globals", fromOpenAI, { passive: true });
+  fromOpenAI();
+})();
+</script>
+</body>
+</html>

@@ -18,6 +18,7 @@ corpus_fonts/
 eval_reports/
 glyph_atlas/
 glyph_atlas.*/
+font_samples/
 /venv
 /google-fonts-repo
 *.db-shm

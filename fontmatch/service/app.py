@@ -101,6 +101,7 @@ def create_app(
     store.build_index()
     store.cleanup_old_usage(days=90)
     store.cleanup_image_cache(days=30)
+    store.forget_old_rating_ips(days=365)
     app.config["STORE"] = store
 
     # Directories to search for font files (for @font-face serving)
@@ -131,6 +132,23 @@ def create_app(
         if Path(sys_dir).is_dir():
             corpus_dirs.append(sys_dir)
     app.config["CORPUS_DIRS"] = corpus_dirs
+    # Absolute: send_file() resolves relative paths against the package, not the CWD.
+    app.config["SAMPLES_DIR"] = Path(
+        os.environ.get("FONTMATCH_SAMPLES_DIR") or "font_samples"
+    ).resolve()
+
+    # Microsoft Clarity (consent-gated in static/analytics.js); "" disables it.
+    app.config["CLARITY_PROJECT_ID"] = os.environ.get("DUPEFONT_CLARITY_ID", "ys6l88q2n9")
+
+    # Named in the privacy policy as the operator (legal entity or person).
+    app.config["OPERATOR"] = os.environ.get("DUPEFONT_OPERATOR", "")
+
+    # Private usage dashboard (/admin/stats); off unless a password hash is set.
+    from fontmatch.mcp_server.usage import DEFAULT_PATH as MCP_USAGE_DB
+
+    app.config["ADMIN_USER"] = os.environ.get("DUPEFONT_ADMIN_USER", "dfadmin")
+    app.config["ADMIN_PASSWORD_HASH"] = os.environ.get("DUPEFONT_ADMIN_PASSWORD_HASH", "")
+    app.config["MCP_USAGE_DB"] = Path(os.environ.get("DUPEFONT_MCP_USAGE_DB") or MCP_USAGE_DB)
 
     # Image -> font matcher (glyph atlas + catalog load lazily on first use)
     from fontmatch.image.service import LazyImageIdentifier
@@ -141,7 +159,7 @@ def create_app(
     )
 
     # Paths exempt from daily rate limiting
-    _EXEMPT_PREFIXES = ("/static/", "/api/health")
+    _EXEMPT_PREFIXES = ("/static/", "/api/health", "/font-sample/")
     _EXEMPT_PATHS = {"/robots.txt", "/sitemap.txt", "/favicon.ico"}
 
     @app.before_request
@@ -202,17 +220,27 @@ def create_app(
         return response
 
     # Register blueprints
+    from fontmatch.web.admin import admin_bp
     from fontmatch.web.api import api_bp
     from fontmatch.web.routes import web_bp
 
     app.register_blueprint(web_bp)
     app.register_blueprint(api_bp, url_prefix="/api")
+    app.register_blueprint(admin_bp, url_prefix="/admin")
 
     # Apply stricter rate limits to CPU-intensive identify endpoints
     # The wrapped function must replace the registered view, or the limit is
     # silently ignored (it was, before image matching was added).
-    for endpoint in ("api.identify", "api.identify_image", "web.identify_submit"):
+    for endpoint in (
+        "api.identify", "api.identify_image", "web.identify_submit", "web.identify_image_submit"
+    ):
         app.view_functions[endpoint] = limiter.limit("10 per minute")(app.view_functions[endpoint])
+    # A results page or the ChatGPT widget loads 5-10 sample images at once.
+    app.view_functions["web.font_sample"] = limiter.limit("300 per minute")(
+        app.view_functions["web.font_sample"]
+    )
+    # Basic-auth password checks are deliberately slow (scrypt): cap guessing.
+    app.view_functions["admin.stats"] = limiter.limit("20 per minute")(app.view_functions["admin.stats"])
 
     # Make slugify available in all templates
     app.jinja_env.globals["slugify"] = slugify

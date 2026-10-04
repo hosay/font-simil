@@ -121,20 +121,42 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     /* --- Loading state on upload form submit --- */
-    var form = document.getElementById("upload-form");
-    if (form) {
+    document.querySelectorAll("form.upload-form").forEach(function (form) {
         form.addEventListener("submit", function () {
-            var btn = document.getElementById("submit-btn");
+            var btn = form.querySelector("button[type=submit]");
             if (btn) {
                 btn.disabled = true;
-                btn.textContent = "Analyzing font\u2026";
+                btn.innerHTML = btn.getAttribute("data-busy") || "Analyzing font\u2026";
             }
         });
+    });
+
+    /* --- Identify page: image / font-file tabs --- */
+    var tabs = document.querySelectorAll(".mode-tab");
+    var panels = document.querySelectorAll(".mode-panel");
+    function showMode(mode) {
+        if (mode !== "image" && mode !== "font") mode = "image";
+        tabs.forEach(function (t) {
+            var on = t.getAttribute("data-mode") === mode;
+            t.classList.toggle("active", on);
+            t.setAttribute("aria-selected", on ? "true" : "false");
+        });
+        panels.forEach(function (p) { p.hidden = p.getAttribute("data-mode") !== mode; });
+    }
+    if (tabs.length) {
+        tabs.forEach(function (t) {
+            t.addEventListener("click", function (e) {
+                e.preventDefault();
+                var mode = t.getAttribute("data-mode");
+                history.replaceState(null, "", "#" + mode);
+                showMode(mode);
+            });
+        });
+        showMode(location.hash.replace("#", ""));
     }
 
-    /* --- Drag-and-drop zone --- */
-    var dropZone = document.getElementById("drop-zone");
-    if (dropZone) {
+    /* --- Drag-and-drop zones (font file and image) --- */
+    function setupDropZone(dropZone, onFile) {
         var fileInput = dropZone.querySelector("input[type=file]");
         var label = dropZone.querySelector(".drop-label");
 
@@ -155,13 +177,50 @@ document.addEventListener("DOMContentLoaded", function () {
         dropZone.addEventListener("drop", function (e) {
             if (e.dataTransfer.files.length) {
                 fileInput.files = e.dataTransfer.files;
-                label.textContent = e.dataTransfer.files[0].name;
+                fileInput.dispatchEvent(new Event("change"));
             }
         });
 
         fileInput.addEventListener("change", function () {
             if (fileInput.files.length) {
                 label.textContent = fileInput.files[0].name;
+                if (onFile) onFile(fileInput.files[0]);
+            }
+        });
+        return fileInput;
+    }
+
+    var fontDropZone = document.getElementById("drop-zone");
+    if (fontDropZone) setupDropZone(fontDropZone);
+
+    var imageDropZone = document.getElementById("image-drop-zone");
+    if (imageDropZone) {
+        var preview = document.getElementById("image-drop-preview");
+        var previewUrl = null;
+        var imageInput = setupDropZone(imageDropZone, function (file) {
+            if (!preview || !/^image\//.test(file.type)) return;
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
+            previewUrl = URL.createObjectURL(file);
+            preview.src = previewUrl;
+            preview.hidden = false;
+            imageDropZone.classList.add("has-preview");
+        });
+
+        /* Paste a screenshot straight from the clipboard */
+        document.addEventListener("paste", function (e) {
+            var items = (e.clipboardData && e.clipboardData.files) || [];
+            for (var i = 0; i < items.length; i++) {
+                if (/^image\//.test(items[i].type)) {
+                    var dt;
+                    try { dt = new DataTransfer(); } catch (err) { return; } /* old Safari */
+                    var name = items[i].name && items[i].name !== "image.png" ? items[i].name : "pasted-image.png";
+                    dt.items.add(new File([items[i]], name, { type: items[i].type }));
+                    imageInput.files = dt.files;
+                    imageInput.dispatchEvent(new Event("change"));
+                    showMode("image");
+                    e.preventDefault();
+                    return;
+                }
             }
         });
     }

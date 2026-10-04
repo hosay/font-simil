@@ -39,9 +39,11 @@ nginx config on mr02: `/etc/nginx/sites-available/dupefont.com`. It has `locatio
 | Unit | What | Runs as | Notes |
 |---|---|---|---|
 | `fontmatch.service` | gunicorn, 2 workers, `--preload`, `0.0.0.0:8087`, `WorkingDirectory=/opt/projects/font_simil` | `fontmatch` | `HF_HOME=/var/lib/fontmatch/.cache/huggingface`, `HF_HUB_OFFLINE=1` (CLIP weights are cached there). Hardened: `ProtectSystem=strict`, writable paths are the repo dir + `/var/lib/fontmatch` only |
-| `dupefont-mcp.service` | MCP server for ChatGPT, `uvicorn --factory fontmatch.mcp_server.server:create_app` on `100.67.193.2:8088`, `WorkingDirectory=/opt/projects/font_simil` | `fontmatch` | Calls the Flask API on 127.0.0.1:8087 with `X-Internal-Token`; refuses to start without `FONTMATCH_INTERNAL_TOKEN` |
+| `dupefont-mcp.service` | MCP server for ChatGPT, `uvicorn --factory fontmatch.mcp_server.server:create_app` on `100.67.193.2:8088`, `WorkingDirectory=/opt/projects/font_simil` | `fontmatch` | Calls the Flask API on 127.0.0.1:8087 with `X-Internal-Token`; refuses to start without `FONTMATCH_INTERNAL_TOKEN`. `ReadWritePaths=/var/lib/fontmatch` so it can write its usage log |
 
-Both units load secrets from **`/etc/fontmatch/env`** (root:fontmatch, 0640) via `EnvironmentFile=`: `SECRET_KEY` and `FONTMATCH_INTERNAL_TOKEN` (shared by both services). Unit backups from before the change are in `/root/*.service.bak-*`.
+Both units load settings from **`/etc/fontmatch/env`** (root:fontmatch, 0640) via `EnvironmentFile=`: `SECRET_KEY`, `FONTMATCH_INTERNAL_TOKEN` (shared by both services), `DUPEFONT_ADMIN_PASSWORD_HASH` (werkzeug hash of the `/admin/stats` password; the plain password is not stored on the server) and `FONTMATCH_SAMPLES_DIR`. Unit backups from before each change are in `/root/*.service.bak-*`.
+
+**Usage dashboard:** `https://dupefont.com/admin/stats` (HTTP Basic, user `dfadmin`). ChatGPT calls come from the MCP service's own SQLite log, `/var/lib/fontmatch/mcp_usage.db` (one row per tool call: hashed ChatGPT user id, tool, status, latency, top font, font-name query, locale/country; never the image or its text hint; pruned after 180 days). Website counts come from `request_log` in `fontmatch.db`; rows labelled `(chatgpt)` are the MCP service's backend calls. To change the password: `venv/bin/python -c "from werkzeug.security import generate_password_hash as g; print(g('NEW'))"`, put it in the env file, restart `fontmatch`.
 
 Code changes take effect only on restart: gunicorn `--preload` holds the code in memory. `systemctl restart fontmatch` and `journalctl -u fontmatch -f` / `journalctl -u dupefont-mcp -f` are the usual commands.
 
@@ -54,6 +56,8 @@ Code changes take effect only on restart: gunicorn `--preload` holds the code in
 | `google-fonts-repo/` | Sparse clone of google/fonts (`ofl`, `apache`, `ufl`); source of all candidate fonts |
 | `glyph_atlas/` | Image-matcher atlas (~700 MB, memory-mapped, with `catalog.json`), built 2026-10-03. Rebuild as the `fontmatch` user with `scripts/build_glyph_index.py` whenever the corpus changes (atomic swap; restart afterwards so workers map the new files) |
 | `/var/lib/fontmatch/.cache/huggingface` | OpenCLIP ViT-B/32 weights used by the service |
+| `/var/lib/fontmatch/font_samples/` | Pregenerated "The quick brown fox..." PNGs (served at `/font-sample/<font name>.png?style=`, shown on the image results page and in the ChatGPT widget). Build/refresh as `fontmatch`: `runuser -u fontmatch -- venv/bin/python scripts/build_font_samples.py --out /var/lib/fontmatch/font_samples`. Missing samples render on first request; `.none` files mark fonts that can't render the sample (non-Latin) |
+| `/var/lib/fontmatch/mcp_usage.db` | ChatGPT usage log (see above) |
 
 Fingerprint schema versions: the code only uses rows matching `FINGERPRINT_SCHEMA_VERSION` in `fontmatch/features/perceptual.py`. Code in `master` is **v6** (CLIP on square tiles, variable fonts rendered at their Regular instance); older v2–v4 rows stay in the DB, unused. After any schema bump the corpus must be re-embedded *before* restarting the service, or every lookup returns nothing.
 
@@ -62,7 +66,9 @@ Fingerprint schema versions: the code only uses rows matching `FINGERPRINT_SCHEM
 - **Deployed 2026-10-03** (commit `d918afc`): image matching (`/api/identify-image`), `/api/similar-to`, the ChatGPT MCP app, fingerprint schema v6, and the Dupefont rebrand. The live DB has v6 fingerprints (3,935 rows; the index loads 3,899).
 - Smoke-tested after the restart: health, rebranded pages, `/similar-to/*`, image API through `https://dupefont.com` (Playfair Display screenshot → Playfair Display, 95%), MCP `tools/list` and both tools through `https://dupefont.com/mcp`.
 - **ChatGPT**: the app is added in Developer mode with MCP URL `https://dupefont.com/mcp`, no auth. Next: run the golden prompts in `docs/chatgpt-golden-prompts.md` and record the results there. Directory submission needs a privacy policy page.
-- Known limitations: text in several colours (e.g. Google's logo) breaks the light/dark separation step and gives poor matches; photos are the weakest tier (see the eval log in `docs/image-matching.md`). The website has no image-upload UI yet (API only).
+- **Batch 2 (2026-10-04):** image upload on `/identify` (default tab; paste/drag-drop), ChatGPT results widget with font samples (`ui://widget/dupefont-results-v1.html`; users must refresh the connector in ChatGPT to see it), MCP usage log + `/admin/stats`, `/privacy` page, Microsoft Clarity (`DUPEFONT_CLARITY_ID`, default `ys6l88q2n9`; consent banner for European time zones, honours GPC, never on upload/result/admin pages), Inter self-hosted (no Google Fonts requests).
+- Known limitations: text in several colours (e.g. Google's logo) breaks the light/dark separation step and gives poor matches; photos are the weakest tier (see the eval log in `docs/image-matching.md`).
+- Privacy policy open items (owner decisions): name the operator (`DUPEFONT_OPERATOR` env var adds "It is operated by ..."), make sure `privacy@dupefont.com` receives mail, accept the DigitalOcean/Microsoft DPAs, and write Terms of Service.
 - Rollback: `git checkout ea5b334 && systemctl restart fontmatch` (v4 rows remain in the DB; stop `dupefont-mcp` too, since the old code has no `/api/identify-image`). The DB backup from before the re-embed is `fontmatch-pre-v6.db`.
 
 ### Gotchas for operators and new sessions
@@ -126,13 +132,21 @@ systemctl restart fontmatch      # restart after code changes
 | `FONTMATCH_GLYPH_ATLAS` | `./glyph_atlas` | Glyph atlas directory for image matching |
 | `FONTMATCH_API_URL` | `http://127.0.0.1:8087` | (MCP service) where the Flask API lives |
 | `DUPEFONT_SITE_URL` | `https://dupefont.com` | (MCP service) base for links returned to ChatGPT |
+| `DUPEFONT_MCP_USAGE_DB` | `/var/lib/fontmatch/mcp_usage.db` | ChatGPT usage log (written by the MCP service, read by `/admin/stats`) |
+| `DUPEFONT_ADMIN_USER` / `DUPEFONT_ADMIN_PASSWORD_HASH` | `dfadmin` / unset | `/admin/stats` login; no hash = dashboard returns 404 |
+| `FONTMATCH_SAMPLES_DIR` | `./font_samples` | Font sample PNGs |
+| `DUPEFONT_CLARITY_ID` | `ys6l88q2n9` | Microsoft Clarity project; empty disables it |
+| `DUPEFONT_OPERATOR` | unset | Operator name/address shown in the privacy policy |
 
 ## Web pages
 
 | Route | Description |
 |---|---|
 | `/` | Homepage with search and upload |
-| `/identify` | Upload a font file and see matches |
+| `/identify` | Upload an image of text (default) or a font file and see matches |
+| `/privacy` | Privacy policy |
+| `/admin/stats` | Usage dashboard (HTTP Basic auth) |
+| `/font-sample/<name>.png` | "Quick brown fox" sample image of a corpus font |
 | `/similar-to/<slug>` | Side-by-side comparison for a specific font |
 | `/popular` | Most-searched fonts |
 

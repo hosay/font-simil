@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import io
 
 from flask import (
     Blueprint,
@@ -14,6 +15,7 @@ from flask import (
     redirect,
     render_template,
     request,
+    send_file,
     url_for,
 )
 
@@ -27,6 +29,7 @@ from fontmatch.web.helpers import (
     PROPRIETARY_TO_OPEN_SOURCE,
     deslugify,
     enrich_matches,
+    license_label,
     lookup_corpus_alias,
     lookup_proprietary,
     slugify,
@@ -38,7 +41,9 @@ web_bp = Blueprint("web", __name__)
 @web_bp.get("/robots.txt")
 def robots_txt():
     base = request.host_url.rstrip("/")
-    content = f"User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: {base}/sitemap.txt\n"
+    content = (
+        f"User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /admin/\nSitemap: {base}/sitemap.txt\n"
+    )
     return Response(content, mimetype="text/plain")
 
 
@@ -48,7 +53,7 @@ def sitemap_txt():
     store = current_app.config["STORE"]
     families = store.list_font_families(clean_only=True, indexed_only=True)
     base = request.host_url.rstrip("/")
-    lines = [f"{base}/", f"{base}/popular", f"{base}/identify", f"{base}/api/docs"]
+    lines = [f"{base}/", f"{base}/popular", f"{base}/identify", f"{base}/api/docs", f"{base}/privacy"]
     # All proprietary font pages
     for prop_name in PROPRIETARY_TO_OPEN_SOURCE:
         lines.append(f"{base}/similar-to/{slugify(prop_name)}")
@@ -213,9 +218,39 @@ def popular():
     )
 
 
+@web_bp.get("/font-sample/<path:filename>")
+def font_sample(filename: str):
+    """Pregenerated "quick brown fox" PNG for a corpus font (``?style=`` picks a
+    variable-font instance). Rendered and saved on a miss."""
+    from fontmatch.samples import SampleStore
+    from fontmatch.web.api import resolve_font_file
+
+    if not filename.endswith(".png"):
+        abort(404)
+    store = current_app.config["STORE"]
+    corpus_dirs = current_app.config.get("CORPUS_DIRS", [])
+
+    def resolve(name: str):
+        if not store._get_font_license(name):
+            return None  # only open-source corpus fonts get samples
+        return resolve_font_file(store, corpus_dirs, name, walk=False)
+
+    samples = SampleStore(current_app.config["SAMPLES_DIR"], resolve)
+    path = samples.get(filename[: -len(".png")], request.args.get("style", "")[:64])
+    if path is None:
+        abort(404)
+    return send_file(path, mimetype="image/png", max_age=7 * 86400)
+
+
+@web_bp.get("/privacy")
+def privacy():
+    return render_template("privacy.html")
+
+
 @web_bp.get("/identify")
 def identify_form():
-    return render_template("identify.html", matches=None)
+    # Upload pages never load analytics: nothing a visitor uploads may reach Clarity.
+    return render_template("identify.html", matches=None, no_analytics=True)
 
 
 @web_bp.post("/identify")
@@ -264,6 +299,7 @@ def identify_submit():
             query_name=filename,
             query_family=query_family,
             query_font_data_uri=query_font_data_uri,
+            no_analytics=True,
         )
 
     try:
@@ -280,6 +316,57 @@ def identify_submit():
         query_name=filename,
         query_family=query_family,
         query_font_data_uri=query_font_data_uri,
+        no_analytics=True,
+    )
+
+
+def _preview_data_uri(raw: bytes) -> str | None:
+    """Small JPEG of the upload to show beside the results (never stored)."""
+    from fontmatch.image.prep import ImageError, load_image
+
+    try:
+        img = load_image(raw)
+    except ImageError:
+        return None
+    img.thumbnail((1000, 1000))
+    buf = io.BytesIO()
+    img.convert("RGB").save(buf, "JPEG", quality=80)
+    return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
+
+
+@web_bp.post("/identify-image")
+def identify_image_submit():
+    from fontmatch.image.prep import ImageError
+    from fontmatch.image.service import EngineUnavailable, NoTextFound
+    from fontmatch.samples import sample_url
+    from fontmatch.web.api import identify_image_cached
+
+    f = request.files.get("image")
+    if f is None or not f.filename:
+        flash("Please choose an image to upload.", "error")
+        return redirect(url_for("web.identify_form") + "#image")
+    raw = f.read()
+    hint = (request.form.get("text_hint") or "").strip()
+    current_app.config["STORE"].log_request("/identify-image")
+    try:
+        result = identify_image_cached(raw, hint)
+    except (ImageError, NoTextFound) as exc:
+        flash(f"{exc} Try a tighter crop, or type the text in the box below.", "error")
+        return redirect(url_for("web.identify_form") + "#image")
+    except EngineUnavailable:
+        flash("Image matching is temporarily unavailable, please try again.", "error")
+        return redirect(url_for("web.identify_form") + "#image")
+
+    for m in result["matches"]:
+        m["sample_url"] = sample_url(m["name"], m.get("style") or "")
+        m["license_label"] = license_label(m.get("license_id") or "unknown")
+    return render_template(
+        "identify.html",
+        matches=None,
+        image_result=result,
+        image_preview=_preview_data_uri(raw),
+        text_hint=hint,
+        no_analytics=True,
     )
 
 

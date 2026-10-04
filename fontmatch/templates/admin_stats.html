@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Usage stats{% endblock %}
+{% block head %}
+<meta name="robots" content="noindex, nofollow">
+<style>
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0 28px; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; }
+.stat .n { font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stat .l { color: var(--text-muted); font-size: .8rem; }
+.stats-section { margin: 28px 0; }
+.stats-section h2 { font-size: 1.1rem; margin-bottom: 10px; }
+.stats-table { width: 100%; border-collapse: collapse; font-size: .85rem; background: var(--surface); }
+.stats-table th, .stats-table td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.stats-table td.num, .stats-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.table-scroll { overflow-x: auto; }
+.bars { display: flex; align-items: flex-end; gap: 3px; height: 140px; padding: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.bar { flex: 1; position: relative; height: 100%; display: flex; align-items: flex-end; }
+.bar .total { width: 100%; background: #cbd5e1; border-radius: 2px 2px 0 0; position: relative; }
+.bar .img { position: absolute; bottom: 0; left: 0; width: 100%; background: var(--accent); border-radius: 2px 2px 0 0; }
+.bars-legend { font-size: .8rem; color: var(--text-muted); margin-top: 6px; display: flex; justify-content: space-between; }
+.legend-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: middle; margin: 0 4px 0 10px; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+.muted { color: var(--text-muted); }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="results-header">
+    <h1>Usage stats</h1>
+    <p class="hero-sub">Generated {{ generated }}. Times are UTC. Users = distinct hashed ChatGPT user ids.</p>
+</section>
+
+<h2 style="font-size:1.25rem;margin-top:12px">ChatGPT app (MCP)</h2>
+{% if usage and usage.error %}
+<div class="alert alert-error">Can't read the ChatGPT usage database: {{ usage.error }}</div>
+{% elif not usage or not usage.totals.all.calls %}
+<p class="muted">No ChatGPT calls recorded yet.</p>
+{% else %}
+<div class="stats-grid">
+    {% for label, key in [("Today", "today"), ("Last 7 days", "7d"), ("Last 30 days", "30d"), ("All time", "all")] %}
+    {% set t = usage.totals[key] %}
+    <div class="stat">
+        <div class="l">{{ label }}</div>
+        <div class="n">{{ t.calls }} <span class="l">calls</span></div>
+        <div class="l">{{ t.users }} users &middot; {{ ((100 * t.ok / t.calls) | round | int) if t.calls else 0 }}% ok</div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="stats-section">
+    <h2>Calls per day (last 30 days)</h2>
+    <div class="bars">
+        {% for d in usage.daily %}
+        <div class="bar" title="{{ d.day }}: {{ d.calls }} calls ({{ d.image }} image), {{ d.users }} users, {{ d.failed }} failed">
+            <div class="total" style="height: {{ d.pct }}%">
+                <div class="img" style="height: {{ (100 * d.image_pct / d.pct) | round | int if d.pct else 0 }}%"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="bars-legend">
+        <span>{{ usage.daily[0].day }}</span>
+        <span><span class="legend-swatch" style="background:var(--accent)"></span>image tool<span class="legend-swatch" style="background:#cbd5e1"></span>name search</span>
+        <span>{{ usage.daily[-1].day }}</span>
+    </div>
+</div>
+
+<div class="stats-section">
+    <h2>By tool (last 30 days)</h2>
+    <div class="table-scroll"><table class="stats-table">
+        <tr><th>Tool</th><th class="num">Calls</th><th class="num">Users</th><th class="num">OK</th><th class="num">p50 ms</th><th class="num">p95 ms</th></tr>
+        {% for t in usage.tools %}
+        <tr><td>{{ t.tool }}</td><td class="num">{{ t.calls }}</td><td class="num">{{ t.users }}</td><td class="num">{{ t.ok or 0 }}</td><td class="num">{{ t.p50 if t.p50 is not none else '–' }}</td><td class="num">{{ t.p95 if t.p95 is not none else '–' }}</td></tr>
+        {% endfor %}
+    </table></div>
+</div>
+
+<div class="cols">
+    {% for title, rows in [("Outcomes", usage.statuses), ("Top fonts found from images", usage.top_image_fonts), ("Top font-name searches", usage.top_queries), ("Countries", usage.countries), ("Locales", usage.locales)] %}
+    <div class="stats-section">
+        <h2>{{ title }} <span class="muted" style="font-size:.8rem;font-weight:400">30 days</span></h2>
+        {% if rows %}
+        <table class="stats-table">
+            {% for r in rows %}<tr><td>{{ r.label }}</td><td class="num">{{ r.n }}</td></tr>{% endfor %}
+        </table>
+        {% else %}<p class="muted">None yet.</p>{% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<div class="stats-section">
+    <h2>Last 50 calls</h2>
+    <div class="table-scroll"><table class="stats-table">
+        <tr><th>Time</th><th>Tool</th><th>User</th><th>Status</th><th class="num">ms</th><th>Query</th><th>Top match</th><th>Country</th></tr>
+        {% for r in usage.recent %}
+        <tr><td>{{ r.ts }}</td><td>{{ r.tool }}</td><td class="muted">{{ (r.subject_hash or '')[:8] }}</td><td>{{ r.status }}</td><td class="num">{{ r.latency_ms if r.latency_ms is not none else '' }}</td><td>{{ r.query or '' }}</td><td>{{ r.top_family or '' }}{% if r.top_similarity is not none %} ({{ r.top_similarity }}){% endif %}</td><td>{{ r.country or '' }}</td></tr>
+        {% endfor %}
+    </table></div>
+</div>
+{% endif %}
+
+<div class="stats-section">
+    <h2 style="font-size:1.25rem">Website and API</h2>
+    {% if site %}
+    <div class="table-scroll"><table class="stats-table">
+        <tr><th>Endpoint</th><th class="num">Today</th><th class="num">7 days</th><th class="num">30 days</th><th class="num">All time</th></tr>
+        {% for r in site %}
+        <tr><td>{{ r.endpoint }}</td><td class="num">{{ r.today or 0 }}</td><td class="num">{{ r.d7 or 0 }}</td><td class="num">{{ r.d30 or 0 }}</td><td class="num">{{ r.total }}</td></tr>
+        {% endfor %}
+    </table></div>
+    <p class="muted" style="font-size:.8rem;margin-top:6px">"(chatgpt)" rows are backend calls made by the ChatGPT app, already counted above.</p>
+    {% else %}<p class="muted">No requests logged yet.</p>{% endif %}
+</div>
+{% endblock %}

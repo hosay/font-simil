@@ -3,7 +3,7 @@
 {% block content %}
 <section class="hero">
     <h1>Find the perfect open-source<br>replacement for any font</h1>
-    <p class="hero-sub">Search by name or upload a font file to match against <strong>{{ font_count }}</strong> indexed fonts.</p>
+    <p class="hero-sub">Search by name, upload a font file, or use a screenshot of some text to match against <strong>{{ font_count }}</strong> indexed fonts.</p>
     <div class="hero-actions">
         <div class="hero-search-wrap">
             <input type="text" id="hero-search" class="hero-search-input" placeholder="Search by font name (e.g. Helvetica, Roboto...)" autocomplete="off">
@@ -18,6 +18,7 @@
             <button type="button" id="hero-upload-btn" class="btn btn-primary btn-lg">Upload a Font</button>
         </form>
     </div>
+    <p class="hero-image-cta">Have a screenshot or photo? <a href="{{ url_for('web.identify_form') }}#image">Find the font from an image &rarr;</a></p>
 </section>
 
 <section class="section">
