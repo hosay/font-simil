@@ -642,6 +642,14 @@ class FontStore:
                 return dict(row)
         return dict(pool[0])
 
+    def get_font_family(self, name: str) -> str | None:
+        """Return the family name stored for a font by its filename."""
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT family FROM fonts WHERE name = ? LIMIT 1", (name,)
+            ).fetchone()
+        return row[0] if row else None
+
     def get_font_source(self, name: str) -> str | None:
         """Return the source path for a font by its filename."""
         with self._lock:

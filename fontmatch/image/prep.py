@@ -75,21 +75,91 @@ def text_mask(img: Image.Image) -> np.ndarray:
     return ~dark if background_is_dark else dark
 
 
+MIN_CONTRAST = 4.0  # Lab delta-E below this is "no text"
+MIN_LEVEL_FRACTION = 0.5  # a letter's ink level is at least this x the global level
+MIN_COMPONENT_PX = 12  # smaller specks use the global level
+
+
+def _mode_colour(lab: np.ndarray, rgb: np.ndarray) -> np.ndarray:
+    """Median Lab colour of the most common (coarsely quantised) RGB colour."""
+    q = (rgb.reshape(-1, 3) // 32).astype(np.int32)
+    keys = q[:, 0] * 64 + q[:, 1] * 8 + q[:, 2]
+    top = np.bincount(keys, minlength=512).argmax()
+    return np.median(lab.reshape(-1, 3)[keys == top], axis=0)
+
+
+def _largest_share(core: np.ndarray) -> float:
+    """Share of the ink held by its largest connected component."""
+    from scipy import ndimage
+
+    labels, n = ndimage.label(core)
+    if n == 0:
+        return 1.0
+    sizes = np.bincount(labels.ravel())[1:]
+    return float(sizes.max() / sizes.sum())
+
+
+def _distance_from(lab: np.ndarray, bg: np.ndarray) -> np.ndarray:
+    return np.sqrt(((lab - bg) ** 2).sum(axis=2)).astype(np.float32)
+
+
 def ink_map(img: Image.Image) -> np.ndarray:
     """Soft ink coverage in [0, 1] (1 = text colour, 0 = background).
 
-    Like ``text_mask`` but keeps anti-aliasing, which carries most of the
-    stroke detail in small text.
+    Ink is the colour distance (CIE Lab delta-E) from the background, so text
+    in any colour (or several: logos colour letters individually) counts,
+    light-on-dark included. Each letter is normalised by its own ink level,
+    so a yellow and a blue letter both reach 1; anti-aliasing is kept, which
+    carries most of the stroke detail in small text.
+
+    Background: the most common colour on the image border. If that makes
+    most of the image "ink", the crop may be text on a banner that doesn't
+    fill it; the whole image's most common colour is then tried, and the
+    reading that looks like text wins: letters are several separate
+    components, a background is one region holding nearly all the "ink"
+    (see _largest_share).
     """
-    gray = np.asarray(img.convert("L"), dtype=np.float32)
-    mask = text_mask(img)
-    if mask.all() or not mask.any():
-        return mask.astype(np.float32)
-    fg = float(np.median(gray[mask]))
-    bg = float(np.median(gray[~mask]))
-    if abs(fg - bg) < 1:
-        return mask.astype(np.float32)
-    return np.clip((gray - bg) / (fg - bg), 0.0, 1.0).astype(np.float32)
+    from scipy import ndimage
+    from skimage.color import rgb2lab
+
+    rgb = np.asarray(img.convert("RGB"))
+    lab = rgb2lab(rgb.astype(np.float32) / 255.0).astype(np.float32)
+    border = np.concatenate([rgb[0], rgb[-1], rgb[:, 0], rgb[:, -1]])
+    border_lab = np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]])
+    dist = _distance_from(lab, _mode_colour(border_lab[None], border[None]))
+    if dist.max() < MIN_CONTRAST:
+        return np.zeros(dist.shape, dtype=np.float32)
+    core = dist > max(_otsu(dist), MIN_CONTRAST)
+    if core.mean() > 0.5:
+        alt = _distance_from(lab, _mode_colour(lab, rgb))
+        if alt.max() >= MIN_CONTRAST:
+            alt_core = alt > max(_otsu(alt), MIN_CONTRAST)
+            if alt_core.any() and _largest_share(alt_core) < _largest_share(core):
+                dist, core = alt, alt_core
+    if not core.any():
+        return np.zeros(dist.shape, dtype=np.float32)
+
+    # Ink level = mean distance of the upper half of a component's pixels
+    # (its stroke cores, not its anti-aliased rim).
+    labels, n = ndimage.label(core)
+    idx = np.arange(1, n + 1)
+    median = np.asarray(ndimage.median(dist, labels, idx), dtype=np.float32)
+    upper = np.where(core & (dist >= median[np.maximum(labels, 1) - 1]), labels, 0)
+    level = np.asarray(ndimage.mean(dist, upper, idx), dtype=np.float32)
+    level = np.nan_to_num(level, nan=0.0)
+    sizes = np.asarray(ndimage.sum(core, labels, idx))
+    global_level = float(np.mean(dist[core & (dist >= np.median(dist[core]))]))
+    level = np.where(sizes >= MIN_COMPONENT_PX, level, global_level)
+    level = np.maximum(level, MIN_LEVEL_FRACTION * global_level)
+
+    level_map = np.zeros(dist.shape, dtype=np.float32)
+    level_map[core] = level[labels[core] - 1]
+    # Anti-aliased fringes (outside the core) take the nearest letter's level;
+    # core pixels keep their own letter's.
+    spread = ndimage.maximum_filter(level_map, size=5)
+    level_map = np.where(core, level_map, spread)
+    level_map[level_map == 0] = global_level
+    return np.clip(dist / level_map, 0.0, 1.0).astype(np.float32)
 
 
 def crop_box(mask: np.ndarray) -> tuple[int, int, int, int] | None:

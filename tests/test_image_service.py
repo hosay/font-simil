@@ -135,3 +135,50 @@ def test_scores_are_percentages_that_vary(identifier):
     assert all(0 <= s <= 100 for s in scores)
     assert scores[0] < 100 or len(set(scores)) > 1  # not all clamped to 100
     assert scores == sorted(scores, reverse=True) or scores[0] >= max(scores[1:])
+
+
+@pytest.mark.parametrize(
+    "family,style,expected",
+    [
+        ("Outfit Thin", "Regular", "Outfit"),  # variable font: name ID 1 is the default instance
+        ("League Spartan Thin", "Bold", "League Spartan"),
+        ("Josefin Slab Thin", "Italic", "Josefin Slab"),
+        ("Encode Sans SemiCondensed ExtraLight", "Regular", "Encode Sans SemiCondensed"),
+        ("Poppins Medium", "default", "Poppins Medium"),  # static weight file: keep
+        ("Fira Sans", "Regular", "Fira Sans"),
+        ("Light", "Regular", "Light"),  # never empty
+    ],
+)
+def test_display_family_drops_default_instance_weight(family, style, expected):
+    from fontmatch.image.service import display_family
+
+    assert display_family(family, style) == expected
+
+
+def test_image_urls_use_the_database_family_not_the_display_name():
+    """Results show "Outfit" but the DB knows the file as "Outfit Thin":
+    links must still resolve."""
+    from fontmatch.web.api import _add_image_urls
+
+    class Store:
+        def get_font_family(self, name):
+            return {"Outfit[wght].ttf": "Outfit Thin"}.get(name)
+
+        def has_google_fonts_source(self, family):
+            return family == "Outfit Thin"
+
+        def get_font_source(self, name):
+            return "ofl/outfit/Outfit[wght].ttf"
+
+    result = {"matches": [{"name": "Outfit[wght].ttf", "family": "Outfit"}]}
+    m = _add_image_urls(result, Store())["matches"][0]
+    assert m["family"] == "Outfit"
+    assert m["similar_url"] == "/similar-to/outfit-thin"
+    assert m["google_fonts_url"] == "https://fonts.google.com/specimen/Outfit"
+
+
+def test_display_family_handles_italic_instances():
+    from fontmatch.image.service import display_family
+
+    assert display_family("Piazzolla Thin Italic", "Italic") == "Piazzolla"
+    assert display_family("Black Han Sans", "Regular") == "Black Han Sans"

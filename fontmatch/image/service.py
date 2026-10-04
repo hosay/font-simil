@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 import threading
 import time
 from pathlib import Path
@@ -20,14 +21,40 @@ logger = logging.getLogger(__name__)
 
 # Bump when the ranker or scoring code changes. Atlas/catalog rebuilds are
 # picked up automatically via ImageIdentifier.version (content hash).
-IMAGE_SCHEMA_VERSION = 6
+IMAGE_SCHEMA_VERSION = 7  # 7: letter-spacing fit, colour ink map, row-profile prefilter
 MAX_HINT_CHARS = 500
 RETRY_FAILED_LOAD_AFTER = 60  # seconds
-# Top match with shape correlation >= this is labelled "likely the same font":
-# on the dev split that label was right 86% of the time (72 of 135 queries).
-SAME_FONT_SHAPE = 0.94
+# The top match is labelled "likely the same font" when its ranking key beats
+# every other family's by at least this much (rank.Match.margin). Measured
+# with scripts/tune_image_ranker.py (calibrate) on 545 realistic dev queries
+# (screenshots, photos, browser renders): 93% precise, applied to 35% of
+# them; with the query's own family removed (a font not in the catalog, like
+# most uploads) it fires 5.5% of the time (0.15: 11%, 0.06: 28%). The raw
+# correlation is no use for this: with letter-spacing fitted, wrong fonts
+# correlate highly too (~75% precision at any threshold).
+SAME_FONT_MARGIN = 0.20
 
 __all__ = ["EngineUnavailable", "ImageIdentifier", "LazyImageIdentifier", "NoTextFound"]
+
+
+_WEIGHT_WORDS = (
+    "Hairline|Thin|ExtraLight|Extra Light|UltraLight|Light|Book|Regular|Medium|"
+    "SemiBold|Semi Bold|DemiBold|Bold|ExtraBold|Extra Bold|UltraBold|Black|Heavy"
+)
+_TRAILING_WEIGHT = re.compile(rf"\s+(?:{_WEIGHT_WORDS})(?:\s+Italic)?$")
+
+
+def display_family(family: str, style: str) -> str:
+    """Family name to show for a matched face.
+
+    Variable fonts store their *default* instance in name ID 1 ("Outfit
+    Thin"), but the atlas renders named instances (Regular/Bold); showing
+    "Outfit Thin" for the Regular instance is wrong. Static files ("Poppins
+    Medium", style "default") are shown as they are."""
+    if style == "default":
+        return family
+    trimmed = _TRAILING_WEIGHT.sub("", family)
+    return trimmed or family
 
 
 def _percent(score: float) -> int:
@@ -37,10 +64,20 @@ def _percent(score: float) -> int:
 class ImageIdentifier:
     def __init__(self, atlas: GlyphAtlas, catalog: list[CatalogEntry]):
         self.entries = {e.name: e for e in catalog}
-        self.matcher = ImageMatcher(atlas, {e.name: e.base_family for e in catalog})
+        self.matcher = ImageMatcher(
+            atlas,
+            {e.name: e.base_family for e in catalog},
+            {e.name: e.category for e in catalog},
+        )
         digest = hashlib.sha256(str(IMAGE_SCHEMA_VERSION).encode())
         for face in atlas.faces:
             digest.update(f"{face['key']}|{face['style']}\n".encode())
+        # Row profiles (prefilter input) are derived from the atlas pixels;
+        # their layout constants decide what the prefilter sees. Sidecar and
+        # lazily computed profiles are identical, so the file isn't hashed.
+        from fontmatch.image import glyphs
+
+        digest.update(f"rows|{glyphs.ROW_TOP}|{glyphs.ROW_BOTTOM}|{glyphs.ROW_BIN}\n".encode())
         for name in sorted(self.entries):
             e = self.entries[name]
             digest.update(f"{name}|{e.family}|{e.license_id}|{e.category}\n".encode())
@@ -75,11 +112,11 @@ class ImageIdentifier:
             # Visual similarity (correlation of the two typeset lines), made
             # non-increasing so it reads consistently with the ranking.
             shown = min(shown, _percent(m.shape))
-            same = rank == 0 and m.shape >= SAME_FONT_SHAPE
+            same = rank == 0 and m.margin >= SAME_FONT_MARGIN
             out.append(
                 {
                     "name": entry.name,
-                    "family": entry.family,
+                    "family": display_family(entry.family, m.style),
                     "style": m.style if m.style != "default" else entry.subfamily,
                     "license_id": entry.license_id,
                     "category": entry.category,

@@ -101,9 +101,12 @@ def _image_cache_key(version: str, raw: bytes, hint: str) -> str:
 def _add_image_urls(result: dict, store) -> dict:
     """Derived per request (never cached): sources and Google Fonts presence can change."""
     for m in result["matches"]:
-        m["similar_url"] = f"/similar-to/{slugify(m['family'])}"
-        has_gf = store.has_google_fonts_source(m["family"])
-        m["google_fonts_url"] = google_fonts_url(m["family"]) if has_gf else None
+        # m["family"] is the display name ("Outfit"); lookups need the DB's
+        # family for the file ("Outfit Thin" for a variable font).
+        family = store.get_font_family(m["name"]) or m["family"]
+        m["similar_url"] = f"/similar-to/{slugify(family)}"
+        has_gf = store.has_google_fonts_source(family)
+        m["google_fonts_url"] = google_fonts_url(family) if has_gf else None
         source = store.get_font_source(m["name"])
         m["download_url"] = f"/api/font-file/{m['name']}" if source else None
     return result

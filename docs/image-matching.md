@@ -36,8 +36,12 @@ ChatGPT ──HTTPS──> mr02 nginx (dupefont.com)
    reading) we pick the line that best matches a hint segment and typeset the *hint's* wording;
    otherwise the most prominent line and Tesseract's reading. If OCR sees nothing but a hint
    exists, the whole image is treated as that line.
-3. **Ink map** (`prep.ink_map`): soft text coverage in [0,1], polarity from the image border,
-   anti-aliasing kept. **Deskew** by maximising projection-profile sharpness (±8°).
+3. **Ink map** (`prep.ink_map`): soft text coverage in [0,1] = colour distance (CIE Lab ΔE) from the
+   background (the border's most common colour), normalised per letter so multi-colour text (logos
+   colour letters individually) reaches 1 everywhere; anti-aliasing kept. If the border colour makes
+   most of the crop "ink" (text on a banner smaller than the crop), the whole crop's most common
+   colour is tried and the reading whose ink looks like separate letters wins. Crops taller than
+   400 px are downscaled first. **Deskew** by maximising projection-profile sharpness (±8°).
 4. **Clean the crop**: drop ink not connected to the OCR text box (neighbouring lines, rules,
    icons). For long lines, keep only a window of whole words (≤ 40 chars) and crop to exactly
    those words' boxes. If the transcript came from the hint, pick the casing (as given / UPPER)
@@ -45,25 +49,36 @@ ChatGPT ──HTTPS──> mr02 nginx (dupefont.com)
 5. **Render-and-compare** (`rank.ImageMatcher`): for every candidate face, typeset the same text
    from the **glyph atlas** (`glyphs.py`, built by `scripts/build_glyph_index.py`: ~4.6k faces,
    variable fonts expanded to Regular + Bold, memory-mapped; characters outside the atlas fall
-   back to their unaccented form or a space-width gap), downsample it to the query's pixel
-   height (same resolution loss as the query), then score
-   `shape − 0.25 × aspect`:
+   back to their unaccented form or a space-width gap) **at the letter-spacing that makes the
+   line exactly as wide as the query** (`LineMetrics.fit_tracking`: one uniform tracking value
+   per face from glyph metrics, clamped to −0.15…+0.6 em), downsample it to the query's pixel
+   height (same resolution loss as the query), then score `shape − 0.5 × spacing`:
    - `shape`: Pearson correlation of the two lines at 32 px height and the query's width
-   - `aspect`: |log| ratio of width/height (proportions; strongest signal for metric clones)
-   A metric-only prefilter (line proportions from glyph metrics, no rendering) keeps the 1,200
-   most plausible faces. The top 60 are re-ranked by adding `2.0 × HOG similarity`
-   (gradient orientations; +2–3 points on dev). CLIP was tried as a re-ranker and rejected
-   (< 1 point more, 1.4 GB model, ~3 s CPU per query).
+   - `spacing`: how unusual the fitted letter-spacing is: free within −0.03…0 em (kerning,
+     rounding), then 2 per em tighter / 1 per em looser, plus 3 × any width the clamped fit can't
+     explain. Metric clones keep their advantage (their fitted spacing is ~0); a logo set 4%
+     tighter than its font's default no longer loses to a font that happens to be narrower.
+   A **prefilter** without rendering keeps the 1,200 most plausible faces: L1 distance between
+   the vertical ink profiles of the query and each face's typesetting (`rows.npy`: per-glyph
+   row-ink sums; the line profile is their sum, resampled between the 2%/98% ink-mass quantiles
+   into 16 bands, so letter-spacing doesn't change it) + 0.1 × the spacing prior. The top 60 are
+   re-ranked by adding `2.0 × HOG similarity` (gradient orientations). CLIP was tried as a
+   re-ranker and rejected (< 1 point more, 1.4 GB model, ~3 s CPU per query).
 6. **Dedupe** to one face per base family; return the top 5. `score` is the visual similarity
-   (shape correlation, %), made non-increasing down the list; the top result is labelled
-   "likely the same font" when shape ≥ 0.94 (86% precision on dev), else "similar alternative".
+   (shape correlation, %), made non-increasing down the list. The top result is labelled
+   "likely the same font" when its ranking key beats every other family's by ≥ 0.20
+   (`Match.margin`, computed before the category vote; 93% precise on realistic dev queries,
+   fires for 5.5% of fonts that aren't in the catalog). Variable fonts are shown under their family name ("Outfit", not the
+   default-instance name "Outfit Thin" stored in name ID 1); links use the DB's name.
 
-Known limitations: no kerning in the atlas; one line per image (the hint's best-matching or the
-most prominent); letter-spaced (tracked) text hurts the aspect signal and the prefilter; only
-Regular/Bold of variable fonts; scripts other than Latin are out of scope.
+Known limitations: no kerning in the atlas; one uniform letter-spacing per line (word spacing
+that differs from letter spacing, e.g. justified text, is absorbed by the resize); one line per
+image (the hint's best-matching or the most prominent); only Regular/Bold of variable fonts;
+scripts other than Latin are out of scope; white text in a transparent PNG is flattened onto
+white and lost (unchanged).
 
-**Next accuracy levers** (Phase 1 review, by expected gain per effort): fit letter-spacing to the
-query width before scoring; word-by-word alignment (also absorbs kerning drift); more
+**Next accuracy levers** (Phase 1 review, by expected gain per effort; letter-spacing fit done
+2026-10-03): word-by-word alignment (also absorbs kerning drift); more
 variable-font weights with a stroke-width estimate; kerning in the atlas.
 
 ## API and ChatGPT tools (Phases 2–3)
@@ -93,6 +108,8 @@ variable-font weights with a stroke-width estimate; kerning in the atlas.
 | `fontmatch/image/baseline.py` | B0 baseline ranker (whole-image CLIP vs glyph-sheet vectors) |
 | `fontmatch/mcp_server/server.py` | MCP server (`create_server`, ASGI `create_app`) |
 | `scripts/eval_image_identify.py` | Accuracy benchmark (writes `eval_reports/*.json`, gitignored) |
+| `scripts/eval_browser_screenshots.py` | Chrome-rendered styled screenshots (letter-spacing, logos, dark mode): `render`, then `score` |
+| `scripts/tune_image_ranker.py` | Collect raw ranker signals once, grid-search weights and calibrate the label offline (dev only) |
 | `/etc/systemd/system/dupefont-mcp.service` | MCP service on a01 (user `fontmatch`, bound to the tailnet IP) |
 | mr02 `/etc/nginx/sites-available/dupefont.com` | `location = /mcp` → `100.67.193.2:8088` (backup in `/root/dupefont.com.nginx.bak-*`) |
 
@@ -250,6 +267,51 @@ until the new code is deployed).
 - MCP SDK is v2 (`mcp==2.3.0`, `MCPServer`, protocol up to 2026-07-28). We use the SDK rather
   than a hand-rolled JSON-RPC endpoint inside Flask so protocol negotiation stays correct.
 
+## Google logo fix (2026-10-03, branch `fix/multicolor-image`)
+
+**Symptom.** The Google logo (and a screenshot of google.com) with hint "Google" returned Lusitana
+82%, Habibi, League Spartan, Della Respira, Linden Hill: mostly serifs for a geometric sans.
+
+**Root cause (measured, not the colours).** `shape` compared the image with each font typeset at its
+*natural* letter-spacing, stretched to the image's width. The logo is set tighter than any font's
+default, so every glyph drifted out of phase; round strokes then anti-correlate. Poppins Medium
+(visually near-identical) scored 0.40, Lusitana 0.81. With a perfect ink mask (the PNG's alpha)
+Lusitana still won, so the README's "multi-colour text breaks separation" was wrong; the yellow "o"
+at half ink was a real but minor defect. Synthetic stress (65 dev fonts, family@1): plain 0.68,
+Google colours 0.68, tight crop 0.68, −0.04 em spacing **0.37**, +0.12 em **0.19**. The eval never
+varied spacing (synthetic queries use natural spacing, like the atlas), so it never saw this. The
+prefilter (closest natural aspect) also dropped the true font for tracked text.
+
+**Fix.** Letter-spacing fit per face + explicit spacing prior (replaces the aspect penalty);
+spacing-invariant row-profile prefilter (`rows.npy`); colour (Lab ΔE) ink map with per-letter
+levels; category vote among the re-ranked faces; "likely the same font" from the ranking margin;
+variable fonts shown by family name. Details in "How the matcher works".
+
+**New evaluation.** `scripts/eval_browser_screenshots.py` renders catalog fonts in headless Chrome
+(Skia, kerning, CSS letter-spacing): web text, tracked caps, Google-colour logos, random-palette
+logos, kerning-heavy words, dark mode. `scripts/tune_image_ranker.py` (rewritten) collects raw
+signals once and grid-searches offline, including label calibration on in- and out-of-catalog
+queries. Sets: tuning = 315 synthetic + 336 Chrome dev queries; validation = 384 Chrome renders
+(dev split, other seed/styles); test = 450 Chrome renders + synthetic, test split, run once.
+
+**Review decisions (staff-engineer subagent, 3 rounds).** Round 1 (plan): adopted a spacing-
+invariant prefilter (the prototype's prefilter tied and kept faces in atlas order: family@1 0.24),
+the explicit spacing prior, margin-based calibration, eval with out-of-catalog metrics, random
+palettes, kerning words; deferred per-word tracking, local background estimation for photos.
+Rejected after measuring: per-glyph elastic alignment (raised every candidate's fit, worse on the
+logo); a 64 px re-rank (no gain on dev). Round 2 (mid): fixed ink-map inversion of heavy text on
+tight crops, margin edge cases (one family left; rivals outside the HOG set), recalibrated the label
+on out-of-catalog queries (0.06 fired for 28% of them; now 0.20: 5.5%), contiguous `rows.npy` layout,
+cache key covers row-profile constants, huge crops downscaled, monkeypatchable prefilter size.
+Not adopted: transparent PNG with white text (unchanged behaviour, separate fix).
+Round 3 (final code review): fixed the label after the category vote (the margin now compares the
+displayed winner's pre-vote key with the best other family's, via `rank.family_margins`, which the
+tuner shares; a face that wins only through the vote gets no label); one vote per family
+(`rank.majority_category`; keys can be negative); tuner aligned with the service (HOG set chosen by
+the service score, bounded crops) and the label recalibrated on it; distinct log messages for a
+stale vs missing `rows.npy`; "Thin Italic" stripped from display names; removed dead code
+(`estimate_aspects`) and the rejected 64 px experiment.
+
 ## Deploy runbook (Phase 4, executed 2026-10-03)
 
 System packages: `apt install tesseract-ocr` (done on a01). Everything below runs on a01.
@@ -275,6 +337,13 @@ System packages: `apt install tesseract-ocr` (done on a01). Everything below run
 Rollback: check out the previous commit and restart. v4 fingerprint rows stay in the DB, so the
 old code works immediately; the atlas and new endpoints are simply unused.
 
+**Deploying the Google logo fix** (after merge): build the sidecar as the service user, then restart
+(cached image results are invalidated by `IMAGE_SCHEMA_VERSION = 7`):
+`runuser -u fontmatch -- env OMP_NUM_THREADS=2 nice -n 10 venv/bin/python scripts/build_glyph_index.py --rows-only`
+→ `glyph_atlas/rows.npy` (81 MB), then `systemctl restart fontmatch`. Check the journal for
+"rows.npy missing" (means the step was skipped). Rollback: previous commit + restart (the old code
+ignores `rows.npy`).
+
 ## Eval log
 
 | Date | Ranker | Set/split | Families | Notes | Key numbers |
@@ -295,3 +364,9 @@ old code works immediately; the atlas and new endpoints are simply unused.
 | 2026-10-02 | casing fix | corpus/dev | 40 | test split showed transcript exact 0.85: aspect-based casing switched mixed case to UPPER | score-based casing choice: 96% correct (aspect-based: ~80%). Fixed and validated on dev only; test numbers above are as measured, with the bug |
 | 2026-10-02 | engine + casing fix (final) | corpus/dev | 125 | | family@1 clean 0.88 / screenshot 0.72 / photo 0.46 (all 0.69 [CI 0.63–0.74]); family@5 0.77; category@1 0.73 [0.66–0.79]; transcript exact 0.96; p95 1.8 s |
 
+| 2026-10-03 | stress (synthetic, letter-by-letter) | corpus/dev | 65 | Google-logo investigation, master code | family@1 plain 0.68 / Google colours 0.68 / tight crop 0.68 / −0.04 em **0.37** / +0.12 em **0.19** |
+| 2026-10-03 | master vs fix | browser/dev validation (Chrome, 384) | 64 | other seed + random-palette logos + kerning words | family@1 0.57 → 0.71; @5 0.67 → 0.85; LOFO category@1 0.66 → 0.75; serif in a sans's top 5 0.048 → 0.00 |
+| 2026-10-03 | master vs fix | corpus/dev (synthetic) | 125 | | family@1 0.67 → 0.69; category@1 0.72 → 0.77; photo family@1 0.43 → 0.52 |
+| 2026-10-03 | **master vs fix** | **browser/test (Chrome, 450, run once)** | 75 | held out | family@1 0.55 → **0.70**; @5 0.65 → **0.84**; LOFO category@1 0.70 → **0.78**; serif in a sans's top 5 0.062 → 0.031; tracked caps family@1 0.04 → 0.60; logos 0.53/0.57 → 0.69/0.71; p95 1.94 → 2.01 s |
+| 2026-10-03 | **master vs fix** | **corpus/test (synthetic, run once)** | 110 | held out | family@1 0.65 → 0.66; category@1 0.70 → **0.80** [CI 0.74–0.86 vs 0.62–0.76]; photo 0.40 → 0.46; clean tier (diagnostic) 0.79 → 0.76, @5 0.94 → 0.86: the spacing prior and category vote cost a little on perfectly spaced text |
+| 2026-10-03 | real Google logo PNG | | 2 | 544×184 and 272×92, hint "Google" | master: Lusitana 78, Habibi, League Spartan, Della Respira, Linden Hill → fix: **Outfit 87**, League Spartan, Teachers, Red Hat Text, Padauk (all sans, "similar alternative") |

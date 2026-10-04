@@ -44,6 +44,44 @@ def render_text_image(
     return img
 
 
+GOOGLE_COLORS: list[Color] = [
+    (66, 133, 244), (234, 67, 53), (251, 188, 5), (66, 133, 244), (52, 168, 83), (234, 67, 53),
+]  # fmt: skip
+
+
+def render_styled(
+    font: Path | str | LoadedFont,
+    text: str,
+    size_px: int = 48,
+    tracking_em: float = 0.0,
+    colors: list[Color] | None = None,
+    bg: Color = (255, 255, 255),
+    pad: int | None = None,
+) -> Image.Image:
+    """Render one line set letter by letter, as logos and styled headings are:
+    extra letter-spacing (``tracking_em``, CSS letter-spacing in em, applied
+    after every character), one colour per letter (cycled), and an optional
+    tight crop (``pad`` px around the ink). No kerning between letters."""
+    loaded = font if isinstance(font, LoadedFont) else load(font)
+    face = pil_font(loaded, size_px)
+    colors = colors or [(0, 0, 0)]
+    pad = max(8, size_px // 2) if pad is None else pad
+    xs, x = [], 0.0
+    for ch in text:
+        xs.append(x)
+        x += face.getlength(ch) + tracking_em * size_px
+    boxes = [(xx, face.getbbox(ch)) for xx, ch in zip(xs, text) if not ch.isspace()]
+    left = min(xx + b[0] for xx, b in boxes)
+    right = max(xx + b[2] for xx, b in boxes)
+    top = min(b[1] for _, b in boxes)
+    bottom = max(b[3] for _, b in boxes)
+    img = Image.new("RGB", (int(right - left) + 2 * pad + 1, int(bottom - top) + 2 * pad + 1), bg)
+    draw = ImageDraw.Draw(img)
+    for i, (ch, xx) in enumerate(zip(text, xs)):
+        draw.text((pad - left + xx, pad - top), ch, fill=colors[i % len(colors)], font=face)
+    return img
+
+
 def _random_colors(rng: random.Random) -> tuple[Color, Color]:
     """A readable fg/bg pair; ~1/3 of the time light text on dark."""
     dark = tuple(rng.randint(0, 70) for _ in range(3))

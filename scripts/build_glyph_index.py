@@ -6,6 +6,7 @@ Re-run after the corpus changes. Takes a few minutes.
 
 Usage:
     python scripts/build_glyph_index.py [--db fontmatch.db] [--out glyph_atlas] [--workers 4]
+    python scripts/build_glyph_index.py --rows-only [--out glyph_atlas]   # add rows.npy (~20 s)
 """
 
 from __future__ import annotations
@@ -20,7 +21,12 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from fontmatch.image.catalog import build_catalog, save_catalog_json  # noqa: E402
-from fontmatch.image.glyphs import AtlasSource, build_atlas  # noqa: E402
+from fontmatch.image.glyphs import (  # noqa: E402
+    AtlasSource,
+    GlyphAtlas,
+    build_atlas,
+    write_row_profiles,
+)
 from fontmatch.image.paths import SEARCH_DIRS  # noqa: E402
 
 
@@ -32,7 +38,20 @@ def main():
     ap.add_argument("--out", default=str(ROOT / "glyph_atlas"))
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--catalog-schema", type=int, default=None)
+    ap.add_argument(
+        "--rows-only",
+        action="store_true",
+        help="only (re)write rows.npy, the row-profile sidecar, for an existing atlas",
+    )
     args = ap.parse_args()
+
+    if args.rows_only:
+        start = time.time()
+        out = Path(args.out)
+        write_row_profiles(GlyphAtlas.load(out), out / "rows.npy")
+        size = (out / "rows.npy").stat().st_size / 1e6
+        print(f"rows.npy: {size:.0f} MB in {time.time() - start:.0f}s -> {out}")
+        return
 
     start = time.time()
     catalog = build_catalog(Path(args.db), SEARCH_DIRS, args.catalog_schema)
