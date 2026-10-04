@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import functools
 import math
 import re
+from pathlib import Path
 
 # Weight/style suffixes to strip when building a Google Fonts URL.
 _WEIGHT_SUFFIXES = re.compile(
@@ -439,10 +441,46 @@ def distance_to_score(distance: float) -> int:
     return max(0, min(100, round(score)))
 
 
-def google_fonts_url(family: str) -> str:
-    """Build a Google Fonts specimen URL for a base family name."""
-    base = base_family_name(family)
-    return "https://fonts.google.com/specimen/" + base.replace(" ", "+")
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+GOOGLE_FONTS_REPOS = [_PROJECT_ROOT / "google-fonts-repo"]
+_LICENSE_DIRS = ("ofl", "apache", "ufl")
+_METADATA_NAME = re.compile(r'^name:\s*"([^"]+)"', re.MULTILINE)
+
+
+@functools.lru_cache(maxsize=8192)
+def google_fonts_name(source: str) -> str | None:
+    """The family's name on Google Fonts (``name:`` in the google/fonts
+    METADATA.pb next to the font file), or None if unknown.
+
+    ``source`` is the DB's source path: "ofl/redhattext/RedHatText[wght].ttf"
+    or, for repos walked without the license level, "redhattext/....ttf"."""
+    rel = Path(source)
+    if rel.is_absolute() or ".." in rel.parts or len(rel.parts) < 2:
+        return None
+    if rel.parts[0] in _LICENSE_DIRS:
+        candidates = [rel.parent]
+    else:
+        candidates = [Path(lic) / rel.parent for lic in _LICENSE_DIRS]
+    for repo in GOOGLE_FONTS_REPOS:
+        for cand in candidates:
+            meta = repo / cand / "METADATA.pb"
+            try:
+                text = meta.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            m = _METADATA_NAME.search(text)
+            if m:
+                return m.group(1)
+    return None
+
+
+def google_fonts_url(family: str, source: str | None = None) -> str:
+    """Google Fonts specimen URL for a family. With the font's ``source``
+    path the repo's own family name is used ("Red Hat Text"); otherwise the
+    family name with weight/style suffixes stripped (a guess that is wrong
+    for names like "Playfair Display")."""
+    name = (google_fonts_name(source) if source else None) or base_family_name(family)
+    return "https://fonts.google.com/specimen/" + name.replace(" ", "+")
 
 
 
@@ -498,7 +536,8 @@ def enrich_matches(matches: list[dict], store=None) -> list[dict]:
         m["has_file"] = source is not None and not _is_crawled_source(source)
 
         # Google Fonts link
-        if store is not None and store.has_google_fonts_source(m["family"]):
-            m["google_fonts_url"] = google_fonts_url(m["family"])
+        gf_source = store.google_fonts_source(m["family"]) if store is not None else None
+        if gf_source:
+            m["google_fonts_url"] = google_fonts_url(m["family"], gf_source)
 
     return matches

@@ -164,8 +164,8 @@ def test_image_urls_use_the_database_family_not_the_display_name():
         def get_font_family(self, name):
             return {"Outfit[wght].ttf": "Outfit Thin"}.get(name)
 
-        def has_google_fonts_source(self, family):
-            return family == "Outfit Thin"
+        def google_fonts_source(self, family):
+            return "outfit/Outfit[wght].ttf" if family == "Outfit Thin" else None
 
         def get_font_source(self, name):
             return "ofl/outfit/Outfit[wght].ttf"

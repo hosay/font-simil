@@ -574,8 +574,8 @@ class FontStore:
                     "family": family,
                     "category": cat,
                     "license_id": row["license_id"] or "unknown",
-                    "google_fonts_url": google_fonts_url(family)
-                    if self.has_google_fonts_source(family)
+                    "google_fonts_url": google_fonts_url(family, gf_source)
+                    if (gf_source := self.google_fonts_source(family))
                     else None,
                 }
             )
@@ -666,8 +666,9 @@ class FontStore:
             ).fetchone()
         return row[0] if row else None
 
-    def has_google_fonts_source(self, family: str) -> bool:
-        """Check if any font in this family was ingested from Google Fonts.
+    def google_fonts_source(self, family: str) -> str | None:
+        """Source path of a font in this family that was ingested from
+        Google Fonts, or None.
 
         Matches explicit prefixes (ofl/, apache/, ufl/) as well as the bare
         ``familyslug/FontFile.ttf`` pattern produced when the google-fonts-repo
@@ -676,7 +677,7 @@ class FontStore:
         """
         with self._lock:
             row = self.conn.execute(
-                """SELECT 1 FROM fonts
+                """SELECT source FROM fonts
                    WHERE family = ? AND (
                        source LIKE 'ofl/%'
                        OR source LIKE 'apache/%'
@@ -685,10 +686,15 @@ class FontStore:
                            source LIKE '%.ttf' OR source LIKE '%.otf'
                            OR source LIKE '%.woff' OR source LIKE '%.woff2'))
                    )
+                   ORDER BY source
                    LIMIT 1""",
                 (family,),
             ).fetchone()
-        return row is not None
+        return row[0] if row else None
+
+    def has_google_fonts_source(self, family: str) -> bool:
+        """Check if any font in this family was ingested from Google Fonts."""
+        return self.google_fonts_source(family) is not None
 
     def increment_daily_usage(self, ip: str) -> int:
         """Atomically increment today's request count for an IP. Returns the new count."""

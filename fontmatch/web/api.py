@@ -105,8 +105,8 @@ def _add_image_urls(result: dict, store) -> dict:
         # family for the file ("Outfit Thin" for a variable font).
         family = store.get_font_family(m["name"]) or m["family"]
         m["similar_url"] = f"/similar-to/{slugify(family)}"
-        has_gf = store.has_google_fonts_source(family)
-        m["google_fonts_url"] = google_fonts_url(family) if has_gf else None
+        gf_source = store.google_fonts_source(family)
+        m["google_fonts_url"] = google_fonts_url(family, gf_source) if gf_source else None
         source = store.get_font_source(m["name"])
         m["download_url"] = f"/api/font-file/{m['name']}" if source else None
     return result
