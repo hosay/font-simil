@@ -56,13 +56,13 @@
         <form class="feedback-more" hidden>
             <label for="correct-font">Which font was it? <span class="optional">(optional)</span></label>
             <input type="text" id="correct-font" name="correct_font" class="search-input" maxlength="100" autocomplete="off" placeholder="e.g. Futura Bold">
-            <label class="consent"><input type="checkbox" name="keep_image"> Let Dupefont keep this image to test and improve matching</label>
+            <label class="consent"><input type="checkbox" name="keep_image"> Let Dupefont keep this image to test and improve matching, including training our matching models</label>
             <button type="submit" class="btn btn-primary btn-sm">Send</button>
         </form>
     </div>
     <div class="share-box">
         <button type="button" class="btn btn-outline share-btn">Get a share link</button>
-        <p class="share-note">Creates a public link to your image and these results. You can delete it any time.</p>
+        <p class="share-note">Creates a public link to your image and these results. You can delete it any time. Only share images you have the right to publish (<a href="{{ url_for('web.terms') }}#share-links">Terms</a>).</p>
         <div class="share-result" hidden>
             <div class="share-row">
                 <input type="text" class="search-input share-url" readonly aria-label="Share link">
@@ -104,7 +104,7 @@
     <label for="text_hint" class="hint-label">Text in the image <span class="optional">(optional, improves accuracy)</span></label>
     <input type="text" id="text_hint" name="text_hint" class="search-input hint-input" maxlength="500" placeholder="e.g. Summer Sale" value="{{ text_hint or '' }}" autocomplete="off">
     <button type="submit" class="btn btn-primary btn-lg" data-busy="Matching fonts&hellip;">Find matching fonts</button>
-    <p class="upload-privacy">Your image is used to find matches and isn't stored unless you choose to share it. <a href="{{ url_for('web.privacy') }}">Privacy</a></p>
+    <p class="upload-privacy">Your image is used to find matches and isn't stored unless you choose to share it. By uploading you accept our <a href="{{ url_for('web.terms') }}">Terms</a>. <a href="{{ url_for('web.privacy') }}">Privacy</a></p>
 </form>
 
 <form method="post" action="{{ url_for('web.identify_submit') }}" enctype="multipart/form-data" class="upload-form mode-panel" id="font" data-mode="font">

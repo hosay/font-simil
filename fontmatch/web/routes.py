@@ -62,6 +62,7 @@ def sitemap_txt():
         f"{base}/identify",
         f"{base}/api/docs",
         f"{base}/privacy",
+        f"{base}/terms",
     ]
     lines += [f"{base}/similar-to/{slug}" for slug in sorted(indexable_similar_slugs())]
     return Response("\n".join(lines), mimetype="text/plain")
@@ -298,6 +299,11 @@ def font_sample(filename: str):
 @web_bp.get("/privacy")
 def privacy():
     return render_template("privacy.html")
+
+
+@web_bp.get("/terms")
+def terms():
+    return render_template("terms.html")
 
 
 @web_bp.get("/identify")

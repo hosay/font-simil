@@ -153,7 +153,9 @@ def create_app(
     app.config["CLARITY_PROJECT_ID"] = os.environ.get("DUPEFONT_CLARITY_ID", "ys6l88q2n9")
 
     # Named in the privacy policy as the operator (legal entity or person).
-    app.config["OPERATOR"] = os.environ.get("DUPEFONT_OPERATOR", "")
+    app.config["OPERATOR"] = (
+        os.environ.get("DUPEFONT_OPERATOR") or "Datacleave Ltd, a Canadian federal corporation, Victoria, British Columbia, Canada"
+    )
 
     # Private usage dashboard (/admin/stats); off unless a password hash is set.
     from fontmatch.mcp_server.usage import DEFAULT_PATH as MCP_USAGE_DB
