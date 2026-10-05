@@ -45,7 +45,8 @@ def find_similar(
             "name": canonical_prop,
             "css_family": meta.get("css_family", f"'{canonical_prop}', serif"),
             "category": meta.get("category", "sans-serif"),
-            "vendor": meta.get("vendor", ""),
+            # "Various" (many foundries' versions) reads badly as "by Various"
+            "vendor": "" if meta.get("vendor") == "Various" else meta.get("vendor", ""),
             "description": meta.get("description", ""),
             "notes": PROPRIETARY_NOTES.get(canonical_prop, ""),
             "metric_compatible": canonical_prop in METRIC_COMPATIBLE,

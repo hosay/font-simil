@@ -168,14 +168,18 @@ class TestShare:
         assert img.data == base64.b64decode(preview.split(",", 1)[1])
         assert path + ".jpg" in html  # og:image
 
-    def test_same_result_shared_twice_gives_one_link(self, app):
+    def test_each_share_has_its_own_delete_link(self, app):
+        # Anyone uploading the same viral logo gets a valid token; sharing it
+        # again must not take over (or invalidate) the first sharer's link.
         c = app.test_client()
         token, preview = _result_page(c, _png("teal"))
         a = c.post("/share", json={"token": token, "preview": preview}).get_json()
         b = c.post("/share", json={"token": token, "preview": preview}).get_json()
-        assert a["url"] == b["url"]
-        # The newest delete link is the valid one.
-        assert app.test_client().post(a["delete_url"].split("localhost", 1)[-1]).status_code == 403
+        assert a["url"] != b["url"]
+        assert app.test_client().get(a["delete_url"].split("localhost", 1)[-1]).status_code == 200
+        delete_b = b["delete_url"].split("localhost", 1)[-1]
+        assert app.test_client().post(delete_b).status_code in (200, 302)
+        assert app.test_client().get(a["url"].split("localhost", 1)[-1]).status_code == 200
 
     def test_delete_link(self, app):
         body, _ = self._share(app, _png("orange"))
@@ -222,6 +226,23 @@ def test_no_tokens_with_the_default_secret_key(tmp_path, monkeypatch):
         config = {"TESTING": False}
 
     assert user_content.can_sign(App()) is False
+
+
+def test_updating_feedback_keeps_its_original_time(base_app):
+    store = base_app.config["STORE"]
+    store.save_image_feedback("img:t:time", "no", None, None, None, "7.7.7.7")
+    with store._lock:
+        store.conn.execute(
+            "UPDATE image_feedback SET created_at = '2020-01-01 00:00:00' "
+            "WHERE result_key = 'img:t:time'"
+        )
+        store.conn.commit()
+    store.save_image_feedback("img:t:time", "no", None, "Futura", None, "7.7.7.7")
+    with store._lock:
+        row = store.conn.execute(
+            "SELECT created_at, correct_font FROM image_feedback WHERE result_key = 'img:t:time'"
+        ).fetchone()
+    assert row["created_at"] == "2020-01-01 00:00:00" and row["correct_font"] == "Futura"
 
 
 def test_forget_old_ips_covers_feedback(base_app):

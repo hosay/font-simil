@@ -89,7 +89,10 @@ def _flatten_colour(rgba: Image.Image) -> tuple[int, int, int]:
     if abs(on_white - on_black) >= FLATTEN_SHARE_MARGIN:
         return (255, 255, 255) if on_white < on_black else (0, 0, 0)
     arr = np.asarray(probe)
-    lum = _relative_luminance(np.median(arr[arr[..., 3] >= 128][:, :3], axis=0))
+    visible = arr[arr[..., 3] >= 128][:, :3]
+    if visible.size == 0:  # only faint pixels survived the downscale
+        return (255, 255, 255)
+    lum = _relative_luminance(np.median(visible, axis=0))
     return (0, 0, 0) if (lum + 0.05) / 0.05 > 1.05 / (lum + 0.05) else (255, 255, 255)
 
 

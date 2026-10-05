@@ -123,7 +123,8 @@ class TestFeedbackAndShares:
         store.save_image_feedback("img:t:1", "yes", "Arimo", None, None, "10.0.0.1")
         store.save_image_feedback("img:t:2", "no", "Arimo", "Futura", "abc123.jpg", "10.0.0.2")
         result = {"transcript": "Sunrise", "matches": [{"family": "Outfit", "name": "Outfit.ttf"}]}
-        store.create_share("AbCdEfGhIj", "img:t:3", "f" * 64, result, "h")
+        if store.get_share("AbCdEfGhIj") is None:
+            store.create_share("AbCdEfGhIj", "img:t:3", "f" * 64, result, "h")
         sh = Path(app.config["USER_CONTENT_DIR"]) / "shares"
         sh.mkdir(parents=True, exist_ok=True)
         (sh / "AbCdEfGhIj.jpg").write_bytes(b"\xff\xd8jpeg")

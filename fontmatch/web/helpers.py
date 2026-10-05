@@ -114,6 +114,19 @@ CORPUS_ALIASES = {
     "Cormorant Garamond": "Cormorant Garamond Light",
     "Old English": "UnifrakturMaguntia",
     "Sans Serif": "Inter",
+    # Variable fonts whose DB family is their default instance name
+    "Nunito Sans": "Nunito Sans 12pt ExtraLight",
+    "Figtree": "Figtree Light",
+    "Libre Franklin": "Libre Franklin Thin",
+}
+
+# Proprietary names that are the same typeface as another entry: one page
+# is indexed (the value), the alias page canonicalises to it.
+PROPRIETARY_CANONICAL = {
+    "Trajan Pro": "Trajan",
+    "San Francisco": "SF Pro",
+    "Futura PT": "Futura",
+    "Times": "Times New Roman",
 }
 
 # Case-insensitive lookup for corpus aliases

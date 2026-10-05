@@ -91,7 +91,13 @@ def test_policy_covers_share_links_and_feedback_images(tmp_path):
 
     app = create_app(db_path=tmp_path / "p.db", testing=True)
     html = app.test_client().get("/privacy").get_data(as_text=True)
-    for text in ["Share links", "Get a share link", "Was this right?", "Let Dupefont keep this image",
-                 "Up to 2 years", "October 5, 2026"]:
+    for text in [
+        "Share links",
+        "Get a share link",
+        "Was this right?",
+        "Let Dupefont keep this image",
+        "Up to 2 years",
+        "October 5, 2026",
+    ]:
         assert text in html, text
     assert "We don't use your uploads to train" not in html

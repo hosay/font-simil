@@ -125,3 +125,25 @@ def test_match_cards_show_the_google_fonts_name():
     finally:
         helpers.google_fonts_name = orig
     assert out["display_family"] == "Outfit" and out["gf_family"] == "Outfit"
+
+
+def test_corpus_page_does_not_call_a_font_a_stand_in_for_itself(client, tmp_path, monkeypatch):
+    # /similar-to/<free font> for a variable font: the DB family is the
+    # default instance name ("DM Sans 9pt"), the Google Fonts name differs.
+    # The page must use one name, not present the font as its own stand-in.
+    from fontmatch.index.store import FontStore
+
+    d = tmp_path / "ofl" / "lato"
+    d.mkdir(parents=True)
+    (d / "METADATA.pb").write_text('name: "Lato Prime"\n')
+    monkeypatch.setattr(helpers, "GOOGLE_FONTS_REPOS", [tmp_path])
+    helpers.google_fonts_name.cache_clear()
+    monkeypatch.setattr(
+        FontStore,
+        "google_fonts_source",
+        lambda self, fam: "ofl/lato/Lato.ttf" if fam == "Lato" else None,
+    )
+    html = _html(client, "/similar-to/lato")
+    helpers.google_fonts_name.cache_clear()
+    assert "closest open-source equivalent" not in html
+    assert "alternatives to <em>Lato Prime</em>" in html

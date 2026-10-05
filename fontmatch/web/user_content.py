@@ -162,6 +162,8 @@ def image_feedback():
     )  # fmt: skip
     if replaced:
         (_content_dir("feedback") / replaced).unlink(missing_ok=True)
+    if image_file:
+        expire_feedback_images()  # rare; keeps the 2-year promise without a cron
     return jsonify({"saved": True})
 
 
@@ -199,7 +201,7 @@ def create_share():
     delete_token = secrets.token_urlsafe(16)
     token_hash = hashlib.sha256(delete_token.encode()).hexdigest()
     share_id = current_app.config["STORE"].create_share(
-        secrets.token_urlsafe(8)[:10], data["k"], data["p"], result, token_hash
+        _new_share_id(), data["k"], data["p"], result, token_hash
     )
     image = _content_dir("shares") / f"{share_id}.jpg"
     if not image.is_file():
@@ -212,6 +214,11 @@ def create_share():
             ),
         }
     )
+
+
+def _new_share_id() -> str:
+    """10 URL-safe characters (60 bits): collisions are not a practical concern."""
+    return secrets.token_urlsafe(8)[:10]
 
 
 def _noindex(resp: Response) -> Response:

@@ -247,6 +247,8 @@ def create_app(
             expire_feedback_images()
         except Exception as exc:  # never block startup on housekeeping
             app.logger.error("feedback image cleanup failed: %s", exc)
+    # gunicorn --preload forks after this: leave no connection to inherit.
+    store.close()
 
     # Apply stricter rate limits to CPU-intensive identify endpoints
     # The wrapped function must replace the registered view, or the limit is

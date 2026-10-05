@@ -111,8 +111,7 @@ CREATE TABLE IF NOT EXISTS shares (
     preview_sha256 TEXT NOT NULL,
     result_json TEXT NOT NULL,
     delete_token_hash TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(result_key, preview_sha256)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS daily_usage (
@@ -139,8 +138,10 @@ class FontStore:
     @property
     def conn(self) -> sqlite3.Connection:
         """This process's connection. gunicorn --preload creates the store in
-        the master; a SQLite connection must not cross fork(), so a worker
-        opens its own on first use (the inherited one is left untouched)."""
+        the master; a SQLite connection must not cross fork(), so the app
+        factory closes it after setup (FontStore.close) and each worker opens
+        its own on first use. The pid check also covers a fork with an open
+        connection: the child never uses the parent's."""
         if self._conn is None or self._conn_pid != os.getpid():
             with self._lock:
                 if self._conn is None or self._conn_pid != os.getpid():
@@ -845,8 +846,7 @@ class FontStore:
                    ON CONFLICT(ip_address, result_key) DO UPDATE SET
                        verdict = excluded.verdict,
                        correct_font = COALESCE(excluded.correct_font, correct_font),
-                       image_file = COALESCE(excluded.image_file, image_file),
-                       created_at = CURRENT_TIMESTAMP""",
+                       image_file = COALESCE(excluded.image_file, image_file)""",
                 (result_key, verdict, top_font, correct_font, image_file, ip_address),
             )
             self.conn.commit()
@@ -897,19 +897,10 @@ class FontStore:
     def create_share(
         self, share_id: str, result_key: str, preview_sha256: str, result: dict, token_hash: str
     ) -> str:
-        """Insert a share, or return the existing one for the same result and
-        image (its delete token is replaced, so the newest link is valid)."""
+        """Insert a share. Every request gets its own share and delete link:
+        anyone uploading the same image gets a valid token, so reusing an
+        existing share would hand them its delete link."""
         with self._lock:
-            row = self.conn.execute(
-                "SELECT id FROM shares WHERE result_key = ? AND preview_sha256 = ?",
-                (result_key, preview_sha256),
-            ).fetchone()
-            if row:
-                self.conn.execute(
-                    "UPDATE shares SET delete_token_hash = ? WHERE id = ?", (token_hash, row["id"])
-                )
-                self.conn.commit()
-                return row["id"]
             self.conn.execute(
                 "INSERT INTO shares (id, result_key, preview_sha256, result_json, delete_token_hash) "
                 "VALUES (?, ?, ?, ?, ?)",

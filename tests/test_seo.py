@@ -45,8 +45,11 @@ def test_sitemap_lists_only_pages_with_search_demand(client):
     assert "similar-to/montserrat" in paths  # corpus font on /popular
     assert "similar-to/jetbrains-mono" not in paths  # other corpus font
     assert len(lines) == len(set(lines))
+    from fontmatch.web.helpers import PROPRIETARY_CANONICAL
+
     for prop in PROPRIETARY_TO_OPEN_SOURCE:
-        assert f"similar-to/{slugify(prop)}" in paths
+        listed = f"similar-to/{slugify(prop)}" in paths
+        assert listed == (prop not in PROPRIETARY_CANONICAL), prop
 
 
 def test_proprietary_page_is_indexable_with_canonical(client):
@@ -86,12 +89,28 @@ def test_not_found_is_noindex_without_canonical(client):
         ("source-sans-3", "Source Sans 3", ("source-sans-3", False)),
         ("sans-serif", "Inter", ("inter", False)),  # semantic alias: not a variant
         ("helvetica", "Helvetica", ("helvetica", True)),
+        ("montserrat-thin", "Montserrat Thin", ("montserrat", True)),  # variable default name
+        ("trajan-pro", "Trajan Pro", ("trajan", True)),  # same font, one page
+        ("san-francisco", "San Francisco", ("sf-pro", True)),
     ],
 )
 def test_similar_page_seo(slug, display, expected):
     from fontmatch.web.routes import similar_page_seo
 
     assert similar_page_seo(slug, display) == expected
+
+
+def test_alias_pages_are_not_in_the_sitemap(client):
+    lines = client.get("/sitemap.txt").get_data(as_text=True).split()
+    assert not any(line.endswith("/similar-to/trajan-pro") for line in lines)
+    assert any(line.endswith("/similar-to/trajan") for line in lines)
+
+
+def test_corpus_variable_font_page_uses_one_name():
+    from fontmatch.web.routes import similar_page_seo
+
+    # The page for a DB variant name is about the font itself, not a stand-in.
+    assert similar_page_seo("dm-sans", "DM Sans 9pt")[0] == "dm-sans"
 
 
 def test_every_proprietary_name_survives_the_slug_round_trip():

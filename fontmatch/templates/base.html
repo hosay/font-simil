@@ -17,8 +17,10 @@
     <meta property="og:description" content="{% block og_description %}Upload any font file and find the best open-source alternatives using metric and visual analysis.{% endblock %}">
     <meta property="og:site_name" content="Dupefont">
     <meta property="og:image" content="{{ og_image if og_image is defined and og_image else url_for('static', filename='og-default.png', _external=True) }}">
+    {% if not (og_image is defined and og_image and '/r/' in og_image) %}
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
+    {% endif %}
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Dupefont &mdash; Find Free Open-Source Font Alternatives">
 

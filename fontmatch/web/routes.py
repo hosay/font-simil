@@ -24,6 +24,7 @@ from fontmatch.features.fingerprint import fingerprint
 from fontmatch.features.perceptual import FINGERPRINT_SCHEMA_VERSION
 from fontmatch.fonts.loader import UnsupportedFontError, load
 from fontmatch.web.helpers import (
+    PROPRIETARY_CANONICAL,
     PROPRIETARY_FONTS,
     PROPRIETARY_TO_OPEN_SOURCE,
     deslugify,
@@ -175,6 +176,13 @@ VARIANT_CANONICAL = {
     "Raleway Thin": "Raleway",
     "League Spartan Thin": "League Spartan",
     "Cormorant Garamond Light": "Cormorant Garamond",
+    "Montserrat Thin": "Montserrat",
+    "Nunito ExtraLight": "Nunito",
+    "Nunito Sans 12pt ExtraLight": "Nunito Sans",
+    "Source Sans 3 ExtraLight": "Source Sans 3",
+    "Figtree Light": "Figtree",
+    "Libre Franklin Thin": "Libre Franklin",
+    **PROPRIETARY_CANONICAL,
 }
 
 
@@ -184,9 +192,11 @@ def indexable_similar_slugs() -> set[str]:
     ~2,800 corpus pages are near-identical templates; indexing them on a
     young domain risks a site-wide thin-content rating, so they are noindex
     and left out of the sitemap until Search Console shows demand."""
-    return {slugify(name) for name in PROPRIETARY_TO_OPEN_SOURCE} | {
-        entry["slug"] for entry in ALL_POPULAR_FONTS
-    }
+    aliases = {slugify(name) for name in PROPRIETARY_CANONICAL}
+    return (
+        {slugify(name) for name in PROPRIETARY_TO_OPEN_SOURCE}
+        | {entry["slug"] for entry in ALL_POPULAR_FONTS}
+    ) - aliases
 
 
 def similar_page_seo(slug: str, display_name: str) -> tuple[str, bool]:
@@ -446,6 +456,8 @@ def og_similar(slug: str):
     target = Path(current_app.config["OG_DIR"]) / card_filename(
         slug, font_row["name"], kicker, title
     )
+    if target.with_suffix(".none").exists():
+        return redirect(url_for("static", filename="og-default.png"))
     if not target.is_file():
         font_path = resolve_font_file(
             store, current_app.config.get("CORPUS_DIRS", []), font_row["name"], walk=False
@@ -456,6 +468,7 @@ def og_similar(slug: str):
             data = render_card(font_path, "", kicker, title)
         except Exception as exc:  # glyph-less or broken font: use the site card
             current_app.logger.warning("og: cannot render %s: %s", slug, exc)
+            SampleStore(target.parent, lambda name: None)._mark_failed(target)
             return redirect(url_for("static", filename="og-default.png"))
         SampleStore(target.parent, lambda name: None).save(target, data)
     resp = send_file(target, mimetype="image/png", max_age=7 * 86400)
@@ -518,6 +531,8 @@ def similar_to(slug: str):
         corpus_license = None
 
     canonical_slug, indexable = similar_page_seo(slug, display_name)
+    if not prop_meta:  # a corpus font's page is about the font: one name for it
+        display_name = corpus_display
     return render_template(
         "similar.html",
         og_image=url_for("web.og_similar", slug=canonical_slug, _external=True),
@@ -525,7 +540,7 @@ def similar_to(slug: str):
         robots=None if indexable else "noindex, follow",
         family_name=display_name,
         corpus_family=corpus_display,
-        corpus_slug=slugify(font_row["family"]),
+        corpus_slug=similar_page_seo(slugify(font_row["family"]), font_row["family"])[0],
         corpus_gf_family=corpus_gf_family,
         corpus_gf_url=corpus_gf_url,
         corpus_license=corpus_license,

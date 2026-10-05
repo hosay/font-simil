@@ -58,6 +58,8 @@ Code changes take effect only on restart: gunicorn `--preload` holds the code in
 | `/var/lib/fontmatch/.cache/huggingface` | OpenCLIP ViT-B/32 weights used by the service |
 | `/var/lib/fontmatch/font_samples/` | Pregenerated "The quick brown fox..." PNGs (served at `/font-sample/<font name>.png?style=`, shown on the image results page and in the ChatGPT widget). Build/refresh as `fontmatch`: `runuser -u fontmatch -- venv/bin/python scripts/build_font_samples.py --out /var/lib/fontmatch/font_samples`. Missing samples render on first request; `.none` files mark fonts that can't render the sample (non-Latin) |
 | `/var/lib/fontmatch/mcp_usage.db` | ChatGPT usage log (see above) |
+| `/var/lib/fontmatch/user_content/` | Images visitors chose to keep: `shares/<id>.jpg` (public share links, kept until deleted) and `feedback/*.jpg` (sent with "Was this right?" + consent, deleted after 2 years at startup). Rows are in `fontmatch.db` (`shares`, `image_feedback`). **Back this up**: it's user data and can't be regenerated |
+| `/var/lib/fontmatch/og_images/` | Cached social preview cards for `/similar-to` pages (regenerated on demand; safe to delete) |
 
 Fingerprint schema versions: the code only uses rows matching `FINGERPRINT_SCHEMA_VERSION` in `fontmatch/features/perceptual.py`. Code in `master` is **v6** (CLIP on square tiles, variable fonts rendered at their Regular instance); older v2–v4 rows stay in the DB, unused. After any schema bump the corpus must be re-embedded *before* restarting the service, or every lookup returns nothing.
 
@@ -74,6 +76,8 @@ Fingerprint schema versions: the code only uses rows matching `FINGERPRINT_SCHEM
 - Rollback: `git checkout ea5b334 && systemctl restart fontmatch` (v4 rows remain in the DB; stop `dupefont-mcp` too, since the old code has no `/api/identify-image`). The DB backup from before the re-embed is `fontmatch-pre-v6.db`.
 
 ### Gotchas for operators and new sessions
+
+- **`SECRET_KEY` must stay the same across restarts and both workers**: it signs the share/feedback tokens on results pages (valid 24 h). With the default `dev-key-change-me` the share and feedback buttons are not shown.
 
 - **Run DB-writing scripts as the service user**, or root-owned `-wal`/`-shm` files will break the service:
   `runuser -u fontmatch -- env HOME=/var/lib/fontmatch HF_HOME=/var/lib/fontmatch/.cache/huggingface HF_HUB_OFFLINE=1 OMP_NUM_THREADS=3 nice -n 10 venv/bin/python scripts/build_corpus.py`
@@ -140,6 +144,8 @@ systemctl restart fontmatch      # restart after code changes
 | `FONTMATCH_SAMPLES_DIR` | `./font_samples` | Font sample PNGs |
 | `DUPEFONT_CLARITY_ID` | `ys6l88q2n9` | Microsoft Clarity project; empty disables it |
 | `DUPEFONT_OPERATOR` | unset | Operator name/address shown in the privacy policy |
+| `DUPEFONT_USER_CONTENT_DIR` | `<samples dir>/../user_content` | Share-link and feedback images |
+| `DUPEFONT_OG_DIR` | `<samples dir>/../og_images` | Preview card cache |
 
 ## Web pages
 
@@ -150,7 +156,10 @@ systemctl restart fontmatch      # restart after code changes
 | `/privacy` | Privacy policy |
 | `/admin/stats` | Usage dashboard (HTTP Basic auth) |
 | `/font-sample/<name>.png` | "Quick brown fox" sample image of a corpus font |
-| `/similar-to/<slug>` | Side-by-side comparison for a specific font |
+| `/similar-to/<slug>` | Side-by-side comparison for a specific font. Only proprietary fonts and the corpus fonts on `/popular` are indexable (and in the sitemap); other corpus pages are `noindex, follow` |
+| `/og/similar-to/<slug>.png` | 1200x630 social preview card for a `/similar-to` page |
+| `/r/<id>` | Public share page for an image result (`noindex`); `/r/<id>.jpg` is its image; `/r/<id>/delete?token=` deletes it |
+| `POST /share`, `POST /image-feedback` | Share links and "Was this right?" from the image results page (signed token; outside `/api` so no CORS) |
 | `/popular` | Most-searched fonts |
 
 ## API
