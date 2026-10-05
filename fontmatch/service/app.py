@@ -154,7 +154,7 @@ def create_app(
 
     # Named in the privacy policy as the operator (legal entity or person).
     app.config["OPERATOR"] = (
-        os.environ.get("DUPEFONT_OPERATOR") or "Datacleave Ltd, a Canadian federal corporation, Victoria, British Columbia, Canada"
+        os.environ.get("DUPEFONT_OPERATOR") or "Datacleave Ltd, a Canadian federal corporation"
     )
 
     # Private usage dashboard (/admin/stats); off unless a password hash is set.

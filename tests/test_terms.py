@@ -34,8 +34,6 @@ def test_terms_page_names_the_company_and_key_protections(app):
         "legal@dupefont.com",
         "Copyright Act",
         "Digital Millennium Copyright Act",
-        "death or personal injury",
-        "If you are a consumer, you may also bring proceedings in the courts where you live",
     ]:
         assert text.lower() in html.lower(), text
 
@@ -90,3 +88,44 @@ def test_consent_checkbox_mentions_training(app, monkeypatch):
         content_type="multipart/form-data",
     )
     assert "including training our matching models" in resp.get_data(as_text=True)
+
+
+@pytest.mark.parametrize(
+    "concession",
+    [
+        "except where the law allows",  # no invitations to reverse engineer
+        "except through the API",  # no carve-out for competitors
+        "if you credit Dupefont",  # no blanket licence to reuse results
+        "without crediting",
+        "you may also bring proceedings in the courts where you live",
+        "rely on statutory limitation periods",
+        "for example in Quebec",
+        "put a notice on the site",
+        "we will act promptly",
+        "we will forward the notice",
+        "The Service is free.",
+        "We won't publish the image",
+        "we use your content only",
+        "other than through the API",
+        "You may use the names of fonts",
+        "in good faith for identification",
+        "We use them only",
+    ],
+)
+def test_terms_make_no_unneeded_concessions(app, concession):
+    html = _html(app, "/terms").replace("&#39;", "'")
+    assert concession.lower() not in html.lower()
+
+
+def test_terms_ban_competitive_use_and_extraction(app):
+    html = _html(app, "/terms").lower()
+    assert "competes with dupefont" in html
+    assert "machine-learning model" in html and "text and data mining rights" in html
+    assert "further access to the service is unauthorized" in html
+    assert "including through the api" in html
+    assert "reverse engineer" in html
+
+
+@pytest.mark.parametrize("path", ["/terms", "/privacy"])
+def test_no_city_named(app, path):
+    assert "Victoria" not in _html(app, path)
