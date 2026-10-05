@@ -492,6 +492,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 shareError.hidden = false;
             });
         });
+        actions.querySelector(".share-copy-delete").addEventListener("click", function () {
+            navigator.clipboard.writeText(actions.querySelector(".share-delete").href).then(function () {
+                showToast("Delete link copied: keep it somewhere safe");
+            });
+        });
         actions.querySelector(".share-copy").addEventListener("click", function () {
             var input = actions.querySelector(".share-url");
             navigator.clipboard.writeText(input.value).then(function () {

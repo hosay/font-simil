@@ -68,7 +68,11 @@
                 <input type="text" class="search-input share-url" readonly aria-label="Share link">
                 <button type="button" class="btn btn-primary btn-sm share-copy">Copy</button>
             </div>
-            <p class="share-note">Keep this link if you may want to delete the share later: <a class="share-delete" href="#" rel="nofollow">delete link</a></p>
+            <p class="share-note">Anyone with the link can see it. To delete it later you'll need this delete link, which is shown only once:</p>
+            <div class="share-row">
+                <a class="share-delete" href="#" rel="nofollow">Delete link</a>
+                <button type="button" class="btn btn-outline btn-sm share-copy-delete">Copy delete link</button>
+            </div>
         </div>
         <p class="share-error" hidden></p>
     </div>

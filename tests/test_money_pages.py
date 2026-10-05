@@ -49,11 +49,21 @@ def test_metric_compatible_claim_only_where_true(client):
         assert "metrically compatible" not in _html(client, f"/similar-to/{slug}")
 
 
-def test_license_claim_matches_the_font(client):
+def test_license_claim_matches_the_font(client, tmp_path, monkeypatch):
     # The FAQ used to say every alternative is under the SIL Open Font
-    # License; Arimo is Apache 2.0. It must name the font's own license.
+    # License. It must name the font's own license (here: Apache, from the
+    # google/fonts directory the family lives in).
+    d = tmp_path / "apache" / "arimo"
+    d.mkdir(parents=True)
+    (d / "METADATA.pb").write_text('name: "Arimo"\n')
+    monkeypatch.setattr(helpers, "GOOGLE_FONTS_REPOS", [tmp_path])
+    helpers.google_fonts_name.cache_clear()
+    helpers.google_fonts_dir.cache_clear()
     html = _html(client, "/similar-to/arial")
+    helpers.google_fonts_name.cache_clear()
+    helpers.google_fonts_dir.cache_clear()
     faq = html[html.find("Frequently Asked Questions") :]
+    assert "released under the Apache 2.0" in faq
     assert "SIL Open Font License" not in faq
 
 

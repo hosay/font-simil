@@ -2,13 +2,18 @@
 {% block title %}Free fonts similar to &ldquo;{{ image_result.transcript|truncate(60) }}&rdquo;{% endblock %}
 {% block meta_description %}Free, open-source fonts that look like the text in this image, matched by Dupefont.{% endblock %}
 {% block og_title %}Free fonts that look like &ldquo;{{ image_result.transcript|truncate(60) }}&rdquo;{% endblock %}
-{% block og_description %}{% if image_result.matches %}Closest free font: {{ image_result.matches[0].family }}. {% endif %}Find the font in your own image with Dupefont.{% endblock %}
+{% block og_description %}{% if image_result.matches %}Closest free font: {{ image_result.matches[0].display_family or image_result.matches[0].family }}. {% endif %}Find the font in your own image with Dupefont.{% endblock %}
 
 {% block content %}
 <section class="results-header">
     <h1>Free fonts that look like this image</h1>
     <p class="hero-sub">Text in the image: <strong>&ldquo;{{ image_result.transcript }}&rdquo;</strong>. Shared from Dupefont.</p>
 </section>
+
+<div class="share-cta">
+    <span>Got a logo or screenshot? Find its font, free.</span>
+    <a href="{{ url_for('web.identify_form') }}#image" class="btn btn-primary btn-sm">Try Dupefont</a>
+</div>
 
 <div class="query-showcase image-preview">
     <div class="query-label">Shared image</div>

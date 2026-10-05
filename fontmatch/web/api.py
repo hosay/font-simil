@@ -15,6 +15,9 @@ from fontmatch.web.helpers import (
     CORPUS_ALIASES,
     PROPRIETARY_TO_OPEN_SOURCE,
     enrich_matches,
+    google_fonts_license,
+    google_fonts_name,
+    google_fonts_source_for,
     google_fonts_url,
     slugify,
 )
@@ -105,8 +108,12 @@ def _add_image_urls(result: dict, store) -> dict:
         # family for the file ("Outfit Thin" for a variable font).
         family = store.get_font_family(m["name"]) or m["family"]
         m["similar_url"] = f"/similar-to/{slugify(family)}"
-        gf_source = store.google_fonts_source(family)
+        gf_source = google_fonts_source_for(store, family)
         m["google_fonts_url"] = google_fonts_url(family, gf_source) if gf_source else None
+        # Shown on the website; the API's "family" stays as it was.
+        m["display_family"] = (google_fonts_name(gf_source) if gf_source else None) or m["family"]
+        if m.get("license_id") in (None, "", "unknown") and gf_source:
+            m["license_id"] = google_fonts_license(gf_source) or m.get("license_id")
         source = store.get_font_source(m["name"])
         m["download_url"] = f"/api/font-file/{m['name']}" if source else None
     return result

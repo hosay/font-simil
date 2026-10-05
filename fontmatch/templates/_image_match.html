@@ -3,7 +3,7 @@
     <div class="match-header">
         <span class="match-rank">#{{ rank }}</span>
         <div class="match-title">
-            <h2>{{ m.family }}{% if m.style and m.style != 'Regular' %} <span class="match-style">{{ m.style }}</span>{% endif %}</h2>
+            <h2>{{ m.display_family or m.family }}{% if m.style and m.style != 'Regular' %} <span class="match-style">{{ m.style }}</span>{% endif %}</h2>
             <div class="match-links">
                 {% if m.google_fonts_url %}<a href="{{ m.google_fonts_url }}" target="_blank" rel="noopener" class="match-link">Google Fonts</a>{% endif %}
                 {% if m.download_url %}<a href="{{ m.download_url }}" download class="match-link">Download</a>{% endif %}
@@ -15,7 +15,7 @@
         </div>
     </div>
     {% if m.match_label == 'likely the same font' %}<div class="same-font-pill">Likely the same font</div>{% endif %}
-    <img class="font-sample" src="{{ m.sample_url }}" alt="{{ m.family }}: The quick brown fox jumps over the lazy dog" loading="lazy" onerror="this.remove()">
+    <img class="font-sample" src="{{ m.sample_url }}" alt="{{ m.display_family or m.family }}: The quick brown fox jumps over the lazy dog" loading="lazy" onerror="this.remove()">
     <div class="score-breakdown">
         {% if m.license_label and m.license_label != 'Unknown' %}<span class="breakdown-item license-tag">{{ m.license_label }}</span>{% endif %}
     </div>

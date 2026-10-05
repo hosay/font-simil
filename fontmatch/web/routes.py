@@ -29,7 +29,9 @@ from fontmatch.web.helpers import (
     PROPRIETARY_TO_OPEN_SOURCE,
     deslugify,
     enrich_matches,
+    google_fonts_license,
     google_fonts_name,
+    google_fonts_source_for,
     google_fonts_url,
     license_label,
     lookup_proprietary,
@@ -445,7 +447,7 @@ def og_similar(slug: str):
     font_row = result.font_row
     if similar_page_seo(slug, result.display_name)[0] != slug:
         abort(404)
-    gf_source = store.google_fonts_source(font_row["family"])
+    gf_source = google_fonts_source_for(store, font_row["family"])
     shown = (google_fonts_name(gf_source) if gf_source else None) or VARIANT_CANONICAL.get(
         font_row["family"], font_row["family"]
     )
@@ -520,13 +522,16 @@ def similar_to(slug: str):
 
     corpus_source = store.get_font_source(font_row["name"])
     corpus_has_file = corpus_source is not None and not _is_crawled_source(corpus_source)
-    gf_source = store.google_fonts_source(font_row["family"])
+    gf_source = google_fonts_source_for(store, font_row["family"])
     corpus_gf_family = google_fonts_name(gf_source) if gf_source else None
     corpus_gf_url = google_fonts_url(font_row["family"], gf_source) if gf_source else None
     corpus_display = corpus_gf_family or VARIANT_CANONICAL.get(
         font_row["family"], font_row["family"]
     )
-    corpus_license = license_label(font_row.get("license_id") or "unknown")
+    license_id = font_row.get("license_id") or "unknown"
+    if license_id == "unknown" and gf_source:
+        license_id = google_fonts_license(gf_source) or license_id
+    corpus_license = license_label(license_id)
     if corpus_license in ("Unknown", "unknown"):
         corpus_license = None
 

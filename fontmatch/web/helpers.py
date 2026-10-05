@@ -21,8 +21,8 @@ PROPRIETARY_TO_OPEN_SOURCE = {
     # Classic system / Office fonts
     "Times New Roman": "Tinos",
     "Arial": "Arimo",
-    "Helvetica": "Liberation Sans",
-    "Helvetica Neue": "Liberation Sans",
+    "Helvetica": "Arimo",
+    "Helvetica Neue": "Inter",
     "Georgia": "Gelasio",
     "Courier New": "Cousine",
     "Verdana": "DejaVu Sans",
@@ -588,8 +588,8 @@ PROPRIETARY_NOTES = {
     "Times New Roman": "Tinos was designed by Steve Matteson to have the same character widths as Times New Roman, so documents keep their line breaks and page count.",
     "Times": "Tinos has the same character widths as Times and Times New Roman, so switching fonts doesn't reflow your text.",
     "Arial": "Arimo has exactly the same character widths as Arial; Microsoft Office documents and web layouts reflow identically when you swap one for the other.",
-    "Helvetica": "Liberation Sans shares Arial's widths, which were themselves matched to Helvetica, so it is a drop-in replacement for layout. Arimo, the same design on Google Fonts, works too.",
-    "Helvetica Neue": "Liberation Sans is close in spirit but has Arial's slightly wider, less tightly spaced shapes; for display sizes, Inter is a more modern neo-grotesque option.",
+    "Helvetica": "Arimo has Arial's character widths, which were themselves matched to Helvetica, so it is a drop-in replacement that keeps your layout. Liberation Sans is the same design packaged for Linux desktops.",
+    "Helvetica Neue": "Inter is a modern neo-grotesque with Helvetica Neue's neutral, evenly spaced look, drawn for screens. If a document must keep Helvetica's line breaks, use Arimo instead.",
     "Georgia": "Gelasio was drawn to match Georgia's character widths, keeping Georgia's sturdy, screen-friendly serif look and layout.",
     "Courier New": "Cousine matches Courier New's character widths, but its strokes are heavier and more even, so code and screenplays read better on screen.",
     "Verdana": "DejaVu Sans grew out of Bitstream Vera and shares Verdana's large x-height and wide, open letters; line lengths are similar but not identical.",
@@ -740,6 +740,49 @@ def google_fonts_name(source: str) -> str | None:
     return None
 
 
+_DIR_LICENSES = {"ofl": "OFL-1.1", "apache": "Apache-2.0", "ufl": "UFL-1.0"}
+
+
+@functools.lru_cache(maxsize=8192)
+def google_fonts_dir(family: str) -> str | None:
+    """Pseudo source path ("ofl/montserrat/METADATA.pb") when google/fonts has
+    a directory for this exact family name. Covers rows ingested from other
+    folders (license "unknown", bare file name) whose family is on Google
+    Fonts under the same name, e.g. Montserrat, Arimo, Source Sans 3."""
+    slug = re.sub(r"[^a-z0-9]", "", family.lower())
+    if not slug:
+        return None
+    for repo in GOOGLE_FONTS_REPOS:
+        for lic in _LICENSE_DIRS:
+            rel = f"{lic}/{slug}/METADATA.pb"
+            name = google_fonts_name(rel)
+            if name and name.lower() == family.lower():
+                return rel
+    return None
+
+
+def google_fonts_source_for(store, family: str) -> str | None:
+    """The family's Google Fonts source: an ingested google/fonts file, else
+    a matching google/fonts directory."""
+    return (store.google_fonts_source(family) if store is not None else None) or (
+        google_fonts_dir(family)
+    )
+
+
+def google_fonts_license(source: str | None) -> str | None:
+    """License id implied by the google/fonts directory a source lives in."""
+    if not source:
+        return None
+    rel = Path(source)
+    if rel.parts and rel.parts[0] in _DIR_LICENSES:
+        return _DIR_LICENSES[rel.parts[0]]
+    for repo in GOOGLE_FONTS_REPOS:
+        for lic in _LICENSE_DIRS:
+            if len(rel.parts) >= 2 and (repo / lic / rel.parent / "METADATA.pb").is_file():
+                return _DIR_LICENSES[lic]
+    return None
+
+
 def google_fonts_url(family: str, source: str | None = None) -> str:
     """Google Fonts specimen URL for a family. With the font's ``source``
     path the repo's own family name is used ("Red Hat Text"); otherwise the
@@ -770,6 +813,7 @@ _LICENSE_LABELS = {
     "OFL-1.1": "SIL Open Font License",
     "Apache-2.0": "Apache 2.0",
     "MIT": "MIT License",
+    "UFL-1.0": "Ubuntu Font License",
     "unknown": "Unknown",
 }
 
@@ -793,7 +837,6 @@ def enrich_matches(matches: list[dict], store=None) -> list[dict]:
 
         # License
         m.setdefault("license_id", "unknown")
-        m["license_label"] = license_label(m["license_id"])
 
         # Check if font file is available on disk (not a crawled web font)
         source = None
@@ -804,8 +847,11 @@ def enrich_matches(matches: list[dict], store=None) -> list[dict]:
         # Google Fonts link, and the family's name there: the DB holds a
         # variable font's default instance ("Nunito Sans 12pt ExtraLight"),
         # which is wrong to show and breaks the Google Fonts CSS URL.
-        gf_source = store.google_fonts_source(m["family"]) if store is not None else None
+        gf_source = google_fonts_source_for(store, m["family"])
         m["gf_family"] = google_fonts_name(gf_source) if gf_source else None
+        if m["license_id"] in ("", "unknown") and gf_source:
+            m["license_id"] = google_fonts_license(gf_source) or m["license_id"]
+        m["license_label"] = license_label(m["license_id"])
         m["display_family"] = m["gf_family"] or m["family"]
         if gf_source:
             m["google_fonts_url"] = google_fonts_url(m["family"], gf_source)

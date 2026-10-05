@@ -6,8 +6,8 @@ far. The design doc is [`docs/image-matching.md`](../docs/image-matching.md): ar
 the full eval log, the review decision log, the deploy runbook. This file doesn't repeat those
 numbers except where they explain a decision.
 
-Last updated 2026-10-05, after the Google logo fix (`72bc19f`) and the Google Fonts link fix
-(`373c7f4`).
+Last updated 2026-10-05, after the Google logo fix (`72bc19f`), the Google Fonts link fix
+(`373c7f4`) and the growth batch (branch `feature/growth-batch`, section 6).
 
 ## 1. Pipeline, by file
 
@@ -171,8 +171,7 @@ python scripts/tune_image_ranker.py refresh-prefilter --signals ... --browser ..
 ## 5. Open follow-ups
 
 - ~~Restart `fontmatch` for `373c7f4`~~ done 2026-10-05.
-- **White text in a transparent PNG** is flattened onto white, so no text is found (same as
-  before). Fix: flatten onto a contrasting colour when the alpha channel carries the content.
+- ~~White text in a transparent PNG~~ fixed in the growth batch (`prep._flatten_colour`).
 - **Per-word tracking** for justified text and odd OCR word gaps (`Line.words` already exists but
   isn't passed into `Located`).
 - **Photos** are the weakest tier (family@1 ≈ 0.46 test). Candidates: a local background estimate
@@ -184,3 +183,34 @@ python scripts/tune_image_ranker.py refresh-prefilter --signals ... --browser ..
 - **Google Sans (Product Sans' successor) isn't in the corpus.** If the google/fonts repo now
   carries an open version, adding it would give logos like Google's an exact answer. Check before
   the next corpus rebuild.
+
+## 6. Growth batch (2026-10-05): website changes outside the matcher
+
+- **Transparent images** (`prep._flatten_colour`): composite onto white *and* black on a
+  500 px copy, keep the one whose ink looks like text (lower `_largest_share`); within 0.15 the
+  WCAG contrast with the visible pixels decides. Contrast alone fails on dark text on a white
+  badge (the plate becomes one big "letter" on black). `IMAGE_SCHEMA_VERSION` 8.
+- **SQLite and fork**: `FontStore.conn` is per-process and `create_app` closes it at the end,
+  so gunicorn `--preload` workers never inherit a connection (they did before this batch).
+- **Indexing** (`routes.indexable_similar_slugs`, `similar_page_seo`): sitemap and index =
+  proprietary pages + `/popular` corpus fonts, minus `PROPRIETARY_CANONICAL` aliases (Trajan
+  Pro → Trajan, ...). Everything else is `noindex, follow`. `VARIANT_CANONICAL` maps variable-font
+  DB names ("Montserrat Thin") to the page people search for; its targets must resolve, or
+  the canonical points at a 404. To index more corpus pages later, add their slugs there.
+- **Display names**: the DB family of a variable font is its default instance ("Nunito Sans
+  12pt ExtraLight"). Pages show the google/fonts `METADATA.pb` name (`google_fonts_name`), and
+  `google_fonts_dir` finds it for rows ingested outside the repo (license "unknown"), which
+  also gives their license. API `family` fields are unchanged (the MCP app reads them).
+- **Share / feedback tokens** (`web/user_content.py`): signed (SECRET_KEY, salt, 24 h) over the
+  result cache key and the SHA-256 of the preview JPEG embedded in the results page. Results are
+  read from the server cache, never the client. One share per request: reusing a share for the
+  same image would hand a stranger its delete link. Routes are outside `/api` (CORS `*`).
+- **og cards** (`web/og.py`): only canonical slugs render (bounded disk use); failures leave a
+  `.none` marker and redirect to `static/og-default.png`. Bump `OG_VERSION` when the layout changes.
+- **Tables added**: `image_feedback`, `shares`. `CREATE TABLE IF NOT EXISTS` never alters an
+  existing table: a column or constraint change needs an explicit migration.
+- **Not done / ideas from the reviews**: generated 1200x630 card for share pages (they use the
+  shared JPEG); hide or relabel scores under ~65% on proprietary pages (Akzidenz-Grotesk's #1
+  is Kantumruy Pro, a Khmer font with Latin); render the user's own text in image results
+  instead of the pangram; per-font yes-rate in the dashboard; outbound-click tracking; the
+  `memory://` rate limiter counts per worker (real limits are double).

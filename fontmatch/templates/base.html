@@ -22,7 +22,7 @@
     <meta property="og:image:height" content="630">
     {% endif %}
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Dupefont &mdash; Find Free Open-Source Font Alternatives">
+    <meta name="twitter:title" content="{{ self.og_title() }}">
 
     <link rel="preload" href="{{ url_for('static', filename='fonts/inter-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">

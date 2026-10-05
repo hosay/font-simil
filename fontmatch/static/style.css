@@ -809,6 +809,12 @@ pre code { background: none; padding: 0; color: inherit; }
 .share-row { display: flex; gap: .5rem; }
 .share-row .share-url { flex: 1; min-width: 0; }
 .share-error { color: var(--red); font-size: .9rem; margin: .5rem 0 0; }
+.share-row .share-delete { align-self: center; font-size: .9rem; }
+.share-cta {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: .75rem; margin: 0 0 1.25rem; padding: .75rem 1rem;
+    background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm);
+}
 
 /* --- Identify: image / font-file modes --- */
 .mode-tabs {
