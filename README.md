@@ -13,11 +13,11 @@ Each font is fingerprinted using two complementary representations:
 
 Similarity is a weighted blend of metric Euclidean distance (40%) and perceptual cosine distance (60%). Results are filtered to fonts with a known open-source license (OFL, Apache 2.0, MIT, Ubuntu Font License).
 
-**Image matching** (new): upload a screenshot or photo of text and get the closest free fonts. The text is located with Tesseract, typeset in every candidate font from a pre-rendered glyph atlas, and compared shape-to-shape. It is exposed on the website API and to ChatGPT as an MCP app. Design, evaluation results and deploy runbook: [`docs/image-matching.md`](docs/image-matching.md).
+**Image matching** (new): upload a screenshot or photo of text and get the closest free fonts. The text is located with Tesseract, typeset in every candidate font from a pre-rendered glyph atlas at the letter-spacing that fits the image, and compared shape-to-shape. It is exposed on the website API and to ChatGPT as an MCP app. Design, evaluation results and deploy runbook: [`docs/image-matching.md`](docs/image-matching.md).
 
 ## Production setup (start here)
 
-> State as of 2026-10-03 (after the image-matching deploy). **Update this section whenever the setup changes.**
+> State as of 2026-10-05 (after the Google logo fix; `373c7f4` live since the 2026-10-05 restart). **Update this section whenever the setup changes.**
 
 The public site is **https://dupefont.com**. This repo checkout **is production**: `/opt/projects/font_simil` on host `a01` is the code the live service runs.
 
@@ -67,8 +67,9 @@ Fingerprint schema versions: the code only uses rows matching `FINGERPRINT_SCHEM
 - Smoke-tested after the restart: health, rebranded pages, `/similar-to/*`, image API through `https://dupefont.com` (Playfair Display screenshot → Playfair Display, 95%), MCP `tools/list` and both tools through `https://dupefont.com/mcp`.
 - **ChatGPT**: the app is added in Developer mode with MCP URL `https://dupefont.com/mcp`, no auth. Next: run the golden prompts in `docs/chatgpt-golden-prompts.md` and record the results there. Directory submission needs a privacy policy page.
 - **Batch 2 (2026-10-04):** image upload on `/identify` (default tab; paste/drag-drop), ChatGPT results widget with font samples (`ui://widget/dupefont-results-v1.html`; users must refresh the connector in ChatGPT to see it), MCP usage log + `/admin/stats`, `/privacy` page, Microsoft Clarity (`DUPEFONT_CLARITY_ID`, default `ys6l88q2n9`; consent banner for European time zones, honours GPC, never on upload/result/admin pages), Inter self-hosted (no Google Fonts requests).
-- **Google logo fix (2026-10-03, commit `72bc19f`, merged from `fix/multicolor-image`):** letter-spacing fit, colour ink map, row-profile prefilter (`glyph_atlas/rows.npy`, built as `fontmatch` with `build_glyph_index.py --rows-only`), category vote, margin-based "likely the same font" label; `IMAGE_SCHEMA_VERSION` 7 (old cached image results unused). Only `fontmatch` restarted. Smoke-tested via `https://dupefont.com`: Google logo → Outfit 87 / League Spartan / Teachers / Red Hat Text / Padauk on `/api/identify-image` (hint and OCR-only) and the MCP image tool. Rollback: `git checkout ac23e7e && systemctl restart fontmatch` (old code ignores `rows.npy`). Not pushed.
-- Known limitations: photos are the weakest tier (see the eval log in `docs/image-matching.md`). The Google-logo failure (Lusitana 82%) was **not** the colours: the matcher compared lines at the font's natural letter-spacing, so tightly or loosely spaced text (logos, tracked caps) matched the wrong fonts. Fixed and deployed 2026-10-03 (see the deploy bullet below and "Google logo fix" in `docs/image-matching.md`).
+- **Google logo fix (deployed 2026-10-03, commit `72bc19f`, merged from `fix/multicolor-image`):** letter-spacing fit, colour ink map, row-profile prefilter (`glyph_atlas/rows.npy`, built as `fontmatch` with `build_glyph_index.py --rows-only`), category vote, margin-based "likely the same font" label; `IMAGE_SCHEMA_VERSION` 7 (old cached image results unused). Only `fontmatch` restarted. Smoke-tested via `https://dupefont.com`: Google logo → Outfit 87 / League Spartan / Teachers / Red Hat Text / Padauk on `/api/identify-image` (hint and OCR-only) and the MCP image tool. Rollback: `git checkout ac23e7e && systemctl restart fontmatch` (old code ignores `rows.npy`). Pushed to `origin/master`.
+- **Google Fonts link fix (commit `373c7f4`, deployed 2026-10-05, `fontmatch` restarted):** specimen links now use the family's name from `google-fonts-repo/*/<family>/METADATA.pb` instead of stripping "weight-like" words (which broke 160 of 2,687 links, e.g. Red Hat Text → `/specimen/Red+Hat`, Playfair Display → `/specimen/Playfair`). Verified after the restart: `/api/similar-to?font=Red Hat Display` links Red Hat Text to `specimen/Red+Hat+Text`. Engineering notes for both fixes: [`dev/IMPLEMENTATION_NOTES.md`](dev/IMPLEMENTATION_NOTES.md).
+- Known limitations: photos are the weakest tier (see the eval log in `docs/image-matching.md`). The Google-logo failure (Lusitana 82%) was **not** the colours: the matcher compared lines at the font's natural letter-spacing, so tightly or loosely spaced text (logos, tracked caps) matched the wrong fonts. Fixed and deployed 2026-10-03 (see the deploy bullet above and "Google logo fix" in `docs/image-matching.md`). Remaining known weak spots: white text in a transparent PNG (flattened onto white, so no text is found), justified text (one letter-spacing per line), and perfectly clean synthetic renders lost 4 points of family@1 and 7 of family@5 (test split) in exchange for the logo/spacing gains.
 - Privacy policy open items (owner decisions): name the operator (`DUPEFONT_OPERATOR` env var adds "It is operated by ..."), make sure `privacy@dupefont.com` receives mail, accept the DigitalOcean/Microsoft DPAs, and write Terms of Service.
 - Rollback: `git checkout ea5b334 && systemctl restart fontmatch` (v4 rows remain in the DB; stop `dupefont-mcp` too, since the old code has no `/api/identify-image`). The DB backup from before the re-embed is `fontmatch-pre-v6.db`.
 
@@ -77,7 +78,8 @@ Fingerprint schema versions: the code only uses rows matching `FINGERPRINT_SCHEM
 - **Run DB-writing scripts as the service user**, or root-owned `-wal`/`-shm` files will break the service:
   `runuser -u fontmatch -- env HOME=/var/lib/fontmatch HF_HOME=/var/lib/fontmatch/.cache/huggingface HF_HUB_OFFLINE=1 OMP_NUM_THREADS=3 nice -n 10 venv/bin/python scripts/build_corpus.py`
 - **Cap torch threads** (`OMP_NUM_THREADS=1–3`) for scripts and tests. Without it, parallel pytest pushed the load average to ~37 on 6 cores and slowed the live site.
-- **Do feature work in a git worktree** (e.g. `/opt/projects/font_simil-img`, branch `feature/image-identify`), never in this checkout: it is production, and a restart picks up whatever is on disk. The worktree has symlinks to `venv` and `google-fonts-repo` and its own DB copy.
+- **Do feature work in a git worktree** (e.g. `/opt/projects/font_simil-fix`, branch `fix/multicolor-image`), never in this checkout: it is production, and a restart picks up whatever is on disk. Symlink `venv` and `google-fonts-repo`; for the atlas make `glyph_atlas/` a real directory of per-file symlinks to production's files, so scripts that write into it (`rows.npy`) never touch production (details in `dev/IMPLEMENTATION_NOTES.md`).
+- **Never evaluate a change on only the synthetic set.** It renders queries the same way the atlas does (natural spacing), which is why the letter-spacing bug went unnoticed. Also run `scripts/eval_browser_screenshots.py` (headless Chrome renders).
 - **Pillow's `ImageFont.get_variation_names()` segfaults** on some fonts (e.g. `Jaro[opsz].ttf`). Use `fontmatch/fonts/variable.py` (fontTools `fvar`) instead. A segfault kills the process silently, which is how the first re-embed died.
 - Don't `pkill -f <pattern>` / `pgrep -f` from a shell whose own command line contains the pattern: it matches itself. Wait on PIDs instead.
 - The server is shared with other projects (b5m, xflippa, wp_links). Two long-running `camoufox` processes were observed at 100% CPU, which makes timing measurements noisy.
@@ -249,8 +251,8 @@ source venv/bin/activate
 # Unit tests only (fast, no corpus needed)
 pytest tests/ -m "not integration" -n auto
 
-# Full suite (parallel, requires ingested corpus)
-pytest tests/ -n auto
+# Full suite (parallel, requires ingested corpus and glyph_atlas/)
+OMP_NUM_THREADS=1 pytest tests/ -n 3
 ```
 
 Tests run in parallel via `pytest-xdist`. The ground-truth test suite verifies Recall@1 and MRR against known metric-compatible font pairs (Arial→Arimo, Times→Tinos, etc.).
@@ -270,8 +272,8 @@ fontmatch/
     fetch.py           — SSRF-guarded download of ChatGPT file URLs
     prep.py            — Safe decode, ink maps, deskew
     locate.py          — Tesseract line finding + text_hint handling
-    glyphs.py          — Memory-mapped glyph atlas
-    rank.py            — Render-and-compare ranker (shape, aspect, HOG)
+    glyphs.py          — Memory-mapped glyph atlas (+ rows.npy row profiles)
+    rank.py            — Render-and-compare ranker (letter-spacing fit, row-profile prefilter, HOG, category vote)
     service.py         — ImageIdentifier used by the API
     catalog.py, synth.py, baseline.py, paths.py, errors.py
   mcp_server/
@@ -295,13 +297,16 @@ scripts/
   build_corpus.py      — Ingest fonts from google-fonts-repo into SQLite
   crawl.py             — Crawl top sites for @font-face declarations
   build_glyph_index.py — Build glyph_atlas/ for image matching (~1 min)
-  eval_image_identify.py, tune_image_ranker.py, perf_image_identify.py — evaluation (see docs)
+  eval_image_identify.py, eval_browser_screenshots.py, tune_image_ranker.py, perf_image_identify.py — evaluation (see docs)
 docs/
   image-matching.md    — Image matching + ChatGPT app: design, eval log, decisions, deploy runbook
   chatgpt-golden-prompts.md — Manual ChatGPT test plan
+dev/
+  IMPLEMENTATION_NOTES.md — Engineering notes: how the image matcher works internally, how to tune/evaluate, pitfalls
 tests/
   fixtures/            — OFL-licensed test fonts
   test_ground_truth.py — Metric-compatible pair ranking verification
+  test_image_styled*.py — Letter-spacing / multi-colour logo regressions (the Google logo bug)
   ...                  — Unit and integration tests
 ```
 
@@ -330,7 +335,7 @@ server {
 
 - Python 3.10+
 - `tesseract-ocr` system package (image matching)
-- ~2 GB disk for CLIP model + Google Fonts corpus, plus ~700 MB for the glyph atlas
+- ~2 GB disk for CLIP model + Google Fonts corpus, plus ~780 MB for the glyph atlas (incl. the 81 MB `rows.npy`)
 - ~1 GB RAM for the in-memory font index
 - CPU only (no GPU required)
 
