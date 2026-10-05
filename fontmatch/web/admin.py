@@ -12,11 +12,22 @@ website usage from fontmatch.db's request_log.
 from __future__ import annotations
 
 import hmac
+import re
 import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from flask import Blueprint, Response, abort, current_app, render_template, request
+from flask import (
+    Blueprint,
+    Response,
+    abort,
+    current_app,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    url_for,
+)
 from werkzeug.security import check_password_hash
 
 admin_bp = Blueprint("admin", __name__)
@@ -74,8 +85,10 @@ def usage_stats(path: Path) -> dict | None:
                 window,
             )[0]
             totals[label] = {k: row[k] or 0 for k in row}
-        row = q("SELECT COUNT(*) AS calls, COUNT(DISTINCT subject_hash) AS users, "
-                "SUM(status = 'ok') AS ok FROM mcp_calls")[0]
+        row = q(
+            "SELECT COUNT(*) AS calls, COUNT(DISTINCT subject_hash) AS users, "
+            "SUM(status = 'ok') AS ok FROM mcp_calls"
+        )[0]
         totals["all"] = {k: row[k] or 0 for k in row}
 
         tools = q(
@@ -172,18 +185,66 @@ def site_stats(store) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-@admin_bp.get("/stats")
-def stats():
+def _challenge() -> Response | None:
+    """None when the request may proceed; otherwise the 404/401 to return."""
     if not current_app.config.get("ADMIN_PASSWORD_HASH"):
         abort(404)
     if not _authorized():
         return Response(
             "Authentication required", 401, {"WWW-Authenticate": 'Basic realm="Dupefont admin"'}
         )
+    # Browsers resend Basic credentials automatically, so a form on another
+    # site could post here: changes must come from our own pages.
+    if (
+        request.method == "POST"
+        and request.origin
+        and (request.origin.rstrip("/") != request.host_url.rstrip("/"))
+    ):
+        abort(403)
+    return None
+
+
+FEEDBACK_FILE = re.compile(r"^[0-9a-f]{24}\.jpg$|^[A-Za-z0-9]{1,40}\.jpg$")
+
+
+@admin_bp.get("/feedback-image/<name>")
+def feedback_image(name: str):
+    if (denied := _challenge()) is not None:
+        return denied
+    path = Path(current_app.config["USER_CONTENT_DIR"]) / "feedback" / name
+    if not FEEDBACK_FILE.match(name) or not path.is_file():
+        abort(404)
+    resp = send_file(path, mimetype="image/jpeg", max_age=0)
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    resp.headers["X-Robots-Tag"] = "noindex, nofollow"
+    return resp
+
+
+@admin_bp.post("/shares/<share_id>/delete")
+def delete_share(share_id: str):
+    from fontmatch.web.user_content import SHARE_ID, remove_share
+
+    if (denied := _challenge()) is not None:
+        return denied
+    if not SHARE_ID.match(share_id):
+        abort(404)
+    remove_share(share_id)
+    return redirect(url_for("admin.stats") + "#shares", code=303)
+
+
+@admin_bp.get("/stats")
+def stats():
+    if (denied := _challenge()) is not None:
+        return denied
+    store = current_app.config["STORE"]
     html = render_template(
         "admin_stats.html",
         usage=usage_stats(current_app.config["MCP_USAGE_DB"]),
-        site=site_stats(current_app.config["STORE"]),
+        site=site_stats(store),
+        feedback=store.image_feedback_stats(days=DAYS),
+        feedback_no=store.recent_image_feedback(limit=20, verdict="no"),
+        share_count=store.share_count(),
+        shares=store.recent_shares(limit=20),
         generated=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         no_analytics=True,
     )

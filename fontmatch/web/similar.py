@@ -6,7 +6,9 @@ from dataclasses import dataclass
 
 from fontmatch.features.perceptual import FINGERPRINT_SCHEMA_VERSION
 from fontmatch.web.helpers import (
+    METRIC_COMPATIBLE,
     PROPRIETARY_FONTS,
+    PROPRIETARY_NOTES,
     PROPRIETARY_TO_OPEN_SOURCE,
     lookup_corpus_alias,
     lookup_proprietary,
@@ -45,6 +47,8 @@ def find_similar(
             "category": meta.get("category", "sans-serif"),
             "vendor": meta.get("vendor", ""),
             "description": meta.get("description", ""),
+            "notes": PROPRIETARY_NOTES.get(canonical_prop, ""),
+            "metric_compatible": canonical_prop in METRIC_COMPATIBLE,
         }
 
     font_row = store.get_font_by_family(lookup_name, licensed_only=True)

@@ -112,6 +112,15 @@ def _add_image_urls(result: dict, store) -> dict:
     return result
 
 
+def image_result_key(raw: bytes, hint: str) -> str:
+    """Cache key of the result for this image and hint (also what share and
+    feedback tokens refer to)."""
+    from fontmatch.image.service import MAX_HINT_CHARS
+
+    identifier = current_app.config["IMAGE_IDENTIFIER"]
+    return _image_cache_key(getattr(identifier, "version", ""), raw, (hint or "")[:MAX_HINT_CHARS])
+
+
 def identify_image_cached(raw: bytes, hint: str) -> dict:
     """Shared by the API and the website: cached engine result plus links.
 
@@ -122,7 +131,7 @@ def identify_image_cached(raw: bytes, hint: str) -> dict:
     store = current_app.config["STORE"]
     identifier = current_app.config["IMAGE_IDENTIFIER"]
     hint = (hint or "")[:MAX_HINT_CHARS]
-    key = _image_cache_key(getattr(identifier, "version", ""), raw, hint)
+    key = image_result_key(raw, hint)
     cached = store.get_cached_result(key, IMAGE_SCHEMA_VERSION)
     if cached is not None:
         result = _add_image_urls(cached[0], store)

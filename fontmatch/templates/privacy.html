@@ -4,23 +4,27 @@
 {% block content %}
 <article class="policy">
 <h1>Privacy Policy</h1>
-<p>Effective date: October 3, 2026</p>
+<p>Effective date: October 5, 2026</p>
 <p>This policy explains what information Dupefont collects when you use dupefont.com, its API and the Dupefont app for ChatGPT (together, the &quot;Service&quot;), how we use it, and the choices you have.</p>
 <h2>Who we are</h2>
 <p>Dupefont (&quot;we&quot;, &quot;us&quot;) runs the Service and is the controller of the personal data described here. {% if config.OPERATOR %}It is operated by {{ config.OPERATOR }}. {% endif %}You can reach us at <a href="mailto:privacy@dupefont.com">privacy@dupefont.com</a>.</p>
 <h2>Summary</h2>
 <ul>
 <li>You don't need an account. We don't ask for your name, email address or payment details.</li>
-<li>We don't save the images or font files you upload. We keep the match results, filed under a one-way fingerprint (hash) of the file, so repeat requests are fast.</li>
+<li>We don't save the images or font files you upload unless you ask us to: when you create a share link, or tick the box to let us keep an image you send with feedback. We keep the match results, filed under a one-way fingerprint (hash) of the file, so repeat requests are fast.</li>
 <li>We keep some technical data, such as IP addresses and request counts, to run the Service and stop abuse.</li>
 <li>With your consent where the law requires it, we use Microsoft Clarity to see how people use the website.</li>
 <li>We don't sell personal information and we don't use advertising cookies.</li>
 </ul>
 <h2>What we collect</h2>
 <h3>Images and font files you upload</h3>
-<p>When you upload an image on the website, send one through the API, or share one with the Dupefont app in ChatGPT, we read the text in it and compare the letter shapes with our font library. Font files are compared the same way. We don't save uploaded files: they are processed in memory and discarded when the request finishes. Transient operating-system copies, such as swap, may exist briefly; we don't access or keep them. We store the result (the fonts we matched and, for images, the text we read) under a SHA-256 hash of the file. Image results are deleted after 30 days.</p>
+<p>When you upload an image on the website, send one through the API, or share one with the Dupefont app in ChatGPT, we read the text in it and compare the letter shapes with our font library. Font files are compared the same way. Unless you create a share link or send the image with feedback (both described below), we don't save uploaded files: they are processed in memory and discarded when the request finishes. Transient operating-system copies, such as swap, may exist briefly; we don't access or keep them. We store the result (the fonts we matched and, for images, the text we read) under a SHA-256 hash of the file. Image results are deleted after 30 days.</p>
 <h3>Text you type</h3>
-<p>Text you enter to help us read an image, and font names you search for, are used to produce results. We don't store the text you type for images. Font names searched through the ChatGPT app are kept in our usage records (below).</p>
+<p>Text you enter to help us read an image, and font names you search for, are used to produce results. We don't store the text you type for images, unless you create a share link for the result. Font names searched through the ChatGPT app are kept in our usage records (below).</p>
+<h3>Share links</h3>
+<p>If you click &quot;Get a share link&quot; on an image result, we store a reduced copy of your image (a JPEG with no metadata such as location), the text we read and the fonts we matched, and publish them on a page at a hard-to-guess address. Anyone who has the link can see that page, and we ask search engines not to index it. Don't share images containing personal information you don't want to publish. When you create the link we show you a delete link: using it removes the page and the image for everyone. You can also ask us to delete a share at <a href="mailto:privacy@dupefont.com">privacy@dupefont.com</a>. We may remove shares that break the law or that we consider abusive.</p>
+<h3>Feedback on image results</h3>
+<p>If you answer &quot;Was this right?&quot;, we store your answer, the font we suggested, the font name you type (if any) and your IP address, which we use to keep one answer per visitor and remove after 12 months. Only if you tick &quot;Let Dupefont keep this image&quot; do we also keep a reduced copy of the image, which we use to test and improve our matching. These images are never published, and we delete them after 2 years at the latest. To have one deleted sooner, email us with the time you sent it.</p>
 <h3>Ratings and reports</h3>
 <p>If you rate or report a match, we store the fonts involved, your rating and your IP address, which we use to stop duplicate votes. We remove the IP address after 12 months.</p>
 <h3>Logs and rate limits</h3>
@@ -53,6 +57,18 @@
 <td>Legitimate interests: improving match quality</td>
 </tr>
 <tr>
+<td>Share links you create</td>
+<td>Performance of the service you request</td>
+</tr>
+<tr>
+<td>&quot;Was this right?&quot; answers</td>
+<td>Legitimate interests: improving match quality</td>
+</tr>
+<tr>
+<td>Images you let us keep with feedback</td>
+<td>Consent (you can withdraw it by asking us to delete the image)</td>
+</tr>
+<tr>
 <td>ChatGPT app usage records</td>
 <td>Legitimate interests: operating and debugging the app</td>
 </tr>
@@ -62,7 +78,7 @@
 </tr>
 </tbody>
 </table></div>
-<p>We don't use your uploads to train machine-learning models. We don't make decisions based solely on automated processing that have legal or similarly significant effects on you.</p>
+<p>We use uploaded images to improve our matching only when you send them with feedback and tick the box to let us keep them; this can include tuning or training our matching models. We never do this with other uploads. We don't make decisions based solely on automated processing that have legal or similarly significant effects on you.</p>
 <h2>Sharing</h2>
 <p>We don't sell personal information or use advertising cookies. We share information only:</p>
 <ul>
@@ -82,7 +98,15 @@
 <tbody>
 <tr>
 <td>Uploaded images and font files</td>
-<td>Not saved; discarded after processing</td>
+<td>Not saved; discarded after processing (unless you create a share link or let us keep an image with feedback)</td>
+</tr>
+<tr>
+<td>Share links (image, text read, matches)</td>
+<td>Until you delete them or ask us to</td>
+</tr>
+<tr>
+<td>Images you let us keep with feedback</td>
+<td>Up to 2 years</td>
 </tr>
 <tr>
 <td>Image match results (by hash)</td>
@@ -105,7 +129,7 @@
 <td>Up to 180 days</td>
 </tr>
 <tr>
-<td>Ratings and reports</td>
+<td>Ratings, reports and &quot;Was this right?&quot; answers</td>
 <td>Kept; IP address removed after 12 months</td>
 </tr>
 </tbody>

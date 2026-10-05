@@ -112,3 +112,41 @@ def test_unreadable_usage_db_is_reported_not_hidden(app, tmp_path, monkeypatch):
 def test_malformed_password_hash_is_401_not_500(app, monkeypatch):
     monkeypatch.setitem(app.config, "ADMIN_PASSWORD_HASH", "not-a-hash")
     assert app.test_client().get("/admin/stats", headers=_auth()).status_code == 401
+
+
+class TestFeedbackAndShares:
+    def _seed(self, app):
+        store = app.config["STORE"]
+        fb = Path(app.config["USER_CONTENT_DIR"]) / "feedback"
+        fb.mkdir(parents=True, exist_ok=True)
+        (fb / "abc123.jpg").write_bytes(b"\xff\xd8jpeg")
+        store.save_image_feedback("img:t:1", "yes", "Arimo", None, None, "10.0.0.1")
+        store.save_image_feedback("img:t:2", "no", "Arimo", "Futura", "abc123.jpg", "10.0.0.2")
+        result = {"transcript": "Sunrise", "matches": [{"family": "Outfit", "name": "Outfit.ttf"}]}
+        store.create_share("AbCdEfGhIj", "img:t:3", "f" * 64, result, "h")
+        sh = Path(app.config["USER_CONTENT_DIR"]) / "shares"
+        sh.mkdir(parents=True, exist_ok=True)
+        (sh / "AbCdEfGhIj.jpg").write_bytes(b"\xff\xd8jpeg")
+
+    def test_dashboard_shows_feedback_and_shares(self, app):
+        self._seed(app)
+        html = app.test_client().get("/admin/stats", headers=_auth()).get_data(as_text=True)
+        assert "Was this right?" in html and "Futura" in html
+        assert "/admin/feedback-image/abc123.jpg" in html
+        assert "/r/AbCdEfGhIj" in html and "Sunrise" in html
+
+    def test_feedback_image_needs_auth_and_safe_names(self, app):
+        self._seed(app)
+        c = app.test_client()
+        assert c.get("/admin/feedback-image/abc123.jpg").status_code == 401
+        assert c.get("/admin/feedback-image/abc123.jpg", headers=_auth()).status_code == 200
+        assert c.get("/admin/feedback-image/..%2Fx.jpg", headers=_auth()).status_code == 404
+
+    def test_admin_can_delete_a_share(self, app):
+        self._seed(app)
+        c = app.test_client()
+        assert c.post("/admin/shares/AbCdEfGhIj/delete").status_code == 401
+        resp = c.post("/admin/shares/AbCdEfGhIj/delete", headers=_auth())
+        assert resp.status_code in (302, 303)
+        assert app.config["STORE"].get_share("AbCdEfGhIj") is None
+        assert not (Path(app.config["USER_CONTENT_DIR"]) / "shares" / "AbCdEfGhIj.jpg").exists()

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Free fonts similar to &ldquo;{{ image_result.transcript|truncate(60) }}&rdquo;{% endblock %}
+{% block meta_description %}Free, open-source fonts that look like the text in this image, matched by Dupefont.{% endblock %}
+{% block og_title %}Free fonts that look like &ldquo;{{ image_result.transcript|truncate(60) }}&rdquo;{% endblock %}
+{% block og_description %}{% if image_result.matches %}Closest free font: {{ image_result.matches[0].family }}. {% endif %}Find the font in your own image with Dupefont.{% endblock %}
+
+{% block content %}
+<section class="results-header">
+    <h1>Free fonts that look like this image</h1>
+    <p class="hero-sub">Text in the image: <strong>&ldquo;{{ image_result.transcript }}&rdquo;</strong>. Shared from Dupefont.</p>
+</section>
+
+<div class="query-showcase image-preview">
+    <div class="query-label">Shared image</div>
+    <img src="{{ image_url }}" alt="The shared image" class="uploaded-preview">
+</div>
+
+{% for m in image_result.matches %}
+{% set rank = loop.index %}
+{% include "_image_match.html" with context %}
+{% endfor %}
+
+<p class="results-note">Similarity is visual: these are free fonts that look closest, not necessarily the exact font in the image.</p>
+<div class="back-link">
+    <a href="{{ url_for('web.identify_form') }}#image" class="btn btn-primary">Find the font in your own image</a>
+</div>
+{% endblock %}

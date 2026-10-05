@@ -84,3 +84,14 @@ def test_old_rating_ips_are_forgotten(tmp_path):
     ips = {r[0]: r[1] for r in store.conn.execute("SELECT match_font, ip_address FROM user_scores")}
     assert ips == {"B": None, "D": "5.6.7.8"}
     assert store.get_average_score("A", "B")[1] == 1  # the rating itself is kept
+
+
+def test_policy_covers_share_links_and_feedback_images(tmp_path):
+    from fontmatch.service.app import create_app
+
+    app = create_app(db_path=tmp_path / "p.db", testing=True)
+    html = app.test_client().get("/privacy").get_data(as_text=True)
+    for text in ["Share links", "Get a share link", "Was this right?", "Let Dupefont keep this image",
+                 "Up to 2 years", "October 5, 2026"]:
+        assert text in html, text
+    assert "We don't use your uploads to train" not in html

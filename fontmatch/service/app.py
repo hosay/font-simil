@@ -5,6 +5,7 @@ from __future__ import annotations
 import calendar
 import hmac
 import os
+import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -136,6 +137,17 @@ def create_app(
     app.config["SAMPLES_DIR"] = Path(
         os.environ.get("FONTMATCH_SAMPLES_DIR") or "font_samples"
     ).resolve()
+    # Generated social preview cards. Tests get a throwaway directory: this
+    # machine is prod and tests must never write next to its data.
+    og_dir = os.environ.get("DUPEFONT_OG_DIR") or (
+        tempfile.mkdtemp(prefix="og-") if testing else app.config["SAMPLES_DIR"].parent / "og_images"
+    )
+    app.config["OG_DIR"] = Path(og_dir).resolve()
+    # Images visitors chose to keep (share links, feedback): shares/, feedback/.
+    user_dir = os.environ.get("DUPEFONT_USER_CONTENT_DIR") or (
+        tempfile.mkdtemp(prefix="uc-") if testing else app.config["SAMPLES_DIR"].parent / "user_content"
+    )
+    app.config["USER_CONTENT_DIR"] = Path(user_dir).resolve()
 
     # Microsoft Clarity (consent-gated in static/analytics.js); "" disables it.
     app.config["CLARITY_PROJECT_ID"] = os.environ.get("DUPEFONT_CLARITY_ID", "ys6l88q2n9")
@@ -227,6 +239,14 @@ def create_app(
     app.register_blueprint(web_bp)
     app.register_blueprint(api_bp, url_prefix="/api")
     app.register_blueprint(admin_bp, url_prefix="/admin")
+    from fontmatch.web.user_content import expire_feedback_images, user_content_bp
+
+    app.register_blueprint(user_content_bp)
+    with app.app_context():
+        try:
+            expire_feedback_images()
+        except Exception as exc:  # never block startup on housekeeping
+            app.logger.error("feedback image cleanup failed: %s", exc)
 
     # Apply stricter rate limits to CPU-intensive identify endpoints
     # The wrapped function must replace the registered view, or the limit is
@@ -238,6 +258,13 @@ def create_app(
     # A results page or the ChatGPT widget loads 5-10 sample images at once.
     app.view_functions["web.font_sample"] = limiter.limit("300 per minute")(
         app.view_functions["web.font_sample"]
+    )
+    # Each share stores an image: keep the volume small.
+    app.view_functions["user_content.create_share"] = limiter.limit("5 per minute;50 per day")(
+        app.view_functions["user_content.create_share"]
+    )
+    app.view_functions["user_content.image_feedback"] = limiter.limit("10 per minute")(
+        app.view_functions["user_content.image_feedback"]
     )
     # Basic-auth password checks are deliberately slow (scrypt): cap guessing.
     app.view_functions["admin.stats"] = limiter.limit("20 per minute")(app.view_functions["admin.stats"])

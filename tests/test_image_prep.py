@@ -57,6 +57,67 @@ class TestLoadImage:
         assert out.getpixel((5, 5)) == (255, 255, 255)
 
 
+def _transparent_text(fg, size_px=48, text="Hamburg"):
+    """Text in colour ``fg`` on a fully transparent canvas (anti-aliased alpha)."""
+    from PIL import ImageDraw, ImageFont
+
+    face = ImageFont.truetype(str(ROBOTO), size_px)
+    left, top, right, bottom = face.getbbox(text)
+    alpha = Image.new("L", (right - left + 40, bottom - top + 40), 0)
+    ImageDraw.Draw(alpha).text((20 - left, 20 - top), text, font=face, fill=255)
+    img = Image.new("RGBA", alpha.size, fg + (0,))
+    img.putalpha(alpha)
+    return img
+
+
+class TestTransparentBackground:
+    """Transparent PNGs (logo files) are flattened onto whichever of white or
+    black contrasts with the text, so white text isn't lost on white."""
+
+    @pytest.mark.parametrize(
+        "fg", [(255, 255, 255), (250, 230, 60), (0, 0, 0), (66, 133, 244), (128, 128, 128)]
+    )
+    def test_text_survives_flattening(self, fg):
+        out = load_image(_encode(_transparent_text(fg), "PNG"))
+        mask = text_mask(out)
+        assert 0.03 < mask.mean() < 0.5  # letters, not nothing and not everything
+        assert mask[0].sum() == 0  # the transparent margin is background
+
+    def test_white_text_goes_on_black(self):
+        out = load_image(_encode(_transparent_text((255, 255, 255)), "PNG"))
+        assert out.getpixel((0, 0)) == (0, 0, 0)
+
+    def test_dark_text_stays_on_white(self):
+        out = load_image(_encode(_transparent_text((20, 20, 20)), "PNG"))
+        assert out.getpixel((0, 0)) == (255, 255, 255)
+
+    def test_la_and_palette_modes(self):
+        white = _transparent_text((255, 255, 255))
+        la = white.convert("LA")
+        assert load_image(_encode(la, "PNG")).getpixel((0, 0)) == (0, 0, 0)
+        pal = white.convert("RGBA").quantize(colors=16, method=Image.Quantize.FASTOCTREE)
+        out = load_image(_encode(pal, "PNG"))
+        assert text_mask(out).mean() > 0.03
+
+    def test_dark_text_on_white_badge_stays_on_white(self):
+        # A white pill with black text on a transparent canvas: the plate must
+        # merge into the background, not become one big "letter" on black.
+        text = _transparent_text((0, 0, 0))
+        w, h = text.size
+        canvas = Image.new("RGBA", (w + 200, h + 120), (0, 0, 0, 0))
+        plate = Image.new("RGBA", (w + 20, h + 10), (255, 255, 255, 255))
+        plate.alpha_composite(text, (10, 5))
+        canvas.alpha_composite(plate, (90, 55))
+        out = load_image(_encode(canvas, "PNG"))
+        assert out.getpixel((0, 0)) == (255, 255, 255)
+
+    def test_opaque_rgba_unchanged(self):
+        img = Image.new("RGBA", (20, 10), (255, 255, 255, 255))
+        img.putpixel((5, 5), (0, 0, 0, 255))
+        out = load_image(_encode(img, "PNG"))
+        assert out.getpixel((0, 0)) == (255, 255, 255) and out.getpixel((5, 5)) == (0, 0, 0)
+
+
 class TestTextMask:
     def test_dark_on_light(self):
         img = render_text_image(ROBOTO, "Hamburg", size_px=48)

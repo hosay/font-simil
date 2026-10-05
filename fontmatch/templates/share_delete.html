@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Delete share link{% endblock %}
+{% block content %}
+<section class="hero hero-sm">
+    <h1>Delete this share link?</h1>
+    <p class="hero-sub">The page and its image will be removed for everyone. This can't be undone.</p>
+    <form method="post" action="{{ url_for('user_content.delete_share', share_id=share_id) }}">
+        <input type="hidden" name="token" value="{{ token }}">
+        <button type="submit" class="btn btn-primary">Delete</button>
+        <a href="{{ url_for('user_content.share_page', share_id=share_id) }}" class="btn btn-outline">Keep it</a>
+    </form>
+</section>
+{% endblock %}

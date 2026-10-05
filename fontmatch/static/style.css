@@ -17,6 +17,8 @@
 /* --- Reset & base --- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+[hidden] { display: none !important; }
+
 :root {
     --bg: #fafafa;
     --surface: #ffffff;
@@ -514,6 +516,12 @@ pre code { background: none; padding: 0; color: inherit; }
     color: #64748b;
     margin: 0 0 1.5rem;
 }
+.alt-rec-sub:has(+ .alt-rec-notes) { margin-bottom: .5rem; }
+.alt-rec-notes {
+    margin: 0 0 1.5rem;
+    max-width: 46rem;
+    line-height: 1.55;
+}
 .alt-comparison {
     display: flex;
     gap: 1.5rem;
@@ -743,6 +751,64 @@ pre code { background: none; padding: 0; color: inherit; }
     font-size: .9rem;
     margin: 0;
 }
+
+/* --- CSS snippet and related links (proprietary pages) --- */
+.css-snippet {
+    padding: 1.5rem 0 .5rem;
+}
+.css-snippet h2 { font-size: 1.2rem; margin-bottom: .5rem; }
+.css-snippet p { color: var(--text-muted); font-size: .9rem; margin: .5rem 0; }
+.css-snippet pre { margin: 0; }
+.related-fonts {
+    padding: 1.5rem 0 1rem;
+    border-top: 1px solid var(--border);
+}
+.related-fonts h2 { font-size: 1.2rem; margin-bottom: .75rem; }
+.related-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+.related-list a {
+    display: inline-block;
+    padding: .35rem .8rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text);
+    text-decoration: none;
+    font-size: .9rem;
+}
+.related-list a:hover { border-color: var(--accent); color: var(--accent); }
+
+/* --- Image results: feedback and share --- */
+.result-actions {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+    margin: 1.5rem 0;
+}
+.feedback-box, .share-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+}
+.feedback-ask { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.feedback-q { font-weight: 600; margin-right: .25rem; }
+.feedback-thanks { color: var(--green); font-size: .9rem; }
+.btn.active { border-color: var(--accent); color: var(--accent); }
+.feedback-more { display: grid; gap: .5rem; margin-top: .75rem; }
+.feedback-more label { font-size: .9rem; }
+.feedback-more .consent { display: flex; gap: .5rem; align-items: flex-start; color: var(--text-muted); }
+.feedback-more .btn { justify-self: start; }
+.share-note { color: var(--text-muted); font-size: .85rem; margin: .5rem 0 0; }
+.share-row { display: flex; gap: .5rem; }
+.share-row .share-url { flex: 1; min-width: 0; }
+.share-error { color: var(--red); font-size: .9rem; margin: .5rem 0 0; }
 
 /* --- Identify: image / font-file modes --- */
 .mode-tabs {

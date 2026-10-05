@@ -44,14 +44,53 @@ def load_image(data: bytes) -> Image.Image:
         img = ImageOps.exif_transpose(img)
     except Exception:  # corrupt EXIF: keep the image, skip the rotation
         pass
-    if img.mode in ("RGBA", "LA", "P"):
+    if img.mode in ("RGBA", "LA", "P", "PA") or "transparency" in img.info:
         rgba = img.convert("RGBA")
-        background = Image.new("RGBA", rgba.size, (255, 255, 255, 255))
+        background = Image.new("RGBA", rgba.size, _flatten_colour(rgba) + (255,))
         img = Image.alpha_composite(background, rgba)
     img = img.convert("RGB")
     if max(img.size) > MAX_EDGE:
         img.thumbnail((MAX_EDGE, MAX_EDGE), Image.Resampling.LANCZOS)
     return img
+
+
+FLATTEN_PROBE_EDGE = 500  # background choice is made on a copy this size
+FLATTEN_SHARE_MARGIN = 0.15  # closer than this, contrast decides
+
+
+def _relative_luminance(rgb: np.ndarray) -> float:
+    c = np.asarray(rgb, dtype=np.float64) / 255.0
+    c = np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
+    return float(c @ np.array([0.2126, 0.7152, 0.0722]))
+
+
+def _flatten_colour(rgba: Image.Image) -> tuple[int, int, int]:
+    """White or black: the background under which the content reads as text.
+
+    Logo exports often put white (or yellow) letters on a transparent
+    background; flattening those onto white would erase the text. But dark
+    text on an opaque white plate must stay on white, or the plate becomes
+    one big "letter". Both are tried on a small copy: the composite whose ink
+    looks like text wins (some ink, split over several letters rather than
+    held by one region, see _largest_share). When both look alike, the
+    colour that contrasts more with the visible pixels (WCAG ratio) wins.
+    """
+    lo, hi = rgba.getchannel("A").getextrema()
+    if lo == 255 or hi < 128:
+        return (255, 255, 255)
+    probe = rgba.copy()
+    probe.thumbnail((FLATTEN_PROBE_EDGE, FLATTEN_PROBE_EDGE))
+    shares = []
+    for colour in ((255, 255, 255), (0, 0, 0)):
+        flat = Image.alpha_composite(Image.new("RGBA", probe.size, colour + (255,)), probe)
+        core = ink_map(flat.convert("RGB")) > 0.5
+        shares.append(_largest_share(core) if core.any() else float("inf"))
+    on_white, on_black = shares
+    if abs(on_white - on_black) >= FLATTEN_SHARE_MARGIN:
+        return (255, 255, 255) if on_white < on_black else (0, 0, 0)
+    arr = np.asarray(probe)
+    lum = _relative_luminance(np.median(arr[arr[..., 3] >= 128][:, :3], axis=0))
+    return (0, 0, 0) if (lum + 0.05) / 0.05 > 1.05 / (lum + 0.05) else (255, 255, 255)
 
 
 def _otsu(gray: np.ndarray) -> float:

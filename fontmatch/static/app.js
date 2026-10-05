@@ -422,4 +422,81 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         });
     }
+    // --- Image results: "Was this right?" and share links ------------------
+    // The token proves this page's result; the preview is sent back byte for
+    // byte (the data URI string itself, never re-encoded through a canvas).
+    var actions = document.querySelector(".result-actions");
+    if (actions) {
+        var token = actions.dataset.token;
+        var previewImg = document.querySelector(".uploaded-preview");
+        var preview = previewImg ? previewImg.getAttribute("src") : null;
+
+        var postJSON = function (url, body) {
+            return fetch(url, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(body)
+            }).then(function (r) {
+                return r.json().catch(function () { return {}; }).then(function (data) {
+                    if (!r.ok) throw new Error(data.error || "Something went wrong, please try again.");
+                    return data;
+                });
+            });
+        };
+
+        var ask = actions.querySelector(".feedback-ask");
+        var more = actions.querySelector(".feedback-more");
+        var thanks = actions.querySelector(".feedback-thanks");
+        var verdict = null;
+        ask.querySelectorAll("button[data-verdict]").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                verdict = btn.dataset.verdict;
+                ask.querySelectorAll("button[data-verdict]").forEach(function (b) {
+                    b.disabled = true;
+                    b.classList.toggle("active", b === btn);
+                });
+                postJSON("/image-feedback", {token: token, verdict: verdict}).then(function () {
+                    thanks.hidden = false;
+                    if (verdict === "no") more.hidden = false;
+                }).catch(function (err) { showToast(err.message); });
+            });
+        });
+        more.addEventListener("submit", function (e) {
+            e.preventDefault();
+            var keep = more.querySelector("[name=keep_image]").checked;
+            var body = {
+                token: token, verdict: "no",
+                correct_font: more.querySelector("[name=correct_font]").value
+            };
+            if (keep && preview) { body.keep_image = true; body.preview = preview; }
+            postJSON("/image-feedback", body).then(function () {
+                more.hidden = true;
+                thanks.textContent = "Thanks, that helps us improve!";
+            }).catch(function (err) { showToast(err.message); });
+        });
+
+        var shareBtn = actions.querySelector(".share-btn");
+        var shareResult = actions.querySelector(".share-result");
+        var shareError = actions.querySelector(".share-error");
+        shareBtn.addEventListener("click", function () {
+            shareBtn.disabled = true;
+            shareError.hidden = true;
+            postJSON("/share", {token: token, preview: preview}).then(function (data) {
+                shareBtn.hidden = true;
+                shareResult.hidden = false;
+                actions.querySelector(".share-url").value = data.url;
+                actions.querySelector(".share-delete").href = data.delete_url;
+            }).catch(function (err) {
+                shareBtn.disabled = false;
+                shareError.textContent = err.message;
+                shareError.hidden = false;
+            });
+        });
+        actions.querySelector(".share-copy").addEventListener("click", function () {
+            var input = actions.querySelector(".share-url");
+            navigator.clipboard.writeText(input.value).then(function () {
+                showToast("Link copied");
+            }, function () { input.select(); });
+        });
+    }
 });

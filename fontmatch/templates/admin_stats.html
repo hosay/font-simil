@@ -100,6 +100,32 @@
 {% endif %}
 
 <div class="stats-section">
+    <h2 style="font-size:1.25rem">&ldquo;Was this right?&rdquo; on image results <span class="muted" style="font-size:.8rem;font-weight:400">30 days</span></h2>
+    <p>Yes: <strong>{{ feedback.yes }}</strong> &middot; No: <strong>{{ feedback.no }}</strong>{% if feedback.yes_rate is not none %} &middot; yes-rate <strong>{{ feedback.yes_rate }}%</strong>{% endif %} &middot; images kept: {{ feedback.images }}</p>
+    {% if feedback_no %}
+    <div class="table-scroll"><table class="stats-table">
+        <tr><th>Time</th><th>We said</th><th>Visitor says</th><th>Image</th></tr>
+        {% for r in feedback_no %}
+        <tr><td>{{ r.created_at }}</td><td>{{ r.top_font or '' }}</td><td>{{ r.correct_font or '' }}</td><td>{% if r.image_file %}<a href="{{ url_for('admin.feedback_image', name=r.image_file) }}">view</a>{% endif %}</td></tr>
+        {% endfor %}
+    </table></div>
+    {% else %}<p class="muted">No &ldquo;No&rdquo; answers yet.</p>{% endif %}
+</div>
+
+<div class="stats-section" id="shares">
+    <h2 style="font-size:1.25rem">Share links <span class="muted" style="font-size:.8rem;font-weight:400">{{ share_count }} total</span></h2>
+    {% if shares %}
+    <div class="table-scroll"><table class="stats-table">
+        <tr><th>Created</th><th>Link</th><th>Text</th><th>Top match</th><th></th></tr>
+        {% for r in shares %}
+        <tr><td>{{ r.created_at }}</td><td><a href="{{ url_for('user_content.share_page', share_id=r.id) }}">/r/{{ r.id }}</a></td><td>{{ (r.transcript or '')|truncate(40) }}</td><td>{{ r.top_font or '' }}</td>
+            <td><form method="post" action="{{ url_for('admin.delete_share', share_id=r.id) }}" onsubmit="return confirm('Delete this share and its image?')"><button type="submit">Delete</button></form></td></tr>
+        {% endfor %}
+    </table></div>
+    {% else %}<p class="muted">No shares yet.</p>{% endif %}
+</div>
+
+<div class="stats-section">
     <h2 style="font-size:1.25rem">Website and API</h2>
     {% if site %}
     <div class="table-scroll"><table class="stats-table">

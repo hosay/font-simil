@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import io
+from pathlib import Path
 
 from flask import (
     Blueprint,
@@ -21,19 +22,19 @@ from flask import (
 
 from fontmatch.features.fingerprint import fingerprint
 from fontmatch.features.perceptual import FINGERPRINT_SCHEMA_VERSION
-from fontmatch.web.similar import find_similar
 from fontmatch.fonts.loader import UnsupportedFontError, load
 from fontmatch.web.helpers import (
-    CORPUS_ALIASES,
     PROPRIETARY_FONTS,
     PROPRIETARY_TO_OPEN_SOURCE,
     deslugify,
     enrich_matches,
+    google_fonts_name,
+    google_fonts_url,
     license_label,
-    lookup_corpus_alias,
     lookup_proprietary,
     slugify,
 )
+from fontmatch.web.similar import find_similar
 
 web_bp = Blueprint("web", __name__)
 
@@ -49,20 +50,17 @@ def robots_txt():
 
 @web_bp.get("/sitemap.txt")
 def sitemap_txt():
-    """Simple text sitemap listing all browsable pages."""
-    store = current_app.config["STORE"]
-    families = store.list_font_families(clean_only=True, indexed_only=True)
+    """Text sitemap: static pages plus the /similar-to pages worth indexing
+    (see indexable_similar_slugs)."""
     base = request.host_url.rstrip("/")
-    lines = [f"{base}/", f"{base}/popular", f"{base}/identify", f"{base}/api/docs", f"{base}/privacy"]
-    # All proprietary font pages
-    for prop_name in PROPRIETARY_TO_OPEN_SOURCE:
-        lines.append(f"{base}/similar-to/{slugify(prop_name)}")
-    # All corpus alias pages
-    for alias_name in CORPUS_ALIASES:
-        lines.append(f"{base}/similar-to/{slugify(alias_name)}")
-    # All corpus font pages
-    for fam in families:
-        lines.append(f"{base}/similar-to/{slugify(fam)}")
+    lines = [
+        f"{base}/",
+        f"{base}/popular",
+        f"{base}/identify",
+        f"{base}/api/docs",
+        f"{base}/privacy",
+    ]
+    lines += [f"{base}/similar-to/{slug}" for slug in sorted(indexable_similar_slugs())]
     return Response("\n".join(lines), mimetype="text/plain")
 
 
@@ -156,7 +154,51 @@ ALL_POPULAR_FONTS = [
     {"label": "Poppins", "slug": "poppins", "category": "sans-serif"},
 ]
 
+# Every proprietary page is linked from /popular (internal links help
+# search engines find them); hand-ordered entries above keep their place.
+_listed = {entry["slug"] for entry in ALL_POPULAR_FONTS}
+ALL_POPULAR_FONTS += [
+    {"label": name, "slug": slugify(name), "category": PROPRIETARY_FONTS[name]["category"]}
+    for name in PROPRIETARY_TO_OPEN_SOURCE
+    if slugify(name) not in _listed
+]
+del _listed
+
 DEFAULT_K = 10
+
+# DB family names of variable fonts that differ from the name people search
+# for ("DM Sans 9pt" is DM Sans). Their pages canonicalise to the common name.
+# Not every CORPUS_ALIASES entry: "Sans Serif" -> Inter is a redirect of a
+# concept, not another name for the same page.
+VARIANT_CANONICAL = {
+    "DM Sans 9pt": "DM Sans",
+    "Raleway Thin": "Raleway",
+    "League Spartan Thin": "League Spartan",
+    "Cormorant Garamond Light": "Cormorant Garamond",
+}
+
+
+def indexable_similar_slugs() -> set[str]:
+    """/similar-to pages offered to search engines: every proprietary font and
+    the corpus fonts on /popular (pages with search demand). The other
+    ~2,800 corpus pages are near-identical templates; indexing them on a
+    young domain risks a site-wide thin-content rating, so they are noindex
+    and left out of the sitemap until Search Console shows demand."""
+    return {slugify(name) for name in PROPRIETARY_TO_OPEN_SOURCE} | {
+        entry["slug"] for entry in ALL_POPULAR_FONTS
+    }
+
+
+def similar_page_seo(slug: str, display_name: str) -> tuple[str, bool]:
+    """(canonical slug, indexable) for a /similar-to page. A requested slug
+    that is itself indexable is its own canonical (e.g. "source-sans-pro",
+    the name people search for, though the font is now Source Sans 3)."""
+    indexable = indexable_similar_slugs()
+    requested = slugify(slug)
+    if requested in indexable:
+        return requested, True
+    canonical = slugify(VARIANT_CANONICAL.get(display_name, display_name))
+    return canonical, canonical in indexable
 
 
 @web_bp.get("/")
@@ -197,19 +239,18 @@ def popular():
         groups.setdefault(cat, []).append(entry)
 
     # Sort categories in a sensible display order
-    category_order = ["sans-serif", "serif", "script"]
+    category_order = ["sans-serif", "serif", "monospace", "script"]
     category_labels = {
         "sans-serif": "Sans-Serif",
         "serif": "Serif",
+        "monospace": "Monospace",
         "script": "Script & Decorative",
     }
     ordered_groups = []
     for cat in category_order:
         if cat in groups:
             items = sorted(groups[cat], key=lambda e: e["label"].lower())
-            ordered_groups.append(
-                {"label": category_labels.get(cat, cat.title()), "fonts": items}
-            )
+            ordered_groups.append({"label": category_labels.get(cat, cat.title()), "fonts": items})
 
     return render_template(
         "popular.html",
@@ -321,7 +362,8 @@ def identify_submit():
 
 
 def _preview_data_uri(raw: bytes) -> str | None:
-    """Small JPEG of the upload to show beside the results (never stored)."""
+    """Small JPEG of the upload to show beside the results. Not stored: it is
+    what a share link or feedback with "keep this image" sends back."""
     from fontmatch.image.prep import ImageError, load_image
 
     try:
@@ -339,7 +381,8 @@ def identify_image_submit():
     from fontmatch.image.prep import ImageError
     from fontmatch.image.service import EngineUnavailable, NoTextFound
     from fontmatch.samples import sample_url
-    from fontmatch.web.api import identify_image_cached
+    from fontmatch.web.api import identify_image_cached, image_result_key
+    from fontmatch.web.user_content import preview_token
 
     f = request.files.get("image")
     if f is None or not f.filename:
@@ -360,14 +403,76 @@ def identify_image_submit():
     for m in result["matches"]:
         m["sample_url"] = sample_url(m["name"], m.get("style") or "")
         m["license_label"] = license_label(m.get("license_id") or "unknown")
+    preview = _preview_data_uri(raw)
     return render_template(
         "identify.html",
         matches=None,
         image_result=result,
-        image_preview=_preview_data_uri(raw),
+        image_preview=preview,
+        result_token=preview_token(image_result_key(raw, hint), preview),
         text_hint=hint,
         no_analytics=True,
     )
+
+
+RELATED_LIMIT = 8
+
+
+@web_bp.get("/og/similar-to/<slug>.png")
+def og_similar(slug: str):
+    """Preview card for a /similar-to page; only canonical slugs (bounded
+    disk use: one card per page)."""
+    from fontmatch.samples import SampleStore
+    from fontmatch.web.api import resolve_font_file
+    from fontmatch.web.og import card_filename, render_card
+
+    if len(slug) > 100 or slug != slugify(slug):
+        abort(404)
+    store = current_app.config["STORE"]
+    result = find_similar(store, deslugify(slug), slug=slug, k=DEFAULT_K)
+    if result is None:
+        abort(404)
+    font_row = result.font_row
+    if similar_page_seo(slug, result.display_name)[0] != slug:
+        abort(404)
+    gf_source = store.google_fonts_source(font_row["family"])
+    shown = (google_fonts_name(gf_source) if gf_source else None) or VARIANT_CANONICAL.get(
+        font_row["family"], font_row["family"]
+    )
+    if result.prop:
+        kicker, title = f"Free alternative to {result.display_name}", shown
+    else:
+        kicker, title = "Free fonts similar to", shown
+    target = Path(current_app.config["OG_DIR"]) / card_filename(
+        slug, font_row["name"], kicker, title
+    )
+    if not target.is_file():
+        font_path = resolve_font_file(
+            store, current_app.config.get("CORPUS_DIRS", []), font_row["name"], walk=False
+        )
+        try:
+            if font_path is None:
+                raise ValueError("font file not found")
+            data = render_card(font_path, "", kicker, title)
+        except Exception as exc:  # glyph-less or broken font: use the site card
+            current_app.logger.warning("og: cannot render %s: %s", slug, exc)
+            return redirect(url_for("static", filename="og-default.png"))
+        SampleStore(target.parent, lambda name: None).save(target, data)
+    resp = send_file(target, mimetype="image/png", max_age=7 * 86400)
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    return resp
+
+
+def _related_proprietary(name: str, prop: dict | None) -> list[dict]:
+    """Other proprietary fonts of the same category, for internal links."""
+    if not prop:
+        return []
+    out = []
+    for other in PROPRIETARY_TO_OPEN_SOURCE:
+        meta = PROPRIETARY_FONTS.get(other, {})
+        if other != name and meta.get("category") == prop["category"]:
+            out.append({"label": other, "slug": slugify(other)})
+    return out[:RELATED_LIMIT]
 
 
 @web_bp.get("/similar-to/<slug>")
@@ -382,7 +487,18 @@ def similar_to(slug: str):
     result = find_similar(store, family_name, slug=slug, k=DEFAULT_K)
     if result is None:
         display_name = lookup_proprietary(family_name) or family_name
-        return render_template("similar.html", family_name=display_name, matches=None, found=False, prop=None), 404
+        return (
+            render_template(
+                "similar.html",
+                family_name=display_name,
+                matches=None,
+                found=False,
+                prop=None,
+                robots="noindex",
+                canonical_url=None,
+            ),
+            404,
+        )
     display_name, font_row = result.display_name, result.font_row
     prop_meta, results = result.prop, result.matches
 
@@ -391,11 +507,29 @@ def similar_to(slug: str):
 
     corpus_source = store.get_font_source(font_row["name"])
     corpus_has_file = corpus_source is not None and not _is_crawled_source(corpus_source)
+    gf_source = store.google_fonts_source(font_row["family"])
+    corpus_gf_family = google_fonts_name(gf_source) if gf_source else None
+    corpus_gf_url = google_fonts_url(font_row["family"], gf_source) if gf_source else None
+    corpus_display = corpus_gf_family or VARIANT_CANONICAL.get(
+        font_row["family"], font_row["family"]
+    )
+    corpus_license = license_label(font_row.get("license_id") or "unknown")
+    if corpus_license in ("Unknown", "unknown"):
+        corpus_license = None
 
+    canonical_slug, indexable = similar_page_seo(slug, display_name)
     return render_template(
         "similar.html",
+        og_image=url_for("web.og_similar", slug=canonical_slug, _external=True),
+        canonical_url=url_for("web.similar_to", slug=canonical_slug, _external=True),
+        robots=None if indexable else "noindex, follow",
         family_name=display_name,
-        corpus_family=font_row["family"],
+        corpus_family=corpus_display,
+        corpus_slug=slugify(font_row["family"]),
+        corpus_gf_family=corpus_gf_family,
+        corpus_gf_url=corpus_gf_url,
+        corpus_license=corpus_license,
+        related=_related_proprietary(display_name, prop_meta),
         query_font_name=font_row["name"],
         corpus_has_file=corpus_has_file,
         matches=enrich_matches(results, store=store),

@@ -38,30 +38,42 @@
 {% endif %}
 
 {% for m in image_result.matches %}
-<article class="match-card image-match">
-    <div class="match-header">
-        <span class="match-rank">#{{ loop.index }}</span>
-        <div class="match-title">
-            <h2>{{ m.family }}{% if m.style and m.style != 'Regular' %} <span class="match-style">{{ m.style }}</span>{% endif %}</h2>
-            <div class="match-links">
-                {% if m.google_fonts_url %}<a href="{{ m.google_fonts_url }}" target="_blank" rel="noopener" class="match-link">Google Fonts</a>{% endif %}
-                {% if m.download_url %}<a href="{{ m.download_url }}" download class="match-link">Download</a>{% endif %}
-                <a href="{{ m.similar_url }}" class="match-link">See similar fonts</a>
-            </div>
-        </div>
-        <div class="score-badge score-{{ 'great' if m.score >= 85 else ('good' if m.score >= 60 else 'fair') }}" title="Visual similarity of your text set in this font">
-            {{ m.score }}% similar
-        </div>
-    </div>
-    {% if m.match_label == 'likely the same font' %}<div class="same-font-pill">Likely the same font</div>{% endif %}
-    <img class="font-sample" src="{{ m.sample_url }}" alt="{{ m.family }}: The quick brown fox jumps over the lazy dog" loading="lazy" onerror="this.remove()">
-    <div class="score-breakdown">
-        {% if m.license_label and m.license_label != 'Unknown' %}<span class="breakdown-item license-tag">{{ m.license_label }}</span>{% endif %}
-    </div>
-</article>
+{% set rank = loop.index %}
+{% include "_image_match.html" with context %}
 {% endfor %}
 
 <p class="results-note">Similarity is visual: these are free fonts that look closest, not necessarily the exact font in your image.</p>
+
+{% if result_token %}
+<section class="result-actions" data-token="{{ result_token }}">
+    <div class="feedback-box">
+        <div class="feedback-ask">
+            <span class="feedback-q">Was this right?</span>
+            <button type="button" class="btn btn-outline btn-sm" data-verdict="yes">Yes</button>
+            <button type="button" class="btn btn-outline btn-sm" data-verdict="no">No</button>
+            <span class="feedback-thanks" hidden>Thanks for the feedback!</span>
+        </div>
+        <form class="feedback-more" hidden>
+            <label for="correct-font">Which font was it? <span class="optional">(optional)</span></label>
+            <input type="text" id="correct-font" name="correct_font" class="search-input" maxlength="100" autocomplete="off" placeholder="e.g. Futura Bold">
+            <label class="consent"><input type="checkbox" name="keep_image"> Let Dupefont keep this image to test and improve matching</label>
+            <button type="submit" class="btn btn-primary btn-sm">Send</button>
+        </form>
+    </div>
+    <div class="share-box">
+        <button type="button" class="btn btn-outline share-btn">Get a share link</button>
+        <p class="share-note">Creates a public link to your image and these results. You can delete it any time.</p>
+        <div class="share-result" hidden>
+            <div class="share-row">
+                <input type="text" class="search-input share-url" readonly aria-label="Share link">
+                <button type="button" class="btn btn-primary btn-sm share-copy">Copy</button>
+            </div>
+            <p class="share-note">Keep this link if you may want to delete the share later: <a class="share-delete" href="#" rel="nofollow">delete link</a></p>
+        </div>
+        <p class="share-error" hidden></p>
+    </div>
+</section>
+{% endif %}
 <div class="back-link">
     <a href="{{ url_for('web.identify_form') }}#image" class="btn btn-outline">Try another image</a>
 </div>
@@ -88,7 +100,7 @@
     <label for="text_hint" class="hint-label">Text in the image <span class="optional">(optional, improves accuracy)</span></label>
     <input type="text" id="text_hint" name="text_hint" class="search-input hint-input" maxlength="500" placeholder="e.g. Summer Sale" value="{{ text_hint or '' }}" autocomplete="off">
     <button type="submit" class="btn btn-primary btn-lg" data-busy="Matching fonts&hellip;">Find matching fonts</button>
-    <p class="upload-privacy">Your image is used only to find matches and isn't stored. <a href="{{ url_for('web.privacy') }}">Privacy</a></p>
+    <p class="upload-privacy">Your image is used to find matches and isn't stored unless you choose to share it. <a href="{{ url_for('web.privacy') }}">Privacy</a></p>
 </form>
 
 <form method="post" action="{{ url_for('web.identify_submit') }}" enctype="multipart/form-data" class="upload-form mode-panel" id="font" data-mode="font">

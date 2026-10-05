@@ -29,7 +29,7 @@ PROPRIETARY_TO_OPEN_SOURCE = {
     "Calibri": "Carlito",
     "Cambria": "Caladea",
     "Trebuchet MS": "Fira Sans",
-    "Segoe UI": "Source Sans 3",
+    "Segoe UI": "Source Sans 3 ExtraLight",
     "Aptos": "Inter",
     # Serif classics
     "Garamond": "EB Garamond",
@@ -40,24 +40,24 @@ PROPRIETARY_TO_OPEN_SOURCE = {
     "Trajan Pro": "Cinzel",
     "Optima": "Lato",
     "Copperplate": "Cinzel",
-    "Cooper Black": "Baloo 2",
+    "Cooper Black": "Fraunces",
     # Geometric / grotesque sans
-    "Futura": "Nunito ExtraLight",
-    "Gotham": "Montserrat",
-    "Proxima Nova": "Nunito",
-    "Avenir": "Nunito",
+    "Futura": "Jost",
+    "Gotham": "Montserrat Thin",
+    "Proxima Nova": "Montserrat Thin",
+    "Avenir": "Nunito Sans 12pt ExtraLight",
     "Century Gothic": "Poppins",
     "Avant Garde": "Poppins",
-    "Brandon Grotesque": "Nunito",
-    "Museo Sans": "Nunito",
+    "Brandon Grotesque": "Nunito ExtraLight",
+    "Museo Sans": "Nunito Sans 12pt ExtraLight",
     "Gilroy": "Poppins",
     "Garet": "Sora",
     # Humanist / neo-grotesque sans
-    "Myriad Pro": "Source Sans 3",
-    "Gill Sans": "Lato",
-    "Frutiger": "Source Sans 3",
+    "Myriad Pro": "Source Sans 3 ExtraLight",
+    "Gill Sans": "Cabin",
+    "Frutiger": "Source Sans 3 ExtraLight",
     "Univers": "Inter",
-    "DIN": "Source Sans 3",
+    "DIN": "Barlow",
     # Tech / modern sans
     "San Francisco": "Inter",
     "SF Pro": "Inter",
@@ -66,15 +66,39 @@ PROPRIETARY_TO_OPEN_SOURCE = {
     "Canva Sans": "DM Sans 9pt",
     "Satoshi": "DM Sans 9pt",
     "Sofia Pro": "Sofia Sans",
-    "Spotify": "Montserrat",
+    "Spotify": "Figtree Light",
     # Impact / display
     "Impact": "Anton",
     "Comic Sans": "Comic Neue",
     "Knockout": "Oswald",
-    "Eurostile": "Orbitron",
+    "Eurostile": "Michroma",
     "Recoleta": "Fraunces",
     # Script
     "Monotype Corsiva": "Great Vibes",
+    # Added 2026-10: well-attested open-source revivals and lookalikes
+    "Times": "Tinos",
+    "Franklin Gothic": "Libre Franklin Thin",
+    "Akzidenz-Grotesk": "Work Sans",
+    "Avenir Next": "Nunito Sans 12pt ExtraLight",
+    "Futura PT": "Jost",
+    "Gotham Rounded": "Nunito ExtraLight",
+    "Arial Rounded": "Varela Round",
+    "Circular": "Figtree Light",
+    "Tahoma": "DejaVu Sans",
+    "Interstate": "Overpass",
+    "Microgramma": "Michroma",
+    "Baskerville": "Libre Baskerville",
+    "Caslon": "Libre Caslon Text",
+    "Minion Pro": "Crimson Pro",
+    "Bembo": "Cardo",
+    "Sabon": "EB Garamond",
+    "Adobe Garamond": "EB Garamond",
+    "Goudy Old Style": "Sorts Mill Goudy",
+    "Rockwell": "Arvo",
+    "Courier": "Courier Prime",
+    "Consolas": "Inconsolata",
+    "Menlo": "DejaVu Sans Mono",
+    "Edwardian Script": "Pinyon Script",
 }
 
 # Case-insensitive lookup for proprietary font names
@@ -397,6 +421,230 @@ PROPRIETARY_FONTS = {
         "vendor": "Monotype",
         "description": "An italic script typeface bundled with Windows, popular for invitations and formal documents.",
     },
+    "Times": {
+        "css_family": "Times, 'Times New Roman', serif",
+        "category": "serif",
+        "vendor": "Linotype",
+        "description": "Linotype's cut of the Times Roman newspaper typeface, the version of Times New Roman shipped with macOS.",
+    },
+    "Franklin Gothic": {
+        "css_family": "'Franklin Gothic Medium', 'Franklin Gothic', sans-serif",
+        "category": "sans-serif",
+        "vendor": "ATF / Monotype",
+        "description": "Morris Fuller Benton's 1902 American gothic, a long-time staple of newspaper headlines and advertising.",
+    },
+    "Akzidenz-Grotesk": {
+        "css_family": "'Akzidenz-Grotesk', sans-serif",
+        "category": "sans-serif",
+        "vendor": "Berthold",
+        "description": "The 1898 Berthold grotesque that inspired Helvetica and Univers, a favourite of Swiss-style designers.",
+    },
+    "Avenir Next": {
+        "css_family": "'Avenir Next', sans-serif",
+        "category": "sans-serif",
+        "vendor": "Linotype",
+        "description": "The 2004 expansion of Avenir by Adrian Frutiger and Akira Kobayashi, widely used in branding and apps.",
+    },
+    "Futura PT": {
+        "css_family": "'Futura PT', Futura, sans-serif",
+        "category": "sans-serif",
+        "vendor": "ParaType",
+        "description": "ParaType's digital Futura, the version many websites license through Adobe Fonts.",
+    },
+    "Gotham Rounded": {
+        "css_family": "'Gotham Rounded', sans-serif",
+        "category": "sans-serif",
+        "vendor": "Hoefler & Co.",
+        "description": "The rounded companion to Gotham, with softened stroke endings for a friendlier tone.",
+    },
+    "Arial Rounded": {
+        "css_family": "'Arial Rounded MT Bold', sans-serif",
+        "category": "sans-serif",
+        "vendor": "Monotype",
+        "description": "Arial Rounded MT, the rounded version of Arial bundled with Microsoft Office and macOS.",
+    },
+    "Circular": {
+        "css_family": "'Circular', 'Circular Std', sans-serif",
+        "category": "sans-serif",
+        "vendor": "Lineto",
+        "description": "Laurenz Brunner's 2013 geometric sans, best known from Spotify's branding.",
+    },
+    "Tahoma": {
+        "css_family": "Tahoma, Verdana, sans-serif",
+        "category": "sans-serif",
+        "vendor": "Microsoft",
+        "description": "Matthew Carter's 1994 screen sans, Verdana's narrower sibling and a long-time Windows interface font.",
+    },
+    "Interstate": {
+        "css_family": "'Interstate', sans-serif",
+        "category": "sans-serif",
+        "vendor": "Font Bureau",
+        "description": "Tobias Frere-Jones's 1993 sans based on the lettering of US highway signs.",
+    },
+    "Microgramma": {
+        "css_family": "'Microgramma', 'Eurostile Extended', sans-serif",
+        "category": "sans-serif",
+        "vendor": "Nebiolo",
+        "description": "The squared, extended 1952 display face that Eurostile grew out of, a sci-fi and tech classic.",
+    },
+    "Baskerville": {
+        "css_family": "Baskerville, 'Libre Baskerville', serif",
+        "category": "serif",
+        "vendor": "Various",
+        "description": "John Baskerville's transitional serif from the 1750s, admired for its crisp contrast and readability. Bundled with macOS.",
+    },
+    "Caslon": {
+        "css_family": "'Adobe Caslon Pro', Caslon, serif",
+        "category": "serif",
+        "vendor": "Various",
+        "description": "William Caslon's 18th-century old-style serif, used for the first printings of the US Declaration of Independence.",
+    },
+    "Minion Pro": {
+        "css_family": "'Minion Pro', serif",
+        "category": "serif",
+        "vendor": "Adobe",
+        "description": "Robert Slimbach's 1990 Renaissance-style serif, bundled with Adobe apps and a common book typeface.",
+    },
+    "Bembo": {
+        "css_family": "Bembo, serif",
+        "category": "serif",
+        "vendor": "Monotype",
+        "description": "A Renaissance serif based on the roman Aldus Manutius printed in 1495, a classic of book publishing.",
+    },
+    "Sabon": {
+        "css_family": "Sabon, serif",
+        "category": "serif",
+        "vendor": "Linotype",
+        "description": "Jan Tschichold's 1967 Garamond-style book typeface.",
+    },
+    "Adobe Garamond": {
+        "css_family": "'Adobe Garamond Pro', Garamond, serif",
+        "category": "serif",
+        "vendor": "Adobe",
+        "description": "Robert Slimbach's 1989 interpretation of Claude Garamond's 16th-century roman types.",
+    },
+    "Goudy Old Style": {
+        "css_family": "'Goudy Old Style', serif",
+        "category": "serif",
+        "vendor": "ATF / Monotype",
+        "description": "Frederic Goudy's 1915 old-style serif with its distinctive diamond-shaped dots, bundled with Microsoft Office.",
+    },
+    "Rockwell": {
+        "css_family": "Rockwell, serif",
+        "category": "serif",
+        "vendor": "Monotype",
+        "description": "A geometric slab serif from 1934, common on posters and packaging and bundled with Microsoft Office.",
+    },
+    "Courier": {
+        "css_family": "Courier, 'Courier New', monospace",
+        "category": "monospace",
+        "vendor": "IBM",
+        "description": "The 1955 IBM typewriter face, still the standard for screenplays.",
+    },
+    "Consolas": {
+        "css_family": "Consolas, monospace",
+        "category": "monospace",
+        "vendor": "Microsoft",
+        "description": "Lucas de Groot's coding font for Windows, long the default in Visual Studio.",
+    },
+    "Menlo": {
+        "css_family": "Menlo, monospace",
+        "category": "monospace",
+        "vendor": "Apple",
+        "description": "Apple's former default coding font in Terminal and Xcode.",
+    },
+    "Edwardian Script": {
+        "css_family": "'Edwardian Script ITC', cursive",
+        "category": "script",
+        "vendor": "ITC",
+        "description": "A formal copperplate script from 1994, a favourite for wedding invitations. Bundled with Microsoft Office.",
+    },
+}
+
+
+# Fonts whose open-source alternative has the same character widths, so a
+# document switched to it keeps its line breaks and page count. Only these
+# pages may say "metrically compatible".
+METRIC_COMPATIBLE = {
+    "Times New Roman", "Times", "Arial", "Helvetica", "Courier New",
+    "Calibri", "Cambria", "Georgia",
+}
+
+# How each alternative compares: unique copy for every /similar-to page.
+PROPRIETARY_NOTES = {
+    "Times New Roman": "Tinos was designed by Steve Matteson to have the same character widths as Times New Roman, so documents keep their line breaks and page count.",
+    "Times": "Tinos has the same character widths as Times and Times New Roman, so switching fonts doesn't reflow your text.",
+    "Arial": "Arimo has exactly the same character widths as Arial; Microsoft Office documents and web layouts reflow identically when you swap one for the other.",
+    "Helvetica": "Liberation Sans shares Arial's widths, which were themselves matched to Helvetica, so it is a drop-in replacement for layout. Arimo, the same design on Google Fonts, works too.",
+    "Helvetica Neue": "Liberation Sans is close in spirit but has Arial's slightly wider, less tightly spaced shapes; for display sizes, Inter is a more modern neo-grotesque option.",
+    "Georgia": "Gelasio was drawn to match Georgia's character widths, keeping Georgia's sturdy, screen-friendly serif look and layout.",
+    "Courier New": "Cousine matches Courier New's character widths, but its strokes are heavier and more even, so code and screenplays read better on screen.",
+    "Verdana": "DejaVu Sans grew out of Bitstream Vera and shares Verdana's large x-height and wide, open letters; line lengths are similar but not identical.",
+    "Calibri": "Carlito has the same character widths as Calibri, so Word and PowerPoint files open with identical line breaks and slide layouts.",
+    "Cambria": "Caladea matches Cambria's character widths, so documents keep their pagination while the letters stay sturdy and readable.",
+    "Trebuchet MS": "Fira Sans is a humanist sans with a similar friendly, slightly informal feel; it is narrower, so text takes a little less space.",
+    "Segoe UI": "Source Sans 3 is Adobe's open-source UI typeface with Segoe UI's clean humanist shapes. Text runs a little narrower.",
+    "Aptos": "Inter is a neutral, highly legible UI sans much like Aptos; it was designed for screens and has a large x-height and tabular figures.",
+    "Garamond": "EB Garamond is a faithful revival of Claude Garamond's types, with true small caps and old-style figures.",
+    "Palatino": "Lora is a contemporary calligraphic serif with Palatino's moderate contrast and brushed curves; it is a little more condensed.",
+    "Bodoni": "Libre Bodoni keeps Bodoni's extreme stroke contrast and vertical stress but was reworked for text sizes, so its hairlines hold up on screen.",
+    "Didot": "GFS Didot is based on Firmin Didot's types, with the same high contrast and fine hairlines that suit fashion headlines.",
+    "Trajan": "Cinzel is an all-caps typeface inspired by classical Roman inscriptions, the same source as Trajan.",
+    "Trajan Pro": "Cinzel captures Trajan Pro's Roman inscriptional capitals; it has no lowercase, just as Trajan only has capitals and small caps.",
+    "Optima": "Lato shares Optima's warm, classical proportions, though its strokes don't flare the way Optima's do.",
+    "Copperplate": "Cinzel gives the same engraved, all-caps formality as Copperplate, with sharper classical serifs instead of Copperplate's tiny wedge serifs.",
+    "Cooper Black": "Fraunces is a soft, heavy serif in the 'Old Style soft' tradition of Cooper Black and Windsor; set it in its Black weight for the retro look.",
+    "Futura": "Jost is an open-source sans directly inspired by Futura's 1920s geometric forms: circular O, pointed A and M, single-storey a.",
+    "Futura PT": "Jost follows Futura's geometric construction closely and comes in a full range of weights with matching italics.",
+    "Gotham": "Montserrat is inspired by old posters and signs in Buenos Aires and shares Gotham's wide, geometric shapes; it is a little wider and rounder.",
+    "Gotham Rounded": "Nunito is a rounded geometric sans with the same soft stroke endings as Gotham Rounded.",
+    "Proxima Nova": "Montserrat has Proxima Nova's geometric, wide proportions and works well for headings; it is wider, so set body text a size smaller.",
+    "Avenir": "Nunito Sans has Avenir's geometric-humanist balance and crisp terminals, which makes it a closer match than plain (rounded) Nunito.",
+    "Avenir Next": "Nunito Sans comes in a similar range of weights and widths to Avenir Next and shares its clean, geometric-humanist shapes.",
+    "Century Gothic": "Poppins is a geometric sans with Century Gothic's round O and wide stance; it has a larger x-height, so text looks bigger.",
+    "Avant Garde": "Poppins has Avant Garde's pure geometric circles and straight lines but without its many tight-fitting ligatures.",
+    "Brandon Grotesque": "Nunito has the same soft, slightly rounded geometric feel as Brandon Grotesque, with more strongly rounded ends.",
+    "Museo Sans": "Nunito Sans matches Museo Sans' friendly geometric shapes and comes in a similar range of weights.",
+    "Gilroy": "Poppins is a geometric sans with Gilroy's round shapes and modern startup feel.",
+    "Garet": "Sora is a geometric sans with Garet's clean, wide letterforms and works well for headlines and UI.",
+    "Myriad Pro": "Source Sans 3 comes from the same Adobe humanist tradition as Myriad and has a similar open, legible texture.",
+    "Gill Sans": "Cabin is a humanist sans inspired by Edward Johnston's and Eric Gill's typefaces, so it shares Gill Sans' classical British proportions.",
+    "Frutiger": "Source Sans 3 is an open, humanist sans with Frutiger's signage-friendly legibility.",
+    "Univers": "Inter is a neutral neo-grotesque with Univers' even, rational texture, tuned for screens.",
+    "DIN": "Barlow is a slightly rounded, low-contrast grotesk inspired by highway signs and number plates, with DIN's engineered, condensed feel.",
+    "San Francisco": "Inter is the closest open-source match to Apple's system font: a neo-grotesque designed for UI, with a large x-height and tight, even spacing.",
+    "SF Pro": "Inter mirrors SF Pro's neutral UI shapes and also comes as a variable font with optical sizes for text and display.",
+    "Product Sans": "Poppins shares the circular, geometric construction of Google's logo font. Google has since replaced Product Sans with Google Sans in most products.",
+    "Google Sans": "Poppins is a geometric sans with Google Sans' round, friendly shapes. Google Sans Code, the coding version, is already open source on Google Fonts.",
+    "Canva Sans": "DM Sans is a low-contrast geometric sans with Canva Sans' clean, friendly look and works well at small sizes.",
+    "Satoshi": "DM Sans has Satoshi's modernist geometric shapes and neutral tone, and is available as a variable font.",
+    "Sofia Pro": "Sofia Sans is a different design from a different foundry despite the name; it is a clean, slightly condensed sans that suits the same UI and branding uses.",
+    "Spotify": "Spotify's branding typeface, Circular, is a geometric sans; Figtree has a similarly friendly, round and clean look.",
+    "Circular": "Figtree is a clean geometric sans with Circular's friendly round shapes and simple, approachable tone.",
+    "Impact": "Anton is a heavy, condensed display sans in the same tradition as Impact, ideal for posters and headlines.",
+    "Comic Sans": "Comic Neue keeps Comic Sans' casual, handwritten feel but with cleaner, more consistent letterforms.",
+    "Knockout": "Oswald reworks classic gothic condensed sans styles, like the wood-type faces Knockout is based on, for the screen.",
+    "Eurostile": "Michroma reworks Microgramma, the font Eurostile grew out of, so it has the same squared, extended letters.",
+    "Microgramma": "Michroma is a reworking of Microgramma's squared, extended letterforms, so the two look nearly the same.",
+    "Recoleta": "Fraunces is a soft serif inspired by the same 'Old Style soft' faces as Recoleta, such as Windsor and Cooper.",
+    "Monotype Corsiva": "Great Vibes is a flowing calligraphic script for invitations and headings; it is more decorative than Corsiva's chancery italic.",
+    "Franklin Gothic": "Libre Franklin is an open-source interpretation of Morris Fuller Benton's Franklin Gothic, so the shapes and proportions closely match.",
+    "Akzidenz-Grotesk": "Work Sans is loosely based on the early grotesques of Akzidenz-Grotesk's era, with the same plain, slightly irregular shapes.",
+    "Arial Rounded": "Varela Round is a rounded sans with Arial Rounded's simple, even strokes and friendly tone.",
+    "Tahoma": "DejaVu Sans shares Tahoma's large x-height and open shapes; it is wider, so text runs longer.",
+    "Interstate": "Overpass is based on the same US highway-sign lettering (Highway Gothic) that Interstate is drawn from.",
+    "Baskerville": "Libre Baskerville is based on the 1941 American Type Founders Baskerville, with a taller x-height and wider counters for screens.",
+    "Caslon": "Libre Caslon Text is a Caslon revival drawn for body text on screens, with a slightly larger x-height than print Caslons.",
+    "Minion Pro": "Crimson Pro is a book typeface in the Renaissance tradition of Minion and Garamond, with a similar calm, classical texture.",
+    "Bembo": "Cardo is modelled on the same Aldine roman that Bembo comes from, and adds a large character set for scholarly work.",
+    "Sabon": "EB Garamond revives the Garamond types Sabon is based on; it is a little lighter and more historical in feel.",
+    "Adobe Garamond": "EB Garamond is drawn from the same 16th-century Garamond specimens and has true small caps and old-style figures.",
+    "Goudy Old Style": "Sorts Mill Goudy is a digital revival of Goudy Old Style itself, including its italic.",
+    "Rockwell": "Arvo is a geometric slab serif with Rockwell's even, monoline strokes and blunt slab serifs.",
+    "Courier": "Courier Prime was made for screenwriters as a better-looking Courier with the same fixed character width, so script page counts stay the same.",
+    "Consolas": "Inconsolata was designed by Raph Levien as a free coding font in the spirit of Consolas.",
+    "Menlo": "Menlo is based on Bitstream Vera Sans Mono, and DejaVu Sans Mono is the open-source extension of the same font: they are close relatives.",
+    "Edwardian Script": "Pinyon Script is a formal round-hand script in the same English copperplate tradition.",
 }
 
 
@@ -405,7 +653,7 @@ def lookup_proprietary(name: str) -> str | None:
 
     Returns the canonical (correctly cased) name, or None.
     """
-    return _PROP_LOOKUP.get(name.lower())
+    return _PROP_LOOKUP.get(name.lower()) or _PROP_SLUGS.get(slugify(name))
 
 
 def lookup_corpus_alias(name: str) -> str | None:
@@ -422,6 +670,11 @@ def lookup_corpus_alias(name: str) -> str | None:
 def slugify(family: str) -> str:
     """Convert 'Open Sans' -> 'open-sans'."""
     return re.sub(r"[^a-z0-9]+", "-", family.lower()).strip("-")
+
+
+# Slug -> proprietary name, so names with punctuation ("Akzidenz-Grotesk")
+# still resolve after the slug round trip.
+_PROP_SLUGS = {slugify(k): k for k in PROPRIETARY_TO_OPEN_SOURCE}
 
 
 def deslugify(slug: str) -> str:
@@ -535,8 +788,12 @@ def enrich_matches(matches: list[dict], store=None) -> list[dict]:
             source = store.get_font_source(m["name"])
         m["has_file"] = source is not None and not _is_crawled_source(source)
 
-        # Google Fonts link
+        # Google Fonts link, and the family's name there: the DB holds a
+        # variable font's default instance ("Nunito Sans 12pt ExtraLight"),
+        # which is wrong to show and breaks the Google Fonts CSS URL.
         gf_source = store.google_fonts_source(m["family"]) if store is not None else None
+        m["gf_family"] = google_fonts_name(gf_source) if gf_source else None
+        m["display_family"] = m["gf_family"] or m["family"]
         if gf_source:
             m["google_fonts_url"] = google_fonts_url(m["family"], gf_source)
 

@@ -66,6 +66,16 @@ class TestService:
         assert result["transcript_source"] == "ocr"
         assert result["matches"][0]["family"] == "Cousine"
 
+    def test_white_text_in_transparent_png(self, identifier):
+        # Logo exports: white letters, transparent background. Flattening onto
+        # white used to erase the text entirely.
+        img = render_text_image(FIXTURES / "Tinos-Regular.ttf", "Hamburg", 64)
+        alpha = Image.eval(img.convert("L"), lambda p: 255 - p)
+        logo = Image.new("RGBA", img.size, (255, 255, 255, 0))
+        logo.putalpha(alpha)
+        result = identifier.identify(_png(logo), hint="Hamburg", k=2)
+        assert result["matches"][0]["name"] == "Tinos-Regular.ttf"
+
     def test_no_text(self, identifier):
         with pytest.raises(NoTextFound):
             identifier.identify(_png(Image.new("RGB", (200, 80), "white")), hint="")

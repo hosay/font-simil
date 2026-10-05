@@ -3,7 +3,7 @@
     <div class="match-header">
         <span class="match-rank">#{{ idx }}</span>
         <div class="match-title">
-            <h2>{{ m.family }}</h2>
+            <h2>{{ m.display_family or m.family }}</h2>
             <div class="match-links">
                 {% if m.google_fonts_url %}
                 <a href="{{ m.google_fonts_url }}" target="_blank" rel="noopener" class="match-link">Google Fonts</a>
@@ -47,7 +47,7 @@
         </div>
         <div class="comparison-divider"></div>
         <div class="comparison-col">
-            <div class="comparison-label">{{ m.family }}</div>
+            <div class="comparison-label">{{ m.display_family or m.family }}</div>
             {% if m.has_file %}
             <div class="font-render" style="font-family: 'match-{{ idx }}', serif;">
             {% else %}
@@ -71,8 +71,8 @@
                 <span class="rating-feedback"></span>
             </div>
             <div class="match-actions">
-                {% if m.google_fonts_url %}
-                <button class="action-btn copy-css-btn" data-family="{{ m.family }}" title="Copy Google Fonts embed code">Copy CSS</button>
+                {% if m.google_fonts_url and m.gf_family %}
+                <button class="action-btn copy-css-btn" data-family="{{ m.gf_family }}" title="Copy Google Fonts embed code">Copy CSS</button>
                 {% endif %}
                 <button class="action-btn report-btn" data-query="{{ query_label }}" data-match="{{ m.name }}" title="Report a bad match">Flag</button>
             </div>

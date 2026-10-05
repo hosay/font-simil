@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 import threading
 from datetime import datetime, timedelta, timezone
@@ -86,6 +87,34 @@ CREATE TABLE IF NOT EXISTS user_scores (
     UNIQUE(ip_address, query_font, match_font)
 );
 
+-- "Was this right?" on image results. One verdict per visitor and result
+-- (re-posting updates it). image_file only when the visitor ticked "keep
+-- this image"; it names a file in USER_CONTENT_DIR/feedback.
+CREATE TABLE IF NOT EXISTS image_feedback (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    result_key TEXT NOT NULL,
+    verdict TEXT NOT NULL CHECK(verdict IN ('yes', 'no')),
+    top_font TEXT,
+    correct_font TEXT,
+    image_file TEXT,
+    ip_address TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(ip_address, result_key)
+);
+
+-- Public share links for image results (/r/<id>). The result is copied
+-- here because the match cache expires; the image is USER_CONTENT_DIR/
+-- shares/<id>.jpg. Only a hash of the delete token is kept.
+CREATE TABLE IF NOT EXISTS shares (
+    id TEXT PRIMARY KEY,
+    result_key TEXT NOT NULL,
+    preview_sha256 TEXT NOT NULL,
+    result_json TEXT NOT NULL,
+    delete_token_hash TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(result_key, preview_sha256)
+);
+
 CREATE TABLE IF NOT EXISTS daily_usage (
     ip_address TEXT NOT NULL,
     date TEXT NOT NULL,
@@ -101,11 +130,24 @@ class FontStore:
     def __init__(self, db_path: str | Path):
         self.db_path = Path(db_path)
         self._lock = threading.RLock()
-        self.conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
-        self.conn.row_factory = sqlite3.Row
+        self._conn: sqlite3.Connection | None = None
+        self._conn_pid = None
         self.conn.executescript(_SCHEMA)
         self._index: dict[str, Fingerprint] = {}  # in-memory index
         self._font_licenses: dict[str, str] = {}  # name -> license_id
+
+    @property
+    def conn(self) -> sqlite3.Connection:
+        """This process's connection. gunicorn --preload creates the store in
+        the master; a SQLite connection must not cross fork(), so a worker
+        opens its own on first use (the inherited one is left untouched)."""
+        if self._conn is None or self._conn_pid != os.getpid():
+            with self._lock:
+                if self._conn is None or self._conn_pid != os.getpid():
+                    conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
+                    conn.row_factory = sqlite3.Row
+                    self._conn, self._conn_pid = conn, os.getpid()
+        return self._conn
 
     def store_fingerprint(
         self,
@@ -768,7 +810,7 @@ class FontStore:
         (the privacy policy promises 12 months). Returns rows changed."""
         changed = 0
         with self._lock:
-            for table in ("user_scores", "match_reports"):
+            for table in ("user_scores", "match_reports", "image_feedback"):
                 cur = self.conn.execute(
                     f"UPDATE {table} SET ip_address = NULL "
                     "WHERE ip_address IS NOT NULL AND created_at < datetime('now', ?)",
@@ -778,8 +820,141 @@ class FontStore:
             self.conn.commit()
         return changed
 
+    # --- Image feedback and share links --------------------------------
+
+    def save_image_feedback(
+        self,
+        result_key: str,
+        verdict: str,
+        top_font: str | None,
+        correct_font: str | None,
+        image_file: str | None,
+        ip_address: str,
+    ) -> str | None:
+        """Record (or update) a visitor's verdict on an image result. Returns
+        the image file this replaced, if any, so the caller can delete it."""
+        with self._lock:
+            old = self.conn.execute(
+                "SELECT image_file FROM image_feedback WHERE ip_address = ? AND result_key = ?",
+                (ip_address, result_key),
+            ).fetchone()
+            self.conn.execute(
+                """INSERT INTO image_feedback
+                   (result_key, verdict, top_font, correct_font, image_file, ip_address)
+                   VALUES (?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(ip_address, result_key) DO UPDATE SET
+                       verdict = excluded.verdict,
+                       correct_font = COALESCE(excluded.correct_font, correct_font),
+                       image_file = COALESCE(excluded.image_file, image_file),
+                       created_at = CURRENT_TIMESTAMP""",
+                (result_key, verdict, top_font, correct_font, image_file, ip_address),
+            )
+            self.conn.commit()
+        replaced = old["image_file"] if old else None
+        return replaced if image_file and replaced and replaced != image_file else None
+
+    def image_feedback_stats(self, days: int = 30) -> dict:
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT SUM(verdict = 'yes') AS yes, SUM(verdict = 'no') AS no, "
+                "SUM(image_file IS NOT NULL) AS images FROM image_feedback "
+                "WHERE created_at >= datetime('now', ?)",
+                (f"-{int(days)} days",),
+            ).fetchone()
+        yes, no = row["yes"] or 0, row["no"] or 0
+        return {
+            "yes": yes,
+            "no": no,
+            "images": row["images"] or 0,
+            "yes_rate": round(100 * yes / (yes + no)) if yes + no else None,
+        }
+
+    def recent_image_feedback(self, limit: int = 20, verdict: str | None = None) -> list[dict]:
+        with self._lock:
+            rows = self.conn.execute(
+                "SELECT id, verdict, top_font, correct_font, image_file, created_at "
+                "FROM image_feedback WHERE (? IS NULL OR verdict = ?) "
+                "ORDER BY created_at DESC, id DESC LIMIT ?",
+                (verdict, verdict, int(limit)),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def expire_feedback_images(self, days: int) -> list[str]:
+        """Detach images older than N days from feedback rows (the answer is
+        kept); returns their file names for the caller to delete."""
+        with self._lock:
+            rows = self.conn.execute(
+                "SELECT id, image_file FROM image_feedback WHERE image_file IS NOT NULL "
+                "AND created_at < datetime('now', ?)",
+                (f"-{int(days)} days",),
+            ).fetchall()
+            self.conn.executemany(
+                "UPDATE image_feedback SET image_file = NULL WHERE id = ?", [(r["id"],) for r in rows]
+            )
+            self.conn.commit()
+        return [r["image_file"] for r in rows]
+
+    def create_share(
+        self, share_id: str, result_key: str, preview_sha256: str, result: dict, token_hash: str
+    ) -> str:
+        """Insert a share, or return the existing one for the same result and
+        image (its delete token is replaced, so the newest link is valid)."""
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT id FROM shares WHERE result_key = ? AND preview_sha256 = ?",
+                (result_key, preview_sha256),
+            ).fetchone()
+            if row:
+                self.conn.execute(
+                    "UPDATE shares SET delete_token_hash = ? WHERE id = ?", (token_hash, row["id"])
+                )
+                self.conn.commit()
+                return row["id"]
+            self.conn.execute(
+                "INSERT INTO shares (id, result_key, preview_sha256, result_json, delete_token_hash) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (share_id, result_key, preview_sha256, json.dumps(result), token_hash),
+            )
+            self.conn.commit()
+        return share_id
+
+    def get_share(self, share_id: str) -> dict | None:
+        with self._lock:
+            row = self.conn.execute("SELECT * FROM shares WHERE id = ?", (share_id,)).fetchone()
+        if row is None:
+            return None
+        out = dict(row)
+        out["result"] = json.loads(out.pop("result_json"))
+        return out
+
+    def delete_share(self, share_id: str) -> bool:
+        with self._lock:
+            cur = self.conn.execute("DELETE FROM shares WHERE id = ?", (share_id,))
+            self.conn.commit()
+        return cur.rowcount > 0
+
+    def recent_shares(self, limit: int = 20) -> list[dict]:
+        with self._lock:
+            rows = self.conn.execute(
+                "SELECT id, result_json, created_at FROM shares ORDER BY created_at DESC LIMIT ?",
+                (int(limit),),
+            ).fetchall()
+        out = []
+        for r in rows:
+            result = json.loads(r["result_json"])
+            top = (result.get("matches") or [{}])[0].get("family")
+            out.append({"id": r["id"], "transcript": result.get("transcript"), "top_font": top,
+                        "created_at": r["created_at"]})  # fmt: skip
+        return out
+
+    def share_count(self) -> int:
+        with self._lock:
+            return self.conn.execute("SELECT COUNT(*) FROM shares").fetchone()[0]
+
     def close(self):
-        self.conn.close()
+        if self._conn is not None:
+            self._conn.close()
+            self._conn = None
 
 
 class _StoredFingerprint(Fingerprint):

@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 # Bump when the ranker or scoring code changes. Atlas/catalog rebuilds are
 # picked up automatically via ImageIdentifier.version (content hash).
-IMAGE_SCHEMA_VERSION = 7  # 7: letter-spacing fit, colour ink map, row-profile prefilter
+IMAGE_SCHEMA_VERSION = 8  # 7: letter-spacing fit, colour ink map, row-profile prefilter
 MAX_HINT_CHARS = 500
 RETRY_FAILED_LOAD_AFTER = 60  # seconds
 # The top match is labelled "likely the same font" when its ranking key beats
