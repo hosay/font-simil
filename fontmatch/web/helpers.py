@@ -783,13 +783,84 @@ def google_fonts_license(source: str | None) -> str | None:
     return None
 
 
-def google_fonts_url(family: str, source: str | None = None) -> str:
-    """Google Fonts specimen URL for a family. With the font's ``source``
-    path the repo's own family name is used ("Red Hat Text"); otherwise the
-    family name with weight/style suffixes stripped (a guess that is wrong
-    for names like "Playfair Display")."""
+GOOGLE_FONTS_LIVE_FILE = Path(__file__).resolve().parent / "google_fonts_live.txt"
+
+# Families google/fonts still has directories for but fonts.google.com has
+# retired, mapped to the family that replaced them. Retired families not
+# listed here get no Google Fonts link.
+GOOGLE_FONTS_SUCCESSORS = {
+    **{
+        f"Big Shoulders{kind}{size}{sc}": f"Big Shoulders{kind}"
+        for kind in ("", " Inline", " Stencil")
+        for size in (" Display", " Text")
+        for sc in ("", " SC")
+    },
+    "Alumni Sans Collegiate One SC": "Alumni Sans Collegiate One",
+    "Creepster Caps": "Creepster",
+    "Ek Mukta": "Mukta",
+    "Finlandica": "Finlandica Text",
+    "Montserrat Subrayada": "Montserrat Underline",
+    "Fragment Mono SC": "Fragment Mono",
+    "Noto Naskh Arabic UI": "Noto Naskh Arabic",
+    "Noto Serif Nyiakeng Puachue Hmong": "Noto Serif NP Hmong",
+    "Noto Sans N Ko": "Noto Sans NKo",
+    "Nosifer Caps": "Nosifer",
+    "OFL Sorts Mill Goudy TT": "Sorts Mill Goudy",
+    "Rubik One": "Rubik",
+    "Saira Stencil One": "Saira Stencil",
+    "Sansita One": "Sansita",
+    "Signika Negative SC": "Signika Negative",
+    "Signika SC": "Signika",
+    "Yaldevi Colombo": "Yaldevi",
+    **{
+        f"Noto Sans {script} UI": f"Noto Sans {script}"
+        for script in (
+            "Arabic", "Bengali", "Devanagari", "Gujarati", "Gurmukhi", "Kannada", "Khmer",
+            "Lao", "Malayalam", "Myanmar", "Oriya", "Sinhala", "Tamil", "Telugu", "Thai",
+        )
+    },
+}  # fmt: skip
+
+
+@functools.lru_cache(maxsize=1)
+def google_fonts_live_families() -> frozenset[str] | None:
+    """Families fonts.google.com serves (dev/update_google_fonts_live.py), or
+    None when the list is missing (then every family is assumed live)."""
+    try:
+        text = GOOGLE_FONTS_LIVE_FILE.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    return frozenset(
+        line.strip() for line in text.splitlines() if line.strip() and not line.startswith("#")
+    )
+
+
+def google_fonts_live_name(name: str) -> str | None:
+    """The name to use in Google Fonts URLs: ``name`` if Google Fonts serves
+    it, its successor if it was retired, else None."""
+    live = google_fonts_live_families()
+    if live is None or name in live:
+        return name
+    successor = GOOGLE_FONTS_SUCCESSORS.get(name)
+    return successor if successor in live else None
+
+
+def google_fonts_css_name(name: str | None) -> str | None:
+    """``name`` if Google Fonts serves that exact family, for CSS embed code.
+    Never a successor: "Big Shoulders" serves mixed case, not the small caps
+    of "Big Shoulders Display SC"."""
+    return name if name and google_fonts_live_name(name) == name else None
+
+
+def google_fonts_url(family: str, source: str | None = None) -> str | None:
+    """Google Fonts specimen URL for a family, or None if Google Fonts doesn't
+    serve it. With the font's ``source`` path the repo's own family name is
+    used ("Red Hat Text"); otherwise the family name with weight/style
+    suffixes stripped (a guess that is wrong for names like "Playfair
+    Display")."""
     name = (google_fonts_name(source) if source else None) or base_family_name(family)
-    return "https://fonts.google.com/specimen/" + name.replace(" ", "+")
+    name = google_fonts_live_name(name)
+    return "https://fonts.google.com/specimen/" + name.replace(" ", "+") if name else None
 
 
 
@@ -853,6 +924,7 @@ def enrich_matches(matches: list[dict], store=None) -> list[dict]:
             m["license_id"] = google_fonts_license(gf_source) or m["license_id"]
         m["license_label"] = license_label(m["license_id"])
         m["display_family"] = m["gf_family"] or m["family"]
+        m["gf_css_family"] = google_fonts_css_name(m["gf_family"])
         if gf_source:
             m["google_fonts_url"] = google_fonts_url(m["family"], gf_source)
 

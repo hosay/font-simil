@@ -71,8 +71,8 @@
                 <span class="rating-feedback"></span>
             </div>
             <div class="match-actions">
-                {% if m.google_fonts_url and m.gf_family %}
-                <button class="action-btn copy-css-btn" data-family="{{ m.gf_family }}" title="Copy Google Fonts embed code">Copy CSS</button>
+                {% if m.google_fonts_url and m.gf_css_family %}
+                <button class="action-btn copy-css-btn" data-family="{{ m.gf_css_family }}" title="Copy Google Fonts embed code">Copy CSS</button>
                 {% endif %}
                 <button class="action-btn report-btn" data-query="{{ query_label }}" data-match="{{ m.name }}" title="Report a bad match">Flag</button>
             </div>

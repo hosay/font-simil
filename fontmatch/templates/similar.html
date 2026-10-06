@@ -89,15 +89,15 @@
     </div>
 </div>
 
-{% if corpus_gf_family %}
+{% if corpus_gf_css %}
 {% set generic = {'script': 'cursive'}.get(prop.category, prop.category) %}
 {% set prop_css = ("'" ~ family_name ~ "'") if ' ' in family_name else family_name %}
 <section class="css-snippet">
     <h2>Use {{ corpus_family }} instead of {{ family_name }} on your website</h2>
     <p>Add this to your page's <code>&lt;head&gt;</code>:</p>
-    <pre><code>&lt;link href="https://fonts.googleapis.com/css2?family={{ corpus_gf_family|replace(' ', '+') }}&amp;display=swap" rel="stylesheet"&gt;</code></pre>
+    <pre><code>&lt;link href="https://fonts.googleapis.com/css2?family={{ corpus_gf_css|replace(' ', '+') }}&amp;display=swap" rel="stylesheet"&gt;</code></pre>
     <p>Then use it in your CSS. {{ family_name }} stays in the list as a fallback for visitors who have it installed:</p>
-    <pre><code>font-family: '{{ corpus_gf_family }}', {{ prop_css }}, {{ generic }};</code></pre>
+    <pre><code>font-family: '{{ corpus_gf_css }}', {{ prop_css }}, {{ generic }};</code></pre>
 </section>
 {% endif %}
 
