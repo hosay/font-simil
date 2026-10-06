@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import hashlib
 import os
 from pathlib import Path
@@ -375,6 +376,9 @@ def resolve_font_file(store, corpus_dirs: list[str], name: str, walk: bool = Tru
         direct = _safe_resolve(corpus_dir, bare_name)
         if direct and direct.is_file():
             return direct
+        indexed = corpus_file_index(corpus_dir).get(bare_name)
+        if indexed and indexed.is_file():
+            return indexed
         if not walk:
             continue
         for dirpath, _dirnames, filenames in os.walk(corpus_dir):
@@ -383,6 +387,20 @@ def resolve_font_file(store, corpus_dirs: list[str], name: str, walk: bool = Tru
                 if _is_within(candidate, corpus_dir):
                     return candidate
     return None
+
+
+@functools.lru_cache(maxsize=16)
+def corpus_file_index(corpus_dir: str) -> dict[str, Path]:
+    """Font file name -> first path under ``corpus_dir`` (built once per
+    process; the corpus changes only on deploy). Lets bare-name sources
+    resolve without a directory walk per request."""
+    index: dict[str, Path] = {}
+    for dirpath, dirnames, filenames in os.walk(corpus_dir):
+        dirnames[:] = sorted(d for d in dirnames if not d.startswith("."))
+        for name in filenames:
+            if name.lower().endswith((".ttf", ".otf")):
+                index.setdefault(name, Path(dirpath) / name)
+    return index
 
 
 def _is_within(path: Path, directory: str) -> bool:

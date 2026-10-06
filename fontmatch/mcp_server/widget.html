@@ -117,7 +117,6 @@
       if (sampleUrl) {
         var img = el("img", "sample");
         img.alt = m.family + " sample: The quick brown fox jumps over the lazy dog";
-        img.loading = "lazy";
         img.src = sampleUrl;
         img.addEventListener("error", function () { img.remove(); resize(); });
         img.addEventListener("load", resize);
