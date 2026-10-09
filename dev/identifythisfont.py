@@ -120,7 +120,8 @@ NEGATIVE = re.compile(
     re.I,
 )
 SIMILAR = re.compile(
-    r"\b(similar|alternative|lookalike|look-alike|resembl\w*|close to|close enough|"
+    r"\b(similar|alternative|lookalike|look-alike|resembl\w*|close to|close enough|vibes?|"
+    r"(fairly|pretty|very|quite|is) close|closest|reminds? me|in the style of|"
     r"might (also )?like|also try|free version|dupe|knock-?off|not exact)\b",
     re.I,
 )
@@ -709,9 +710,16 @@ def build(args):
         bad = [f for f in acceptable if f not in catalog]
         if bad:
             sys.exit(f"{pid}: acceptable families not in the catalog: {bad}")
-        if lab["kind"] != "catalog" and not (acceptable or note.get("category")):
+        # A corrected truth ("Tangerine" the retro serif, not the catalog script)
+        # replaces the label's family and kind.
+        if note.get("truth"):
+            fam = normalize(note["truth"])
+            in_catalog = fam in catalog
+        else:
+            fam = lab["base_family"] or normalize(lab["name"])
+            in_catalog = lab["kind"] == "catalog"
+        if not in_catalog and not (acceptable or note.get("category")):
             continue
-        fam = lab["base_family"] or normalize(note.get("truth") or lab["name"])
         group = family_group(fam)
         split = split_for(fam, group, acceptable, split_of)
         img = ImageOps.exif_transpose(Image.open(out / "images" / note["image"])).convert("RGB")
@@ -731,7 +739,7 @@ def build(args):
             "confidence": lab["confidence"],
             "post": pid,
         }
-        bucket = "manifest.json" if lab["kind"] == "catalog" else "manifest_acceptable.json"
+        bucket = "manifest.json" if in_catalog else "manifest_acceptable.json"
         if bucket == "manifest_acceptable.json":
             entry["acceptable"] = acceptable
             entry["truth"] = note.get("truth") or lab["name"]

@@ -469,3 +469,12 @@ GAZ3 = itf.Gazetteer(
 def test_junk_link_texts_and_prefixes(body, expected):
     got = itf.name_candidates(body, GAZ3)
     assert (got[0] if got else None) == expected
+
+
+@pytest.mark.parametrize(
+    "body", ["Gives Helvetica vibes", "Helvetica is fairly close, just make the width 85%"]
+)
+def test_lookalike_answers_are_similar(body):
+    t = tree(comment("a", "u1", body, 5,
+                     replies=[comment("b", "op_user", "thanks!", 1, parent="t1_a")]))
+    assert itf.find_answer(post(), t, GAZ2).confidence == "similar"
