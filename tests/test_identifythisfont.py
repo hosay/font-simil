@@ -415,7 +415,7 @@ def test_split_puts_row_in_test_when_any_family_is_test():
 @pytest.mark.parametrize(
     "body,expected",
     [("Baller shirt btw", []), ("lol no idea", []), ("Friz Quadrata", ["friz quadrata"]),
-     ("Papyrus.", ["papyrus"])],
+     ("Papyrus.", ["papyrus"]), ("papyrus", ["papyrus"]), ("Papyrus for sure", ["papyrus"])],
 )  # fmt: skip
 def test_unknown_short_answer_must_look_like_a_name(body, expected):
     assert itf.name_candidates(body, GAZ) == expected
@@ -424,3 +424,27 @@ def test_unknown_short_answer_must_look_like_a_name(body, expected):
 def test_box_fractions_to_pixels():
     assert itf.box_pixels([0.1, 0.25, 0.9, 0.75], (1000, 400)) == (100, 100, 900, 300)
     assert itf.box_pixels(None, (1000, 400)) is None
+
+
+def test_agreement_is_weighted_by_score():
+    """The 478-point answer beats three 1-point jokes (r/identifythisfont 1pnbncy)."""
+    t = tree(
+        comment("a", "u1", "Papyrus.", 478),
+        comment("b", "u2", "papyrus", 2),
+        comment("c", "u3", "Papyrus for sure", 2),
+        comment("d", "u4", "Hippy Comic Sans", 3),
+        comment("e", "u5", "Comic Sans", 1),
+        comment("f", "u6", "Only thing we have here is comic sans", 1),
+    )
+    gaz = itf.Gazetteer({"comic sans": "Comic Sans"})
+    a = itf.find_answer(post(), t, gaz)
+    assert (a.name, a.method) == ("Papyrus", "agreement")
+
+
+def test_agreement_needs_a_clear_score_margin():
+    t = tree(
+        comment("a", "u1", "Futura", 10),
+        comment("b", "u2", "Futura", 2),
+        comment("c", "u3", "Helvetica", 9),
+    )
+    assert itf.find_answer(post(), t, GAZ2) is None

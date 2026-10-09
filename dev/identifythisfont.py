@@ -178,7 +178,10 @@ def find_answer(post: dict, comments: list, gaz: Gazetteer) -> Answer | None:
             conf = "similar" if similar else "high"
             return Answer(name, known, conf, "op_thanks", parent["body"][:300])
 
-    votes: dict[str, set] = {}
+    # Agreement: total score of the top-level comments naming each font. The
+    # winner needs two distinct authors and over twice the runner-up's score.
+    votes: dict[tuple, set] = {}
+    scores: dict[tuple, int] = {}
     bodies = {}
     for k in comments or []:
         if not isinstance(k, dict) or k.get("kind") != "t1":
@@ -189,13 +192,17 @@ def find_answer(post: dict, comments: list, gaz: Gazetteer) -> Answer | None:
         cands = name_candidates(d.get("body", ""), gaz)
         if cands:
             vote = _display(cands[0], gaz)  # "futura" and "Futura PT Bold" are one vote
+            if d["author"] in votes.get(vote, ()):
+                continue
             votes.setdefault(vote, set()).add(d["author"])
+            scores[vote] = scores.get(vote, 0) + d["score"]
             bodies.setdefault(vote, d["body"])
-    ranked = sorted(votes.items(), key=lambda kv: -len(kv[1]))
-    top = len(ranked[0][1]) if ranked else 0
-    if top >= 2 and (len(ranked) == 1 or len(ranked[1][1]) < top):
-        (name, known), _ = ranked[0]
-        return Answer(name, known, "medium", "agreement", bodies[(name, known)][:300])
+    ranked = sorted(scores, key=lambda v: -scores[v])
+    if ranked and len(votes[ranked[0]]) >= 2:
+        runner_up = scores[ranked[1]] if len(ranked) > 1 else 0
+        if scores[ranked[0]] > 2 * runner_up:
+            name, known = ranked[0]
+            return Answer(name, known, "medium", "agreement", bodies[ranked[0]][:300])
     return None
 
 
@@ -312,8 +319,13 @@ def _from_url(url: str) -> str | None:
     return None
 
 
+_TRAIL = re.compile(
+    r"(\s+(for sure|i think|i believe|maybe|probably|imo|perhaps|to me|lol|definitely))+$"
+)
+
+
 def _clean_candidate(s: str, gaz: Gazetteer) -> str | None:
-    s = _LEAD.sub("", normalize(s)).strip()
+    s = _TRAIL.sub("", _LEAD.sub("", normalize(s)).strip())
     known = gaz.key(s)
     if known:
         return known
@@ -363,8 +375,8 @@ _CHAT = {"btw", "lol", "lmao", "idk", "no", "yes", "thanks", "thank", "you", "i"
 
 
 def _looks_like_name(text: str) -> bool:
-    words = re.findall(r"[A-Za-z0-9']+", _LEAD.sub("", text.strip()))
-    return bool(words) and words[0][0].isupper() and not {w.lower() for w in words} & _CHAT
+    words = re.findall(r"[A-Za-z0-9']+", _TRAIL.sub("", _LEAD.sub("", normalize(text))))
+    return bool(words) and not {w.lower() for w in words} & _CHAT
 
 
 def box_pixels(box, size) -> tuple[int, int, int, int] | None:
@@ -678,12 +690,16 @@ def build(args):
         if not lab or note.get("skip") or lab["confidence"] == "similar":
             continue
         # Hand annotations may name substitutes for a truth outside the catalog
-        # (validated against the catalog); without any, the row can't be scored.
-        acceptable = note.get("acceptable") or lab["acceptable"]
+        # (validated against the catalog). A row with neither substitutes nor a
+        # category can't be scored.
+        if "acceptable" in note:
+            acceptable = note["acceptable"]
+        else:  # a corrected truth makes the label's substitutes meaningless
+            acceptable = [] if note.get("truth") else lab["acceptable"]
         bad = [f for f in acceptable if f not in catalog]
         if bad:
             sys.exit(f"{pid}: acceptable families not in the catalog: {bad}")
-        if lab["kind"] != "catalog" and not acceptable:
+        if lab["kind"] != "catalog" and not (acceptable or note.get("category")):
             continue
         fam = lab["base_family"] or normalize(note.get("truth") or lab["name"])
         group = family_group(fam)
