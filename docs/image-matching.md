@@ -328,11 +328,29 @@ posted to r/identifythisfont, labelled with the font the community named. `dev/i
   authors, score-weighted, winner over twice the runner-up). Names come from link texts and font-site
   URL slugs, bold text, short answers, then known names (image catalog, proprietary map); one-word
   dictionary names (Play, Share) must be capitalized and not start a sentence.
-- `build`: hand annotations (`scripts/eval_reddit_annotations.json`: crop box as fractions, transcript,
-  category, corrected truth, free substitutes, or a skip reason) to `eval_reports/reddit_{dev,test}/`.
-  `manifest.json` = truths in the catalog (tunable with `tune_image_ranker.py --browser`),
-  `manifest_acceptable.json` = commercial truths scored on category and on named free substitutes.
-  A row is test when its family, group or any substitute is a test family.
+- `build`: hand annotations (crop box as fractions, transcript, category, corrected truth, free
+  substitutes, or a skip reason) to `eval_reports/reddit_{dev,test}/`. Each row's truth is checked
+  against the *current* catalog: `manifest.json` = truths in the catalog (family hits; tunable with
+  `tune_image_ranker.py --browser`), `manifest_acceptable.json` = the rest, scored on category and on
+  named free substitutes. A row is test when its family, group or any substitute is a test family.
+- `export` / `fetch`: the versioned copy (below), and re-downloading its images.
+
+**Versioned set: `eval_sets/reddit_itf/`.** `annotations.json` (hand work), `labels.json` (answer
+name, confidence, method, substitutes; no comment text or usernames) and `posts.json` (permalink,
+image URL and SHA-1 per annotated post). The images are **not** in the repo: they are other people's
+photos and the repo is public. Rebuild anywhere:
+
+    venv/bin/python dev/identifythisfont.py fetch   # ~8 min, paced; reports removed/changed images
+    venv/bin/python dev/identifythisfont.py build
+    venv/bin/python scripts/eval_browser_screenshots.py score --dir eval_reports/reddit_dev \
+        --manifest manifest_acceptable.json          # and manifest.json; reddit_test once only
+
+**When proprietary fonts are in the DB.** Rebuild the glyph atlas, then `build` again: rows whose
+truth (Futura, Palatino, Cooper Black, Peignot, ...: 139 of the 146 rows today) is now a catalog
+family move to `manifest.json` and score on family@1/@5, which is the real "name that font" metric.
+The truth must normalise to the DB family's base name (`fontmatch.image.catalog.base_family`); check
+`manifest.json` row counts after the rebuild. The answer names are Reddit's, so expect a few wrong or
+over-specific ones (e.g. "Futura Condensed"); fix them with `truth` in `annotations.json`.
 
 First scrape: 402 posts, 458 images; 208 labelled; 186 annotated (56 skipped: rotated, curved, 3D,
 photo-filled or several fonts); 146 scoreable rows (dev 103, test 43). Most truths are commercial

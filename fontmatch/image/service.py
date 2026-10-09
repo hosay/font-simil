@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 # Bump when the ranker or scoring code changes. Atlas/catalog rebuilds are
 # picked up automatically via ImageIdentifier.version (content hash).
 # 7: letter-spacing fit, colour ink map, row-profile prefilter
-IMAGE_SCHEMA_VERSION = 8  # 8: transparent images flattened onto white or black
+IMAGE_SCHEMA_VERSION = 9  # 9: line-box components, stacked signs, no non-text families
 MAX_HINT_CHARS = 500
 RETRY_FAILED_LOAD_AFTER = 60  # seconds
 # The top match is labelled "likely the same font" when its ranking key beats

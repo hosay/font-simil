@@ -41,7 +41,7 @@ DEFAULT_OUT = Path("/opt/projects/font_simil/eval_reports/reddit_itf")
 BASE = "https://www.reddit.com"
 SUB = "/r/identifythisfont"
 LISTINGS = ("top:all", "top:year")
-ANNOTATIONS = ROOT / "scripts" / "eval_reddit_annotations.json"
+SET_DIR = ROOT / "eval_sets" / "reddit_itf"  # versioned: annotations, labels, posts
 
 IMAGE_HOSTS = ("i.redd.it", "preview.redd.it")
 BOTS = {"automoderator"}
@@ -671,6 +671,91 @@ def label(args):
     print(json.dumps(dict(sorted(stats.items())), indent=1))
 
 
+# --- public set (versioned in eval_sets/reddit_itf/) ------------------------------------------
+
+
+def truth_family(lab: dict, note: dict, catalog) -> tuple[str, bool]:
+    """(base family of the answer, whether the current catalog has it). Checked
+    at build time, so once proprietary fonts are in the DB their rows move to
+    manifest.json and score on family hits. A hand-corrected truth wins."""
+    sys.path.insert(0, str(ROOT))
+    from fontmatch.image.catalog import base_family
+
+    if note.get("truth"):
+        fam = base_family(note["truth"])
+    else:
+        fam = lab.get("base_family") or base_family(lab["name"])
+    return fam, fam in catalog
+
+
+def public_labels(labels: dict) -> dict:
+    """Labels without comment text, titles or usernames."""
+    keep = ("name", "confidence", "method", "acceptable")
+    return {pid: {k: lab[k] for k in keep} for pid, lab in labels.items()}
+
+
+def public_posts(recs: list[dict], notes: dict) -> dict:
+    """Per annotated post: permalink plus the annotated image's URL and SHA-1,
+    so `fetch` can re-download and verify it. Images themselves are not
+    versioned: they are other people's photos and the repo is public."""
+    out = {}
+    for r in recs:
+        note = notes.get(r["id"])
+        if not note:
+            continue
+        img = next((i for i in r["images"] if i["file"] == note["image"]), None)
+        if img:
+            out[r["id"]] = {"permalink": r["permalink"], "file": img["file"],
+                            "url": img["url"], "sha1": img["sha1"]}  # fmt: skip
+    return out
+
+
+def export(args):
+    """Write the versioned set (labels, posts) from a local scrape."""
+    out, dest = Path(args.out), Path(args.set_dir)
+    notes = json.loads((dest / "annotations.json").read_text())
+    labels = json.loads((out / "labels.json").read_text())
+    used = {pid: lab for pid, lab in labels.items() if pid in notes}
+    dest.mkdir(parents=True, exist_ok=True)
+    (dest / "labels.json").write_text(json.dumps(public_labels(used), indent=1, sort_keys=True))
+    posts = public_posts(load_index(out / "posts.jsonl"), notes)
+    (dest / "posts.json").write_text(json.dumps(posts, indent=1, sort_keys=True))
+    print(f"{len(used)} labels, {len(posts)} posts -> {dest}")
+
+
+def fetch(args):
+    """Download the annotated images (plain HTTPS, paced) and verify SHA-1s."""
+    import urllib.request
+
+    out, dest = Path(args.out), Path(args.set_dir)
+    notes = json.loads((dest / "annotations.json").read_text())
+    posts = json.loads((dest / "posts.json").read_text())
+    (out / "images").mkdir(parents=True, exist_ok=True)
+    rng, missing, got = random.Random(), [], 0
+    ua = "Mozilla/5.0 (X11; Linux x86_64; rv:135.0) Gecko/20100101 Firefox/135.0"
+    for pid, p in sorted(posts.items()):
+        if notes.get(pid, {}).get("skip"):
+            continue
+        path = out / "images" / p["file"]
+        if path.exists() and hashlib.sha1(path.read_bytes()).hexdigest() == p["sha1"]:
+            continue
+        time.sleep(rng.uniform(2, 5))
+        try:
+            req = urllib.request.Request(p["url"], headers={"User-Agent": ua})
+            blob = urllib.request.urlopen(req, timeout=30).read()
+        except OSError as e:
+            missing.append(f"{pid}: {e}")
+            continue
+        if hashlib.sha1(blob).hexdigest() != p["sha1"]:
+            missing.append(f"{pid}: checksum differs (image changed or removed)")
+            continue
+        path.write_bytes(blob)
+        got += 1
+    print(f"fetched {got}; unavailable {len(missing)}")
+    for m in missing:
+        print("  ", m)
+
+
 # --- build ------------------------------------------------------------------------------------
 
 
@@ -692,7 +777,7 @@ def build(args):
 
     out = Path(args.out)
     catalog = {e.base_family: e for e in load_catalog_json(Path(args.catalog))}
-    labels = json.loads((out / "labels.json").read_text())
+    labels = json.loads(Path(args.labels).read_text())
     notes = json.loads(Path(args.annotations).read_text())
     for split in ("dev", "test"):  # rebuilt from scratch every time
         shutil.rmtree(out.parent / f"reddit_{split}", ignore_errors=True)
@@ -711,14 +796,7 @@ def build(args):
         bad = [f for f in acceptable if f not in catalog]
         if bad:
             sys.exit(f"{pid}: acceptable families not in the catalog: {bad}")
-        # A corrected truth ("Tangerine" the retro serif, not the catalog script)
-        # replaces the label's family and kind.
-        if note.get("truth"):
-            fam = normalize(note["truth"])
-            in_catalog = fam in catalog
-        else:
-            fam = lab["base_family"] or normalize(lab["name"])
-            in_catalog = lab["kind"] == "catalog"
+        fam, in_catalog = truth_family(lab, note, catalog)
         if not in_catalog and not (acceptable or note.get("category")):
             continue
         group = family_group(fam)
@@ -741,9 +819,9 @@ def build(args):
             "post": pid,
         }
         bucket = "manifest.json" if in_catalog else "manifest_acceptable.json"
-        if bucket == "manifest_acceptable.json":
+        entry["truth"] = note.get("truth") or lab["name"]
+        if acceptable:
             entry["acceptable"] = acceptable
-            entry["truth"] = note.get("truth") or lab["name"]
         sets.setdefault(split, {}).setdefault(bucket, []).append(entry)
     for split, buckets in sets.items():
         for bucket, rows in buckets.items():
@@ -761,14 +839,18 @@ def main():
     s.add_argument("--max-posts", type=int, default=200)
     s.add_argument("--max-requests", type=int, default=700)
     s.add_argument("--listings", default=",".join(LISTINGS))
-    for name in ("label", "build"):
+    for name in ("label", "build", "export", "fetch"):
         p = sub.add_parser(name)
         p.add_argument("--out", default=str(DEFAULT_OUT))
         p.add_argument("--catalog", default=str(ROOT / "glyph_atlas" / "catalog.json"))
-    # Hand annotations are versioned (no usernames, post ids + crop + transcript).
-    sub.choices["build"].add_argument("--annotations", default=str(ANNOTATIONS))
+        p.add_argument("--set-dir", default=str(SET_DIR))
+    b = sub.choices["build"]
+    b.add_argument("--annotations", default=str(SET_DIR / "annotations.json"))
+    b.add_argument("--labels", default=str(SET_DIR / "labels.json"))
     args = ap.parse_args()
-    {"scrape": scrape, "label": label, "build": build}[args.cmd](args)
+    {"scrape": scrape, "label": label, "build": build, "export": export, "fetch": fetch}[
+        args.cmd
+    ](args)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,1216 @@
+{
+ "10rayl4": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Uptight"
+ },
+ "11252k5": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Dimensions"
+ },
+ "12bumqd": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Zapfino"
+ },
+ "1jyo4zf": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Friz Quadrata"
+ },
+ "1lcl0ls": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Signpainter Script"
+ },
+ "1m2m0jl": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Microsoft Wordart"
+ },
+ "1n7p6hq": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "redacted script"
+ },
+ "1o7ot1v": {
+  "acceptable": [
+   "inter"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "SF Pro"
+ },
+ "1oc0t65": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Hotty Dotty"
+ },
+ "1ofg383": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Itc Serif Gothic"
+ },
+ "1og7lbe": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Kilimanjaro Sans"
+ },
+ "1ogpkzw": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Dreamline"
+ },
+ "1onko2l": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Amelia"
+ },
+ "1oojz6f": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Young Baroque"
+ },
+ "1opaxuc": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Shelley Script"
+ },
+ "1owfl99": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Epic And Hollywood Cinema"
+ },
+ "1oylbxo": {
+  "acceptable": [
+   "arimo"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Helvetica"
+ },
+ "1p0qls7": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Oth Droulers Webl"
+ },
+ "1p14hvc": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Vcr Osd Mono"
+ },
+ "1p1w3sg": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "1313 Mockingbird Lane"
+ },
+ "1p9afbr": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Jackson"
+ },
+ "1pnbncy": {
+  "acceptable": [],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Papyrus"
+ },
+ "1pql256": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Cicero"
+ },
+ "1ps3dcr": {
+  "acceptable": [
+   "poppins"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Avant Garde"
+ },
+ "1pt4lic": {
+  "acceptable": [
+   "fraunces"
+  ],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Cooper Black"
+ },
+ "1pv3l0e": {
+  "acceptable": [
+   "cinzel"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Trajan"
+ },
+ "1q30kcv": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Officer X"
+ },
+ "1q89i47": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Codex"
+ },
+ "1q8cjmq": {
+  "acceptable": [],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Brush Script"
+ },
+ "1q9awja": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Randumhouse"
+ },
+ "1qfk83f": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Itc Souvenir"
+ },
+ "1qhp3sq": {
+  "acceptable": [
+   "fraunces"
+  ],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Cooper Black"
+ },
+ "1qj9vqx": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Itc Serif Gothic"
+ },
+ "1qoc7ja": {
+  "acceptable": [
+   "jost"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Futura"
+ },
+ "1qomkji": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Davida"
+ },
+ "1qr6f81": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Peignot"
+ },
+ "1qsatc5": {
+  "acceptable": [
+   "jost"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Futura"
+ },
+ "1qv75g9": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Simplex"
+ },
+ "1qvm0gb": {
+  "acceptable": [
+   "cousine"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Courier New"
+ },
+ "1qw0pzo": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Youth"
+ },
+ "1r0bjvf": {
+  "acceptable": [
+   "arimo"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Arial"
+ },
+ "1r8xcru": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Ludlow Tempo"
+ },
+ "1r9fibf": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Hwt Van Lanen"
+ },
+ "1rdqugg": {
+  "acceptable": [],
+  "confidence": "similar",
+  "method": "op_thanks",
+  "name": "Field Gothic No 25"
+ },
+ "1rfquv7": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Itc Victorian"
+ },
+ "1rrq32j": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Benguiat"
+ },
+ "1rs3qdm": {
+  "acceptable": [
+   "arimo"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Helvetica"
+ },
+ "1rvep21": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Hcp\u4e38\u30b4\u30b7\u30c3\u30af"
+ },
+ "1rvlgn7": {
+  "acceptable": [
+   "tinos"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Times New Roman"
+ },
+ "1rw3b5f": {
+  "acceptable": [],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Jackson"
+ },
+ "1rz31jn": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Grobold"
+ },
+ "1s1k8ob": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "inter"
+ },
+ "1s2sj4g": {
+  "acceptable": [
+   "fraunces"
+  ],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Cooper Black"
+ },
+ "1s61xed": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Kabel"
+ },
+ "1s8abi0": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Southbeach"
+ },
+ "1s8rdpc": {
+  "acceptable": [
+   "jost"
+  ],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Futura"
+ },
+ "1skppg8": {
+  "acceptable": [
+   "libre franklin"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Franklin Gothic"
+ },
+ "1ssb1wa": {
+  "acceptable": [
+   "anton"
+  ],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Impact"
+ },
+ "1t0hea9": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Dk Downward Fall"
+ },
+ "1t0zb6q": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Umbra"
+ },
+ "1tbed7i": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Cabeza Grossa"
+ },
+ "1td82fg": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Metro"
+ },
+ "1tid7rh": {
+  "acceptable": [
+   "inter"
+  ],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Helvetica Neue"
+ },
+ "1tm4n8x": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Lambert"
+ },
+ "1ty1mva": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Motter Ombra"
+ },
+ "1u3n0ff": {
+  "acceptable": [],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Coolvetica"
+ },
+ "1u4z4ln": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Porky'S"
+ },
+ "1u64yqt": {
+  "acceptable": [
+   "lora"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Palatino"
+ },
+ "1u7ghd3": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Letraset Sinaloa"
+ },
+ "1ub4jxk": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Advertisers Gothic"
+ },
+ "1udrrfy": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Fleisch"
+ },
+ "1ulxw8f": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Modula"
+ },
+ "1unwuj3": {
+  "acceptable": [],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Upright"
+ },
+ "1uuto29": {
+  "acceptable": [
+   "gfs didot"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Didot"
+ },
+ "1uw7xnd": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Providence Sans"
+ },
+ "1uwtec5": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Ledlight"
+ },
+ "1uyxkqj": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Baby Teeth"
+ },
+ "1vavg07": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Adobe"
+ },
+ "1viiwpr": {
+  "acceptable": [
+   "cabin"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Gill Sans"
+ },
+ "1vv0o8j": {
+  "acceptable": [],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Peignot"
+ },
+ "1w0zu3j": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "zilla slab"
+ },
+ "1w4atct": {
+  "acceptable": [
+   "jost"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Futura"
+ },
+ "1w9ze8z": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Hobo"
+ },
+ "1wbqjlu": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Serif Gothic"
+ },
+ "1wdnxtk": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Johnston"
+ },
+ "1wduc8w": {
+  "acceptable": [
+   "jost"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Futura"
+ },
+ "1wi0tp9": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Altesse"
+ },
+ "1wm246j": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Nuances Affection"
+ },
+ "1wp5tz3": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Eyesome Script"
+ },
+ "1wq6bhi": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Oklahoma"
+ },
+ "1wqnixf": {
+  "acceptable": [],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Pluto"
+ },
+ "1ww60zs": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Anaktoria"
+ },
+ "1wxqofm": {
+  "acceptable": [
+   "arimo"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Arial"
+ },
+ "1wxsf3j": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Flight Center Gothic"
+ },
+ "1wy45jr": {
+  "acceptable": [
+   "fraunces"
+  ],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Cooper Black"
+ },
+ "fxk1st": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Base&Bloom"
+ },
+ "fz6wcs": {
+  "acceptable": [],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Hawthorn"
+ },
+ "g2m1s2": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Hukopti"
+ },
+ "g330zc": {
+  "acceptable": [],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Itc Grouch"
+ },
+ "g4qvcb": {
+  "acceptable": [
+   "arimo"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Helvetica"
+ },
+ "g78hz2": {
+  "acceptable": [
+   "poppins"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Avant Garde"
+ },
+ "g8lul4": {
+  "acceptable": [
+   "arimo"
+  ],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Arial"
+ },
+ "g8zze8": {
+  "acceptable": [
+   "great vibes"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Monotype Corsiva"
+ },
+ "g9msge": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "rufina"
+ },
+ "ggcpsv": {
+  "acceptable": [
+   "varela round"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Arial Rounded"
+ },
+ "gimiot": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Genie Peasow"
+ },
+ "gqxe6s": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Enfantine"
+ },
+ "gs3v6w": {
+  "acceptable": [
+   "fraunces"
+  ],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Recoleta"
+ },
+ "gxpwh4": {
+  "acceptable": [
+   "cinzel"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Copperplate"
+ },
+ "gyzdf7": {
+  "acceptable": [
+   "arimo"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Helvetica"
+ },
+ "gzhdoa": {
+  "acceptable": [
+   "arimo"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Arial"
+ },
+ "hchz81": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "ovo"
+ },
+ "he58o0": {
+  "acceptable": [
+   "jost"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Futura"
+ },
+ "hip1t2": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "La Nord"
+ },
+ "hjowja": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "itim"
+ },
+ "hkswbt": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Bookman"
+ },
+ "i1e59c": {
+  "acceptable": [
+   "libre baskerville"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Baskerville"
+ },
+ "i2caor": {
+  "acceptable": [
+   "nunito"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Gotham Rounded"
+ },
+ "i2wu03": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Milano"
+ },
+ "i60yo3": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "March"
+ },
+ "i6hgy0": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "shrikhand"
+ },
+ "iaici0": {
+  "acceptable": [],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Titania"
+ },
+ "ibhunu": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Domaine Display Medium From Klim"
+ },
+ "ibwipr": {
+  "acceptable": [
+   "michroma"
+  ],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Microgramma"
+ },
+ "icosdg": {
+  "acceptable": [
+   "cinzel"
+  ],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Copperplate"
+ },
+ "ievede": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Noe"
+ },
+ "ifpm0k": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Mfc Ambeau Monogram"
+ },
+ "igugw9": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Arnold Boecklin"
+ },
+ "ijjat6": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Harabara Mais"
+ },
+ "ilq9me": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Cooper"
+ },
+ "irwf2t": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Manifesto"
+ },
+ "it22g8": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Sf Collegiate"
+ },
+ "iu1u9s": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Glamour Absolute"
+ },
+ "iuipgw": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Agipo"
+ },
+ "ixgu18": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Itc Serif Gothic"
+ },
+ "j9ay5y": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Lhf Hensler"
+ },
+ "jahi6h": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Royal Acidbath"
+ },
+ "je005n": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Glamour Absolute"
+ },
+ "jffbuz": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Parabole"
+ },
+ "jic1ap": {
+  "acceptable": [
+   "tinos"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Times New Roman"
+ },
+ "jk4bdw": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Bourbon St"
+ },
+ "jm9j9j": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Voyage"
+ },
+ "jq81wk": {
+  "acceptable": [
+   "lora"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Palatino"
+ },
+ "jrs71e": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Fontspring"
+ },
+ "k183g4": {
+  "acceptable": [
+   "montserrat"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Gotham"
+ },
+ "k1mi6s": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "House 3009 Cyberspace"
+ },
+ "k6ft15": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Val"
+ },
+ "k7zjnv": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Bw Gradual"
+ },
+ "kjldr6": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Chiquita"
+ },
+ "kouvso": {
+  "acceptable": [
+   "carlito"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Calibri"
+ },
+ "kyvyuw": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Lemondrop"
+ },
+ "l45g0a": {
+  "acceptable": [
+   "arimo"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Arial"
+ },
+ "l66ajl": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Florida Project"
+ },
+ "l93ifp": {
+  "acceptable": [
+   "nunito sans 12pt"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Avenir Next"
+ },
+ "lmlnve": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Edition Studio"
+ },
+ "lrvets": {
+  "acceptable": [
+   "nunito sans 12pt"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Avenir"
+ },
+ "lso5jf": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Cannela"
+ },
+ "lxcy9d": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Permanent Headline"
+ },
+ "m1d6f1": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Rainer"
+ },
+ "mbjbh3": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Mondial"
+ },
+ "mmcfvo": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Nineties"
+ },
+ "mrgvf3": {
+  "acceptable": [
+   "jost"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Futura"
+ },
+ "ms7s3l": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Ethernal"
+ },
+ "mu1of2": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Itc Souvenir"
+ },
+ "n1bm45": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Eurostile Bold Extended #2"
+ },
+ "n276nf": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "tangerine"
+ },
+ "nbk0jk": {
+  "acceptable": [
+   "cabin"
+  ],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Gill Sans"
+ },
+ "nd7t4k": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Blender"
+ },
+ "ndjmsc": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Exchange"
+ },
+ "nm0yq1": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Letters For Learners"
+ },
+ "o5trac": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Vulture"
+ },
+ "o8qmw9": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Zapfino"
+ },
+ "ocux1j": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Bon Voyage"
+ },
+ "ogyn4x": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Cardinal Photo"
+ },
+ "ohv9dx": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "lato"
+ },
+ "pdi1uz": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Vcr Osd Mono"
+ },
+ "pkb0jo": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Controversy"
+ },
+ "rmkn7h": {
+  "acceptable": [
+   "michroma"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Eurostile"
+ },
+ "rzun6t": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Lydian"
+ },
+ "tdt2fl": {
+  "acceptable": [
+   "jost"
+  ],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Futura"
+ },
+ "vbm32j": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Herokid"
+ },
+ "wcjhl9": {
+  "acceptable": [
+   "fraunces"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Recoleta"
+ },
+ "xmoj1q": {
+  "acceptable": [
+   "jost"
+  ],
+  "confidence": "medium",
+  "method": "agreement",
+  "name": "Futura"
+ },
+ "xwjvu3": {
+  "acceptable": [
+   "libre franklin"
+  ],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Franklin Gothic"
+ },
+ "yeurpb": {
+  "acceptable": [],
+  "confidence": "high",
+  "method": "op_thanks",
+  "name": "Kaftan"
+ }
+}

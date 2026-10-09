@@ -478,3 +478,37 @@ def test_lookalike_answers_are_similar(body):
     t = tree(comment("a", "u1", body, 5,
                      replies=[comment("b", "op_user", "thanks!", 1, parent="t1_a")]))
     assert itf.find_answer(post(), t, GAZ2).confidence == "similar"
+
+
+# --- public export ---------------------------------------------------------------------------
+
+
+def test_public_labels_drop_comment_text_and_titles():
+    labels = {"p1": {"name": "Futura", "known": True, "confidence": "high", "method": "op_thanks",
+                     "excerpt": "u/someone said Futura", "title": "help", "kind": "proprietary",
+                     "acceptable": ["jost"], "images": ["p1_0.jpg"],
+                     "base_family": None}}  # fmt: skip
+    out = itf.public_labels(labels)
+    assert out == {"p1": {"name": "Futura", "confidence": "high", "method": "op_thanks",
+                          "acceptable": ["jost"]}}  # fmt: skip
+
+
+def test_public_posts_keep_only_annotated_image_and_its_checksum():
+    recs = [
+        {"id": "p1", "permalink": "/r/x/comments/p1/t/", "title": "t", "selftext": "s",
+         "images": [{"file": "p1_0.jpg", "url": "https://i.redd.it/a.jpg", "sha1": "ab"},
+                    {"file": "p1_1.jpg", "url": "https://i.redd.it/b.jpg", "sha1": "cd"}]},
+        {"id": "p2", "permalink": "/r/x/comments/p2/t/", "images": []},
+    ]  # fmt: skip
+    notes = {"p1": {"image": "p1_1.jpg", "text": "x"}}
+    assert itf.public_posts(recs, notes) == {
+        "p1": {"permalink": "/r/x/comments/p1/t/", "file": "p1_1.jpg",
+               "url": "https://i.redd.it/b.jpg", "sha1": "cd"}}  # fmt: skip
+
+
+def test_truth_family_is_rechecked_against_the_current_catalog():
+    """When proprietary fonts enter the DB, their rows become catalog rows."""
+    lab = {"name": "Futura", "base_family": None}
+    assert itf.truth_family(lab, {}, {"jost"}) == ("futura", False)
+    assert itf.truth_family(lab, {}, {"jost", "futura"}) == ("futura", True)
+    assert itf.truth_family(lab, {"truth": "Futura PT Bold"}, {"futura pt"}) == ("futura pt", True)
