@@ -448,3 +448,24 @@ def test_agreement_needs_a_clear_score_margin():
         comment("c", "u3", "Helvetica", 9),
     )
     assert itf.find_answer(post(), t, GAZ2) is None
+
+
+GAZ3 = itf.Gazetteer(
+    {"droid serif": "Droid Serif", "avenir next": "Avenir Next", "futura": "Futura"}
+)
+
+
+@pytest.mark.parametrize(
+    "body,expected",
+    [
+        ("Droid Serif Bold Italic\n\nI used [myfonts.com/wtf/](https://myfonts.com/wtf/)",
+         "droid serif"),
+        ("[IMG Proof](https://imgur.com/KAKGtcF)", None),
+        ("here is [the font](https://ko-fi.com/s/6c60d8a3a3) :)", None),
+        ("yep. futura", "futura"),
+        ("Linotype's [Avenir Next Pro Condensed Heavy](https://www.myfonts.com/fonts/x)", "avenir next"),
+    ],
+)  # fmt: skip
+def test_junk_link_texts_and_prefixes(body, expected):
+    got = itf.name_candidates(body, GAZ3)
+    assert (got[0] if got else None) == expected

@@ -216,16 +216,22 @@ def _display(candidate: str, gaz: Gazetteer) -> tuple[str, bool]:
 STYLE_WORDS = (
     r"thin|hairline|extra ?light|ultra ?light|light|book|regular|normal|roman|medium|semi ?bold|"
     r"demi ?bold|demi|bold|extra ?bold|ultra ?bold|heavy|black|ultra|italic|oblique|condensed|"
-    r"compressed|narrow|extended|expanded|wide|display|text"
+    r"compressed|narrow|extended|expanded|wide|display|text|pro|std|lt|mt|ot|ef|ps"
 )
 _TRAILING_STYLE = re.compile(rf"(\s+({STYLE_WORDS}))+$", re.I)
 _LEAD = re.compile(
-    r"^(?:i think |i believe |pretty sure |probably |maybe |possibly |actually |definitely |"
+    r"^(?:yep |yes |yeah |yup |\w+'s |i think |i believe |pretty sure |probably |maybe |"
+    r"possibly |actually |definitely |"
     r"looks like |look(?:s)? like |this is |that'?s |it'?s |it is |its |the font is |font is |"
     r"try |you're in luck,? |could be |seems like |might be |a font named |called )+",
     re.I,
 )
-_GENERIC_LINK = {"here", "this", "link", "this one", "source", "font", "it", "website"}
+_GENERIC_LINK = {
+    "here", "this", "link", "this one", "source", "font", "it", "website", "the", "a", "img",
+    "img proof", "proof", "image", "pic", "picture", "screenshot", "example", "download",
+}  # fmt: skip
+# Links to images are proof, not a name: "[IMG Proof](imgur...)".
+_PROOF_HOSTS = ("imgur.com", "i.imgur.com", "i.redd.it", "preview.redd.it", "reddit.com")
 _LINK = re.compile(r"\[([^\]]*)\]\((https?://(?:[^()\s]|\([^()\s]*\))+)\)")
 _BARE_URL = re.compile(r"(?<!\()https?://[^\s)\]]+")
 _BOLD = re.compile(r"\*\*([^*]{2,60})\*\*")
@@ -346,7 +352,11 @@ def name_candidates(body: str, gaz: Gazetteer) -> list[str]:
             out.append(c)
 
     for text, url in _LINK.findall(body):
-        if text.startswith("http") or normalize(text) in _GENERIC_LINK:
+        host = (urlparse(url).hostname or "").removeprefix("www.")
+        if host in _PROOF_HOSTS:
+            continue
+        url_like = re.search(r"\.[a-z]{2,4}(/|$)", text.lower()) and " " not in text.strip()
+        if text.startswith("http") or url_like or normalize(text) in _GENERIC_LINK:
             add(_from_url(url) or None)
         else:
             add(text)
