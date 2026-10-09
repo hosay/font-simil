@@ -71,7 +71,7 @@ def test_matcher_never_offers_non_text_families():
     from fontmatch.image.rank import ImageMatcher
 
     class Atlas:
-        faces = [{"key": "A", "space": 0.3}, {"key": "B", "space": 0.3}, {"key": "C", "space": 0.3}]
+        faces = [{"key": k, "space": 0.3} for k in "ABC"]
         meta = np.zeros((3, 0))
 
     m = ImageMatcher(Atlas(), {"A": "arimo", "B": "libre barcode 39", "C": "wavefont"})

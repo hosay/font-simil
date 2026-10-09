@@ -95,7 +95,8 @@ def test_locate_nothing_found():
 def _stacked(words, size_px=64):
     """Words on separate lines (a sign: "PHONE / FOR / TRUCKS")."""
     parts = [render_text_image(TINOS, w, size_px=size_px) for w in words]
-    canvas = Image.new("RGB", (max(p.width for p in parts) + 40, sum(p.height for p in parts) + 40), "white")
+    size = (max(p.width for p in parts) + 40, sum(p.height for p in parts) + 40)
+    canvas = Image.new("RGB", size, "white")
     y = 20
     for p in parts:
         canvas.paste(p, (20, y))

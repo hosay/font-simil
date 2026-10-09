@@ -237,10 +237,13 @@ def _stacked_line(
     for b in bands:
         cols = np.flatnonzero(ink[b].any(axis=0))
         extents.append((cols[0], cols[-1] + 1))
-    groups = split_words_by_widths(units, [r - l for l, r in extents])
+    groups = split_words_by_widths(units, [right - left for left, right in extents])
     if groups is None:
         return None
-    i = max(range(len(bands)), key=lambda j: (bands[j].stop - bands[j].start, extents[j][1] - extents[j][0]))
+    def size(j):
+        return bands[j].stop - bands[j].start, extents[j][1] - extents[j][0]
+
+    i = max(range(len(bands)), key=size)
     left, right = extents[i]
     box = (
         int(left / scale),
@@ -268,7 +271,9 @@ def locate(img: Image.Image, hint: str = "") -> Located | None:
             transcript, box = stacked
             crop, (dx, dy) = _padded_crop(img, box)
             ink_box = (box[0] - dx, box[1] - dy, box[2] - dx, box[3] - dy)
-            return Located(crop=crop, transcript=transcript, source="hint", box=box, ink_box=ink_box)
+            return Located(
+                crop=crop, transcript=transcript, source="hint", box=box, ink_box=ink_box
+            )
         full = (0, 0, img.width, img.height)
         return Located(crop=img, transcript=segs[0], source="hint", box=full, ink_box=None)
 
