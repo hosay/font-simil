@@ -463,7 +463,7 @@ GAZ3 = itf.Gazetteer(
         ("[IMG Proof](https://imgur.com/KAKGtcF)", None),
         ("here is [the font](https://ko-fi.com/s/6c60d8a3a3) :)", None),
         ("yep. futura", "futura"),
-        ("Linotype's [Avenir Next Pro Condensed Heavy](https://www.myfonts.com/fonts/x)", "avenir next"),
+        ("Linotype's [Avenir Next Pro Condensed Heavy](https://x.com/a)", "avenir next"),
     ],
 )  # fmt: skip
 def test_junk_link_texts_and_prefixes(body, expected):
