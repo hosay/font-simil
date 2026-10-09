@@ -312,6 +312,36 @@ the service score, bounded crops) and the label recalibrated on it; distinct log
 stale vs missing `rows.npy`; "Thin Italic" stripped from display names; removed dead code
 (`estimate_aspects`) and the rejected 64 px experiment.
 
+## Real-image eval set: r/identifythisfont (2026-10-08, branch `feature/reddit-eval`)
+
+Every earlier set is synthetic or Chrome-rendered. This one is real photos and screenshots that people
+posted to r/identifythisfont, labelled with the font the community named. `dev/identifythisfont.py`:
+
+- `scrape`: Camoufox at human pace (8-20 s per page, 1-3 min break every 20-30 requests, request
+  budget, stops on 403/429/non-JSON and saves the page). Logged-out old.reddit redirects to login and
+  `search.json` returns nothing, so it reads `www.reddit.com/r/identifythisfont/top.json` (all, year)
+  and each post's `.json` inside the browser session. Needs `venv-scrape/`
+  (`dev/requirements-scrape.txt`): Playwright 1.60 crashes the driver on Reddit page errors with
+  Camoufox's Firefox 135; 1.51 works. Prod venv untouched. Output: `eval_reports/reddit_itf/`.
+- `label`: keeps flair "Identified"; the answer is the comment the poster thanked (any depth; "thanks
+  anyway", "close enough" and lookalike wording handled), else top-level agreement (two distinct
+  authors, score-weighted, winner over twice the runner-up). Names come from link texts and font-site
+  URL slugs, bold text, short answers, then known names (image catalog, proprietary map); one-word
+  dictionary names (Play, Share) must be capitalized and not start a sentence.
+- `build`: hand annotations (`scripts/eval_reddit_annotations.json`: crop box as fractions, transcript,
+  category, corrected truth, free substitutes, or a skip reason) to `eval_reports/reddit_{dev,test}/`.
+  `manifest.json` = truths in the catalog (tunable with `tune_image_ranker.py --browser`),
+  `manifest_acceptable.json` = commercial truths scored on category and on named free substitutes.
+  A row is test when its family, group or any substitute is a test family.
+
+First scrape: 402 posts, 458 images; 208 labelled; 186 annotated (56 skipped: rotated, curved, 3D,
+photo-filled or several fonts); 146 scoreable rows (dev 103, test 43). Most truths are commercial
+(only 7 in the catalog), which is Dupefont's real use case.
+
+**Baseline (master af27d08, dev, transcript as hint):** category@1 0.47 (sans 0.48, display 0.52,
+handwriting 0.70, **serif 0.24**, mono 0.33 on 3), acceptable@5 0.07, catalog family@5 0/5.
+Synthetic/Chrome sets gave category@1 0.69-0.78, so real photos are the main gap, and serifs most.
+
 ## Deploy runbook (Phase 4, executed 2026-10-03)
 
 System packages: `apt install tesseract-ocr` (done on a01). Everything below runs on a01.

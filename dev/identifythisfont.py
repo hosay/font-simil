@@ -41,6 +41,7 @@ DEFAULT_OUT = Path("/opt/projects/font_simil/eval_reports/reddit_itf")
 BASE = "https://www.reddit.com"
 SUB = "/r/identifythisfont"
 LISTINGS = ("top:all", "top:year")
+ANNOTATIONS = ROOT / "scripts" / "eval_reddit_annotations.json"
 
 IMAGE_HOSTS = ("i.redd.it", "preview.redd.it")
 BOTS = {"automoderator"}
@@ -692,7 +693,7 @@ def build(args):
     out = Path(args.out)
     catalog = {e.base_family: e for e in load_catalog_json(Path(args.catalog))}
     labels = json.loads((out / "labels.json").read_text())
-    notes = json.loads((out / "annotations.json").read_text())
+    notes = json.loads(Path(args.annotations).read_text())
     for split in ("dev", "test"):  # rebuilt from scratch every time
         shutil.rmtree(out.parent / f"reddit_{split}", ignore_errors=True)
     sets: dict[str, dict[str, list]] = {}
@@ -764,6 +765,8 @@ def main():
         p = sub.add_parser(name)
         p.add_argument("--out", default=str(DEFAULT_OUT))
         p.add_argument("--catalog", default=str(ROOT / "glyph_atlas" / "catalog.json"))
+    # Hand annotations are versioned (no usernames, post ids + crop + transcript).
+    sub.choices["build"].add_argument("--annotations", default=str(ANNOTATIONS))
     args = ap.parse_args()
     {"scrape": scrape, "label": label, "build": build}[args.cmd](args)
 
