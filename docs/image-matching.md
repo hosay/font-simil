@@ -342,6 +342,26 @@ photo-filled or several fonts); 146 scoreable rows (dev 103, test 43). Most trut
 handwriting 0.70, **serif 0.24**, mono 0.33 on 3), acceptable@5 0.07, catalog family@5 0/5.
 Synthetic/Chrome sets gave category@1 0.69-0.78, so real photos are the main gap, and serifs most.
 
+**Fixes from this set (commit de16a5c).** Looking at the failing crops: (1) Tesseract's line box
+reached into the next line's capitals and `keep_components_touching` kept them (Palatino ranked as
+display fonts); a component now needs its vertical centre in the box, with plain overlap as fallback.
+(2) With no OCR lines, stacked signs ("PHONE / FOR / TRUCKS") were matched as one line; now the
+tallest ink line is matched with its share of the hint's words (at most 6 lines, poor fits rejected,
+hint segments taken as lines). (3) Barcode, waveform, knitting-chart, emoji, symbol, math, redacted
+and highlight families won top spots on noisy photos; the matcher no longer offers them.
+Tried and reverted: dropping texture specks and far-from-letter ink in `ink_map` (dev 0.49 -> 0.45,
+display rows broke; speckle forms large connected clumps).
+
+| set | master | branch |
+|---|---|---|
+| Reddit dev category@1 (98) | 0.469 | 0.49 (serif 0.24 -> 0.35) |
+| Reddit test category@1 (41, run once) | 0.415 | 0.439; sans with a serif in top 5: 0.25 -> 0 |
+| Chrome val family@1 / category@1 (384) | 0.708 / 0.745 | 0.714 / 0.753 |
+| Synthetic dev family@1 (315) | 0.708 | 0.692: wavefont queries now excluded by design, pixel-font tie flips |
+
+Gains are a few rows each; the sets are small. Remaining gap: textured/photographic backgrounds and
+3D/outlined lettering (ink map), and serifs.
+
 ## Deploy runbook (Phase 4, executed 2026-10-03)
 
 System packages: `apt install tesseract-ocr` (done on a01). Everything below runs on a01.
