@@ -209,3 +209,32 @@ class TestPrepReviewFixes:
         img = Image.new("RGBA", (5000, 2000), (0, 0, 0, 0))
         out = load_image(_encode(img, "PNG"))
         assert max(out.size) == 2000 and out.mode == "RGB"
+
+
+def test_next_line_letters_overlapping_the_ocr_box_are_dropped():
+    """Tesseract's line box reaches into the tops of the next line's capitals
+    (r/identifythisfont jq81wk: Palatino scored as display fonts)."""
+    from fontmatch.image.prep import keep_components_touching
+
+    soft = np.zeros((100, 200), dtype=np.float32)
+    soft[20:40, 20:60] = 1.0  # a letter of the line
+    soft[20:52, 80:90] = 1.0  # a descender ("y") of the line, below the box
+    soft[45:80, 120:140] = 1.0  # next line's capital, its top inside the box
+    soft[5:24, 150:160] = 1.0  # line above's descender, its tail inside the box
+    kept = keep_components_touching(soft, (10, 18, 190, 48))
+    assert kept[20:40, 20:60].min() == 1.0
+    assert kept[20:52, 80:90].min() == 1.0
+    assert kept[45:80, 120:140].sum() == 0
+    assert kept[5:24, 150:160].sum() == 0
+
+
+
+def test_component_rule_falls_back_to_overlap_when_nothing_is_centred():
+    """A script word joined to a long swash below the box must not vanish."""
+    from fontmatch.image.prep import keep_components_touching
+
+    soft = np.zeros((100, 200), dtype=np.float32)
+    soft[30:45, 20:180] = 1.0  # the word
+    soft[45:95, 170:180] = 1.0  # its swash, same component, far below the box
+    kept = keep_components_touching(soft, (10, 28, 190, 46))
+    assert kept[30:45, 20:180].min() == 1.0

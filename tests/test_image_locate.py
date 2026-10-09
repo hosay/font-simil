@@ -90,3 +90,59 @@ def test_locate_uses_whole_image_when_ocr_finds_nothing_but_hint_given(monkeypat
 
 def test_locate_nothing_found():
     assert locate(Image.new("RGB", (200, 60), "white"), hint="") is None
+
+
+def _stacked(words, size_px=64):
+    """Words on separate lines (a sign: "PHONE / FOR / TRUCKS")."""
+    parts = [render_text_image(TINOS, w, size_px=size_px) for w in words]
+    canvas = Image.new("RGB", (max(p.width for p in parts) + 40, sum(p.height for p in parts) + 40), "white")
+    y = 20
+    for p in parts:
+        canvas.paste(p, (20, y))
+        y += p.height
+    return canvas
+
+
+def test_stacked_lines_without_ocr_pick_one_line_and_its_words(monkeypatch):
+    import fontmatch.image.locate as loc
+
+    monkeypatch.setattr(loc, "find_lines", lambda im: [])
+    img = _stacked(["PHONE", "FOR", "TRUCKS"])
+    got = locate(img, hint="PHONE FOR TRUCKS")
+    assert got.transcript in ("PHONE", "TRUCKS")  # a wide line, never all three words
+    assert got.box[3] - got.box[1] < img.height / 2
+
+
+def test_hint_words_follow_line_widths():
+    from fontmatch.image.locate import split_words_by_widths
+
+    assert split_words_by_widths(["PHONE", "FOR", "TRUCKS"], [5, 3, 6]) == [
+        ["PHONE"], ["FOR"], ["TRUCKS"]]
+    assert split_words_by_widths("Please Stay on Trails and Paved Areas".split(), [21, 15]) == [
+        ["Please", "Stay", "on", "Trails"], ["and", "Paved", "Areas"]]
+    assert split_words_by_widths(["ONE"], [3, 3]) is None  # fewer words than lines
+
+
+def test_single_line_without_ocr_still_uses_whole_hint(monkeypatch):
+    import fontmatch.image.locate as loc
+
+    monkeypatch.setattr(loc, "find_lines", lambda im: [])
+    img = render_text_image(TINOS, "Harbor View Hotel", size_px=48)
+    assert locate(img, hint="Harbor View Hotel").transcript == "Harbor View Hotel"
+
+
+def test_line_broken_hint_uses_its_segments(monkeypatch):
+    import fontmatch.image.locate as loc
+
+    monkeypatch.setattr(loc, "find_lines", lambda im: [])
+    img = _stacked(["PHONE", "FOR", "TRUCKS"])
+    assert locate(img, hint="PHONE / FOR / TRUCKS").transcript in ("PHONE", "TRUCKS")
+
+
+def test_word_split_is_bounded_and_rejects_bad_fits():
+    from fontmatch.image.locate import split_words_by_widths
+
+    words = ("lorem ipsum dolor sit amet " * 8).split()
+    assert split_words_by_widths(words, [10] * 15) is None  # too many bands: no search
+    # one long word cannot fill a wide band while three short ones fill a tiny one
+    assert split_words_by_widths(["A", "B", "C", "Extraordinarily"], [100, 2]) is None

@@ -1,4 +1,5 @@
 """Candidate catalog helpers."""
+import pytest
 
 from fontmatch.image.catalog import gf_category, resolve_source
 
@@ -47,3 +48,38 @@ def test_family_group_merges_siblings_only():
     # Different designs stay apart.
     assert family_group("Roboto Serif") != family_group("Roboto")
     assert family_group("Noto Serif") != family_group("Noto Sans")
+
+
+@pytest.mark.parametrize(
+    "family,text",
+    [("libre barcode 39 text", False), ("wavefont", False), ("linefont", False),
+     ("micro 5 charted", False), ("yarndings 12 charted", False), ("redacted script", False),
+     ("flow circular", False), ("noto color emoji", False), ("noto sans symbols 2", False),
+     ("noto music", False), ("zilla slab highlight", False),
+     ("micro 5", True), ("silkscreen", True), ("zilla slab", True), ("six caps", True),
+     ("noto sans", True), ("rubik glitch", True), ("jersey 10", True)],
+)  # fmt: skip
+def test_is_text_family(family, text):
+    from fontmatch.image.catalog import is_text_family
+
+    assert is_text_family(family) is text
+
+
+def test_matcher_never_offers_non_text_families():
+    import numpy as np
+
+    from fontmatch.image.rank import ImageMatcher
+
+    class Atlas:
+        faces = [{"key": "A", "space": 0.3}, {"key": "B", "space": 0.3}, {"key": "C", "space": 0.3}]
+        meta = np.zeros((3, 0))
+
+    m = ImageMatcher(Atlas(), {"A": "arimo", "B": "libre barcode 39", "C": "wavefont"})
+    assert list(m.faces) == [0]
+
+
+@pytest.mark.parametrize("family", ["jsmath cmex10", "noto sans signwriting", "noto sans math"])
+def test_math_and_signwriting_are_not_text(family):
+    from fontmatch.image.catalog import is_text_family
+
+    assert not is_text_family(family)

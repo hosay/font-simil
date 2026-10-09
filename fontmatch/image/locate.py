@@ -181,6 +181,76 @@ def _padded_crop(img: Image.Image, box: tuple[int, int, int, int]):
     return crop, (x0, y0)
 
 
+STACK_MAX_HEIGHT = 600  # line detection runs on a downscaled copy
+MIN_LINE_FRACTION = 0.3  # ink bands shorter than this x the tallest are accents/noise
+MAX_STACKED_LINES = 6  # more bands than this is a paragraph or a picture, not a sign
+MAX_SPLIT_COST = 0.05  # sum of squared share errors; worse means words don't fit the bands
+
+
+def split_words_by_widths(words: list[str], widths: list[float]) -> list[list[str]] | None:
+    """Split words (or hint segments), in reading order, into one non-empty
+    group per line so each group's share of the characters is closest to its
+    line's share of the ink width. None when there are fewer words than lines,
+    too many lines to search, or no split fits."""
+    k = len(widths)
+    if len(words) < k or k == 0 or k > MAX_STACKED_LINES or len(words) > 40:
+        return None
+    from itertools import combinations
+
+    total_w = float(sum(widths)) or 1.0
+    best, best_cost = None, float("inf")
+    for cuts in combinations(range(1, len(words)), k - 1):
+        groups = [words[a:b] for a, b in zip((0, *cuts), (*cuts, len(words)))]
+        chars = [len(" ".join(g)) for g in groups]
+        total_c = float(sum(chars))
+        cost = sum((c / total_c - w / total_w) ** 2 for c, w in zip(chars, widths))
+        if cost < best_cost:
+            best, best_cost = groups, cost
+    return best if best_cost <= MAX_SPLIT_COST else None
+
+
+def _stacked_line(
+    img: Image.Image, units: list[str]
+) -> tuple[str, tuple[int, int, int, int]] | None:
+    """(transcript, box) of the tallest ink line when the image holds several
+    stacked lines of text; None for a single line."""
+    import numpy as np
+    from scipy import ndimage
+
+    from fontmatch.image.prep import ink_map
+
+    scale = min(1.0, STACK_MAX_HEIGHT / img.height)
+    small = img if scale == 1.0 else img.resize(
+        (max(1, round(img.width * scale)), max(1, round(img.height * scale)))
+    )
+    ink = ink_map(small) > 0.3
+    rows = ink.mean(axis=1) > 0.01
+    labels, n = ndimage.label(rows)
+    if n < 2:
+        return None
+    bands = [s[0] for s in ndimage.find_objects(labels)]
+    tallest = max(b.stop - b.start for b in bands)
+    bands = [b for b in bands if b.stop - b.start >= MIN_LINE_FRACTION * tallest]
+    if len(bands) < 2:
+        return None
+    extents = []
+    for b in bands:
+        cols = np.flatnonzero(ink[b].any(axis=0))
+        extents.append((cols[0], cols[-1] + 1))
+    groups = split_words_by_widths(units, [r - l for l, r in extents])
+    if groups is None:
+        return None
+    i = max(range(len(bands)), key=lambda j: (bands[j].stop - bands[j].start, extents[j][1] - extents[j][0]))
+    left, right = extents[i]
+    box = (
+        int(left / scale),
+        int(bands[i].start / scale),
+        min(img.width, int(np.ceil(right / scale))),
+        min(img.height, int(np.ceil(bands[i].stop / scale))),
+    )
+    return " ".join(groups[i]), box
+
+
 def locate(img: Image.Image, hint: str = "") -> Located | None:
     lines = find_lines(img)
     line = choose_line(lines, hint)
@@ -188,8 +258,17 @@ def locate(img: Image.Image, hint: str = "") -> Located | None:
         segs = _segments(hint)
         if not segs:
             return None
-        # OCR saw nothing (stylised text?) but ChatGPT read something:
+        # OCR saw nothing (stylised text?) but ChatGPT read something. Signs
+        # often stack the words ("PHONE / FOR / TRUCKS"): match the most
+        # prominent ink line with its share of the hint's words. Otherwise
         # assume the image is essentially that one line.
+        # Segments (line breaks, " / ") are the hint's own lines; else words.
+        stacked = _stacked_line(img, segs if len(segs) > 1 else segs[0].split())
+        if stacked is not None:
+            transcript, box = stacked
+            crop, (dx, dy) = _padded_crop(img, box)
+            ink_box = (box[0] - dx, box[1] - dy, box[2] - dx, box[3] - dy)
+            return Located(crop=crop, transcript=transcript, source="hint", box=box, ink_box=ink_box)
         full = (0, 0, img.width, img.height)
         return Located(crop=img, transcript=segs[0], source="hint", box=full, ink_box=None)
 

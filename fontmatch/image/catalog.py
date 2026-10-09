@@ -50,6 +50,20 @@ _SIBLING_TOKENS = re.compile(
 )
 
 
+# Families whose glyphs aren't letterforms: barcodes, waveform and line-chart
+# fonts, text placeholders, knitting charts, emoji/symbols/music, highlight
+# boxes. Their shapes match any noisy texture, so on real photos they won the
+# image matcher's top spot (r/identifythisfont eval, 2026-10-08).
+_NON_TEXT = re.compile(
+    r"\b(barcode|wavefont|linefont|redacted|charted|yarndings|emoji|symbols?|music|"
+    r"musical notation|highlight|math|signwriting|cmex10|cmsy10)\b|^flow (block|circular|rounded)$"
+)
+
+
+def is_text_family(base: str) -> bool:
+    return not _NON_TEXT.search(base.lower())
+
+
 def family_group(family: str) -> str:
     """Family with sibling-design suffixes removed ("Alegreya Sans SC",
     "Playfair Display", "DM Sans 9pt" -> their base). Used by the eval so a

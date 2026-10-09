@@ -289,8 +289,15 @@ class ImageMatcher:
         self.atlas = atlas
         self.family_of = family_of
         self.category_of = category_of
+        from fontmatch.image.catalog import is_text_family
+
         self.faces = np.array(
-            [i for i, f in enumerate(atlas.faces) if f["key"] in family_of], dtype=np.int64
+            [
+                i
+                for i, f in enumerate(atlas.faces)
+                if f["key"] in family_of and is_text_family(family_of[f["key"]])
+            ],
+            dtype=np.int64,
         )
         self._spaces = np.array([f["space"] for f in atlas.faces], dtype=np.float32)
         self.atlas_row_bins = int(atlas.row_profiles(0).shape[1]) if atlas.meta.shape[1] else 0

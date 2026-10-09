@@ -293,9 +293,12 @@ def deskew_soft(soft: np.ndarray) -> np.ndarray:
 def keep_components_touching(
     soft: np.ndarray, box: tuple[int, int, int, int] | None
 ) -> np.ndarray:
-    """Zero out ink not connected to the text box (left, top, right, bottom):
-    descenders of the line above, rules, icons. Soft edges are kept."""
-    from scipy.ndimage import binary_dilation, label
+    """Zero out ink that isn't part of the text box's line (left, top, right,
+    bottom): the lines above and below, rules, icons. A component belongs to
+    the line when it overlaps the box and its vertical centre is inside it;
+    OCR line boxes reach into neighbouring lines' ascenders and descenders, so
+    touching alone kept whole letters of the next line. Soft edges are kept."""
+    from scipy.ndimage import binary_dilation, find_objects, label
 
     if box is None:
         return soft
@@ -305,7 +308,14 @@ def keep_components_touching(
         return soft
     left, top, right, bottom = box
     inside = labels[max(0, top) : bottom, max(0, left) : right]
-    keep_ids = np.unique(inside[inside > 0])
+    keep_ids = []
+    slices = find_objects(labels)
+    for i in np.unique(inside[inside > 0]):
+        rows = slices[i - 1][0]
+        if top <= (rows.start + rows.stop) / 2 <= bottom:
+            keep_ids.append(i)
+    if not keep_ids:  # e.g. a script word joined to a long swash: plain overlap
+        keep_ids = list(np.unique(inside[inside > 0]))
     keep = np.isin(labels, keep_ids)
     keep = binary_dilation(keep, iterations=1)  # keep anti-aliased fringes
     return np.where(keep, soft, 0.0).astype(np.float32)
