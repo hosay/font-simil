@@ -183,7 +183,7 @@ def score(args) -> None:
     from fontmatch.image.rank import load_default_ranker
 
     d = Path(args.dir)
-    manifest = json.loads((d / "manifest.json").read_text())
+    manifest = json.loads((d / args.manifest).read_text())
     if args.styles:
         manifest = [m for m in manifest if m["style"] in args.styles.split(",")]
     if args.limit:
@@ -203,12 +203,19 @@ def score(args) -> None:
             dict(
                 file=m["file"],
                 style=m["style"],
+                confidence=m.get("confidence"),
                 category=m["category"],
                 family_hit1=fams[:1] == [m["base_family"]],
                 family_hit5=m["base_family"] in fams[:5],
                 category1=bool(lofo) and cat_of.get(lofo[0]) == m["category"],
                 category_frac5=sum(cat_of.get(f) == m["category"] for f in lofo) / 5,
                 no_result=not fams,
+                # r/identifythisfont truth outside the catalog: a free substitute in the top 5
+                **(
+                    {"acceptable_hit5": bool(set(m["acceptable"]) & set(fams[:5]))}
+                    if m.get("acceptable")
+                    else {}
+                ),  # fmt: skip
                 # real task (font not in the corpus): a serif among a sans's alternatives
                 **(
                     {"serif_in5": any(cat_of.get(f) == "serif" for f in lofo)}
@@ -224,11 +231,13 @@ def score(args) -> None:
     for r in rows:
         groups["all"].append(r)
         groups[f"style={r['style']}"].append(r)
+        if r.get("confidence"):
+            groups[f"confidence={r['confidence']}"].append(r)
     summary = {}
     for g, rs in sorted(groups.items()):
         summary[g] = {"n": len(rs)}
         for k in ("family_hit1", "family_hit5", "category1", "category_frac5", "no_result",
-                  "serif_in5"):  # fmt: skip
+                  "serif_in5", "acceptable_hit5"):  # fmt: skip
             vals = [float(r[k]) for r in rs if k in r]
             if vals:
                 summary[g][k] = round(statistics.mean(vals), 3)
@@ -254,6 +263,7 @@ def main():
     r.add_argument("--catalog", default=str(ROOT / "glyph_atlas" / "catalog.json"))
     s = sub.add_parser("score")
     s.add_argument("--dir", required=True)
+    s.add_argument("--manifest", default="manifest.json")
     s.add_argument("--styles", default="")
     s.add_argument("--limit", type=int, default=0)
     s.add_argument("--hint", choices=["exact", "none"], default="exact")

@@ -23,3 +23,4 @@ font_samples/
 /google-fonts-repo
 *.db-shm
 *.db-wal
+/venv-scrape
