@@ -64,6 +64,7 @@ def sitemap_txt():
         f"{base}/api/docs",
         f"{base}/privacy",
         f"{base}/terms",
+        f"{base}/support",
     ]
     lines += [f"{base}/similar-to/{slug}" for slug in sorted(indexable_similar_slugs())]
     return Response("\n".join(lines), mimetype="text/plain")
@@ -305,6 +306,20 @@ def privacy():
 @web_bp.get("/terms")
 def terms():
     return render_template("terms.html")
+
+
+@web_bp.get("/support")
+def support():
+    return render_template("support.html")
+
+
+@web_bp.get("/.well-known/openai-apps-challenge")
+def openai_apps_challenge():
+    """Domain verification for the ChatGPT plugin directory: the token, verbatim."""
+    token = current_app.config.get("APPS_CHALLENGE", "")
+    if not token:
+        abort(404)
+    return Response(token, mimetype="text/plain")
 
 
 @web_bp.get("/identify")

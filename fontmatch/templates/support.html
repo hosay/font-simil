@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Support{% endblock %}
+{% block meta_description %}How to get help with DupeFont, report a wrong font match, or ask about the DupeFont app for ChatGPT.{% endblock %}
+{% block content %}
+<article class="policy">
+<h1>Support</h1>
+<p>DupeFont identifies the typography in an image and ranks the closest free, openly licensed look-alikes. If something is wrong or you have a question, we'd like to hear about it.</p>
+
+<h2>Contact us</h2>
+<p>Email <a href="mailto:{{ config.SUPPORT_EMAIL }}">{{ config.SUPPORT_EMAIL }}</a>. There is no account to sign in to and no ticket number to quote &mdash; just describe what happened. We read every message.</p>
+
+<h2>Reporting a wrong match</h2>
+<p>Matches are visual estimates, not identifications: DupeFont finds free fonts that <em>look like</em> the type in your image, and it does not claim to name the original. If a result looks wrong, the fastest way to tell us is the <strong>&ldquo;Was this right?&rdquo;</strong> prompt shown beneath any image result &mdash; it attaches the match we produced so we can reproduce it. You can also email us a description, or a share link if you created one.</p>
+
+<h2>The DupeFont app for ChatGPT</h2>
+<p>The app connects ChatGPT to the same matching service that powers this site. If it stops responding in a chat, check <a href="{{ url_for('web.identify_form') }}">the website</a> first: if matching works here, the problem is with the connection rather than the matcher, and reconnecting the app in ChatGPT usually clears it. Tell us either way.</p>
+
+<h2>Licensing questions</h2>
+<p>Every match shows the licence we hold for that font. We report what the font's own metadata says; where a font ships without usable licence metadata we show its licence as unknown rather than guess. Always check the licence that ships with a font before using it in a product.</p>
+
+<h2>Privacy and terms</h2>
+<p>For what we store and for how long, see the <a href="{{ url_for('web.privacy') }}">Privacy Policy</a>. For the rules that apply when you use the Service, see the <a href="{{ url_for('web.terms') }}">Terms of Service</a>. Privacy questions can go to <a href="mailto:privacy@dupefont.com">privacy@dupefont.com</a> and legal notices to <a href="mailto:legal@dupefont.com">legal@dupefont.com</a>.</p>
+</article>
+{% endblock %}

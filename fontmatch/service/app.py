@@ -17,6 +17,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from fontmatch.index.ingest import ingest_corpus
 from fontmatch.index.store import FontStore
+from fontmatch.maintenance import run_sweeps
 from fontmatch.web.helpers import slugify
 
 DEFAULT_DB_PATH = Path("fontmatch.db")
@@ -100,9 +101,9 @@ def create_app(
         ingest_corpus(fixture_dir, store)
 
     store.build_index()
-    store.cleanup_old_usage(days=90)
-    store.cleanup_image_cache(days=30)
-    store.forget_old_rating_ips(days=365)
+    # Also run on a schedule by fontmatch-maintenance.timer: a restart is not
+    # frequent enough to honour the retention windows in privacy.html.
+    run_sweeps(store)
     app.config["STORE"] = store
 
     # Directories to search for font files (for @font-face serving)
@@ -148,6 +149,12 @@ def create_app(
         tempfile.mkdtemp(prefix="uc-") if testing else app.config["SAMPLES_DIR"].parent / "user_content"
     )
     app.config["USER_CONTENT_DIR"] = Path(user_dir).resolve()
+
+    # Public support contact, required by the ChatGPT plugin directory (supportURL).
+    app.config["SUPPORT_EMAIL"] = os.environ.get("DUPEFONT_SUPPORT_EMAIL", "support@dupefont.com")
+
+    # Domain-verification token OpenAI asks us to serve; "" disables the route.
+    app.config["APPS_CHALLENGE"] = os.environ.get("DUPEFONT_APPS_CHALLENGE", "")
 
     # Microsoft Clarity (consent-gated in static/analytics.js); "" disables it.
     app.config["CLARITY_PROJECT_ID"] = os.environ.get("DUPEFONT_CLARITY_ID", "ys6l88q2n9")
