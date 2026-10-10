@@ -193,7 +193,13 @@ Two things the runs changed:
   Helvetica?" was answered from ChatGPT's own knowledge with no tool call (0/1). The same ask
   phrased "Use DupeFont to …" called the tool 3/3. Naming the app is how directory reviewers
   exercise an app anyway, and it does not change what the tool does. Negative prompts stay
-  bare: naming the app there would be a prompt to invoke it.
+  bare: naming the app there would be a prompt to invoke it. The name is matched
+  case-insensitively: "Use dupefont to …" (all lowercase) called the tool, and typing `@dup`
+  in the composer opens the app picker where Enter selects DupeFont with no further typing,
+  after which a bare "free alternatives to Futura" called it too (both verified in the request
+  log, 2026-10-10). A bare prompt with no name and no mention ("I need a free font that looks
+  like Gotham for a commercial project") was again answered from ChatGPT's own knowledge
+  (0/1), so unprompted invocation is a ChatGPT routing decision, not a casing issue.
 - **The logo must have readable lettering.** A script wordmark (Lobster) came back with
   monospace matches at 15% because OCR could not read it. A serif wordmark (Playfair Display)
   matched at 94% three times out of three. The P2 input says so.
