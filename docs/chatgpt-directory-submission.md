@@ -79,12 +79,12 @@ tool's catalogue is restricted to licensed fonts, so "free" is true by construct
 | supportURL | `https://dupefont.com/support` | live after step 2 |
 | privacyPolicyURL / termsOfServiceURL | `/privacy`, `/terms` | 200 today |
 
-**longDescription — version A (currently in the package, 352 chars):**
+**longDescription — version A (currently in the package, 331 chars):**
 
 > Show DupeFont a screenshot, photo, logo or design and it reads the typography, then ranks the
 > closest free and open-source look-alikes. Every match comes with a similarity score, its
 > licence, a live preview, and a link to its Google Fonts page or to a DupeFont page with more
-> alternatives. Results are always openly licensed fonts, not commercial ones.
+> alternatives. Results are always openly licensed fonts.
 
 **longDescription — version B (warmer, same claims, 391 chars):**
 

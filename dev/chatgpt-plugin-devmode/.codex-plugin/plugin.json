@@ -19,12 +19,12 @@
     "developerName": "DupeFont",
     "displayName": "DupeFont",
     "logo": "./assets/logo.png",
-    "longDescription": "Show DupeFont a screenshot, photo, logo or design and it reads the typography, then ranks the closest free and open-source look-alikes. Every match comes with a similarity score, its licence, a live preview, and a link to its Google Fonts page or to a DupeFont page with more alternatives. Results are always openly licensed fonts, not commercial ones.",
+    "longDescription": "Show DupeFont a screenshot, photo, logo or design and it reads the typography, then ranks the closest free and open-source look-alikes. Every match comes with a similarity score, its licence, a live preview, and a link to its Google Fonts page or to a DupeFont page with more alternatives. Results are always openly licensed fonts.",
     "privacyPolicyURL": "https://dupefont.com/privacy",
     "shortDescription": "Identify fonts from images",
     "termsOfServiceURL": "https://dupefont.com/terms",
     "websiteURL": "https://dupefont.com"
   },
   "name": "dev-6ac1684b48fc8191b8fda7ddf1bb0101",
-  "version": "1.1.2"
+  "version": "1.1.3"
 }

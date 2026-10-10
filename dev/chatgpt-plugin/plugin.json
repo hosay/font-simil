@@ -8,16 +8,24 @@
   },
   "homepage": "https://dupefont.com",
   "license": "UNLICENSED",
-  "keywords": ["fonts", "typography", "design", "open-source", "identification"],
+  "keywords": [
+    "fonts",
+    "typography",
+    "design",
+    "open-source",
+    "identification"
+  ],
   "extensions": {
     "com.openai": {
       "interface": {
         "displayName": "DupeFont",
         "shortDescription": "Identify fonts from images",
-        "longDescription": "Show DupeFont a screenshot, photo, logo or design and it reads the typography, then ranks the closest free and open-source look-alikes. Every match comes with a similarity score, its licence, a live preview, and a link to its Google Fonts page or to a DupeFont page with more alternatives. Results are always openly licensed fonts, not commercial ones.",
+        "longDescription": "Show DupeFont a screenshot, photo, logo or design and it reads the typography, then ranks the closest free and open-source look-alikes. Every match comes with a similarity score, its licence, a live preview, and a link to its Google Fonts page or to a DupeFont page with more alternatives. Results are always openly licensed fonts.",
         "developerName": "DupeFont",
         "category": "Design",
-        "capabilities": ["Interactive"],
+        "capabilities": [
+          "Interactive"
+        ],
         "brandColor": "#2563eb",
         "logo": "./assets/logo.png",
         "composerIcon": "./assets/logo.png",
