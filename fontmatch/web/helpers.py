@@ -885,6 +885,8 @@ _LICENSE_LABELS = {
     "Apache-2.0": "Apache 2.0",
     "MIT": "MIT License",
     "UFL-1.0": "Ubuntu Font License",
+    "Bitstream-Vera": "Bitstream Vera License",
+    "GPL-3.0-or-later WITH Font-exception-2.0": "GPL with font exception",
     "unknown": "Unknown",
 }
 

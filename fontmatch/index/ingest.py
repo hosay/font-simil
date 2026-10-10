@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 
 from fontmatch.features.fingerprint import fingerprint
@@ -45,6 +46,57 @@ def _detect_license(family_dir: Path) -> str:
     return "unknown"
 
 
+# Name ID 13 (licence description) / 14 (licence URL) substrings, checked in
+# order. OFL comes before GPL so a dual "GPL AND OFL" font (Linux Libertine)
+# is recorded as OFL-1.1, the licence a user would actually pick.
+_GPL_FONT_EXCEPTION = "GPL-3.0-or-later WITH Font-exception-2.0"
+_NAME_TABLE_LICENSES: list[tuple[str, str, str]] = [
+    # (what to search: "text", "url" or "any"), lower-cased needle, SPDX id
+    ("any", "scripts.sil.org/ofl", "OFL-1.1"),
+    ("any", "open font license", "OFL-1.1"),
+    ("any", "apache license", "Apache-2.0"),
+    ("any", "ubuntu font licen", "UFL-1.0"),  # "Licence" in the font, "License" elsewhere
+    ("url", "dejavu", "Bitstream-Vera"),
+    ("text", "gnu freefont", _GPL_FONT_EXCEPTION),
+]
+
+
+def license_from_name_table(path: Path) -> str | None:
+    """Licence declared inside the font file (OpenType name IDs 13 and 14).
+
+    Fallback for fonts shipped without an OFL.txt/LICENSE next to them
+    (system packages such as Liberation, DejaVu, Noto, FreeFont). Returns
+    an SPDX id, or None when the strings are missing or unrecognised; it
+    never raises (unreadable file, woff2 without brotli, no name table).
+    """
+    try:
+        from fontTools.ttLib import TTFont
+
+        font = TTFont(str(path), lazy=True)
+        try:
+            name_table = font["name"]
+            text = (name_table.getDebugName(13) or "").lower()
+            url = (name_table.getDebugName(14) or "").lower()
+        finally:
+            font.close()
+    except Exception:
+        return None
+
+    for where, needle, spdx in _NAME_TABLE_LICENSES:
+        haystack = {"text": text, "url": url}.get(where, text + "\n" + url)
+        if needle in haystack:
+            return spdx
+    if re.search(r"\bmit license\b", text + "\n" + url):  # not "permit licensees"
+        return "MIT"
+    # "Bitstream" alone also appears in Bitstream Charter's (differently
+    # licensed) notice; DejaVu's reads "Fonts are (c) Bitstream ... DejaVu".
+    if "bitstream" in text and ("dejavu" in text or "vera" in text):
+        return "Bitstream-Vera"
+    if "gnu.org" in url and "gpl" in url and "lgpl" not in url:
+        return _GPL_FONT_EXCEPTION
+    return None
+
+
 def ingest_corpus(corpus_path: Path, store: FontStore) -> int:
     """Walk a corpus directory, fingerprint all fonts, and store them.
 
@@ -75,6 +127,8 @@ def ingest_corpus(corpus_path: Path, store: FontStore) -> int:
             continue
 
         license_id = _detect_license(font_file.parent)
+        if license_id == "unknown":
+            license_id = license_from_name_table(font_file) or "unknown"
 
         try:
             fp = fingerprint(loaded)
