@@ -1,8 +1,8 @@
 # ChatGPT golden prompts (validation layer L5)
 
-Run every prompt **3 times** (fresh chat each time) in ChatGPT **Developer mode** with the Dupefont app connected
+Run every prompt **3 times** (fresh chat each time) in ChatGPT **Developer mode** with the DupeFont app connected
 (`https://dupefont.com/mcp`, no auth). Use a fresh chat per prompt. Record for each row:
-did ChatGPT call a Dupefont tool (and which), did it pass `text_hint`, and was the answer
+did ChatGPT call a DupeFont tool (and which), did it pass `text_hint`, and was the answer
 useful (1–3). Check `journalctl -u dupefont-mcp` for the matching `image tool:` log line.
 
 Targets: invocation precision ≥ 0.9 (no calls on the "must not invoke" rows, 7 × 3 runs), recall
@@ -35,7 +35,7 @@ poster, a monospace code screenshot, a tilted phone photo of a sign, a light-on-
 | 12 | I need something like Futura but free for commercial use |
 | 13 | Replacement for Calibri that I can embed on a website |
 
-## Must NOT invoke any Dupefont tool
+## Must NOT invoke any DupeFont tool
 
 | # | Prompt |
 |---|---|

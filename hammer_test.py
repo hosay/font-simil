@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hammer test for the Dupefont web app and API.
+"""Hammer test for the DupeFont web app and API.
 
 Phases:
   1. Rate limit verification (run first to avoid contamination)

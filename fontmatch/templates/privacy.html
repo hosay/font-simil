@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% block title %}Privacy Policy{% endblock %}
-{% block meta_description %}How Dupefont handles the images, font files and usage data it receives, including the Dupefont app for ChatGPT.{% endblock %}
+{% block meta_description %}How DupeFont handles the images, font files and usage data it receives, including the DupeFont app for ChatGPT.{% endblock %}
 {% block content %}
 <article class="policy">
 <h1>Privacy Policy</h1>
 <p>Effective date: October 5, 2026</p>
-<p>This policy explains what information Dupefont collects when you use dupefont.com, its API and the Dupefont app for ChatGPT (together, the &quot;Service&quot;), how we use it, and the choices you have.</p>
+<p>This policy explains what information DupeFont collects when you use dupefont.com, its API and the DupeFont app for ChatGPT (together, the &quot;Service&quot;), how we use it, and the choices you have.</p>
 <h2>Who we are</h2>
-<p>Dupefont is operated by {{ config.OPERATOR }} (&quot;we&quot;, &quot;us&quot;), which runs the Service and is the controller of the personal data described here. You can reach us, and our privacy officer, at <a href="mailto:privacy@dupefont.com">privacy@dupefont.com</a>. Use of the Service is also governed by our <a href="{{ url_for('web.terms') }}">Terms of Service</a>.</p>
+<p>DupeFont is operated by {{ config.OPERATOR }} (&quot;we&quot;, &quot;us&quot;), which runs the Service and is the controller of the personal data described here. You can reach us, and our privacy officer, at <a href="mailto:privacy@dupefont.com">privacy@dupefont.com</a>. Use of the Service is also governed by our <a href="{{ url_for('web.terms') }}">Terms of Service</a>.</p>
 <h2>Summary</h2>
 <ul>
 <li>You don't need an account. We don't ask for your name, email address or payment details.</li>
@@ -18,18 +18,18 @@
 </ul>
 <h2>What we collect</h2>
 <h3>Images and font files you upload</h3>
-<p>When you upload an image on the website, send one through the API, or share one with the Dupefont app in ChatGPT, we read the text in it and compare the letter shapes with our font library. Font files are compared the same way. Unless you create a share link or send the image with feedback (both described below), we don't save uploaded files: they are processed in memory and discarded when the request finishes. Transient operating-system copies, such as swap, may exist briefly; we don't access or keep them. We store the result (the fonts we matched and, for images, the text we read) under a SHA-256 hash of the file. Image results are deleted after 30 days.</p>
+<p>When you upload an image on the website, send one through the API, or share one with the DupeFont app in ChatGPT, we read the text in it and compare the letter shapes with our font library. Font files are compared the same way. Unless you create a share link or send the image with feedback (both described below), we don't save uploaded files: they are processed in memory and discarded when the request finishes. Transient operating-system copies, such as swap, may exist briefly; we don't access or keep them. We store the result (the fonts we matched and, for images, the text we read) under a SHA-256 hash of the file. Image results are deleted after 30 days.</p>
 <h3>Text you type</h3>
 <p>Text you enter to help us read an image, and font names you search for, are used to produce results. We don't store the text you type for images, unless you create a share link for the result. Font names searched through the ChatGPT app are kept in our usage records (below).</p>
 <h3>Share links</h3>
 <p>If you click &quot;Get a share link&quot; on an image result, we store a reduced copy of your image (a JPEG with no metadata such as location), the text we read and the fonts we matched, and publish them on a page at a hard-to-guess address. Anyone who has the link can see that page, and we ask search engines not to index it. Don't share images containing personal information you don't want to publish. When you create the link we show you a delete link: using it removes the page and the image for everyone. You can also ask us to delete a share at <a href="mailto:privacy@dupefont.com">privacy@dupefont.com</a>. We may remove shares that break the law or that we consider abusive.</p>
 <h3>Feedback on image results</h3>
-<p>If you answer &quot;Was this right?&quot;, we store your answer, the font we suggested, the font name you type (if any) and your IP address, which we use to keep one answer per visitor and remove after 12 months. Only if you tick &quot;Let Dupefont keep this image&quot; do we also keep a reduced copy of the image, which we use to test and improve our matching, including to train our matching models. These images are never published or given to others to train their models, and we delete them after 2 years at the latest. Models and statistics we produced from an image before it was deleted are kept. To have one deleted sooner, email us with the time you sent it.</p>
+<p>If you answer &quot;Was this right?&quot;, we store your answer, the font we suggested, the font name you type (if any) and your IP address, which we use to keep one answer per visitor and remove after 12 months. Only if you tick &quot;Let DupeFont keep this image&quot; do we also keep a reduced copy of the image, which we use to test and improve our matching, including to train our matching models. These images are never published or given to others to train their models, and we delete them after 2 years at the latest. Models and statistics we produced from an image before it was deleted are kept. To have one deleted sooner, email us with the time you sent it.</p>
 <h3>Ratings and reports</h3>
 <p>If you rate or report a match, we store the fonts involved, your rating and your IP address, which we use to stop duplicate votes. We remove the IP address after 12 months.</p>
 <h3>Logs and rate limits</h3>
 <p>Our servers record standard request data: IP address, time, page requested, referrer and browser user agent. These logs are kept for about 14 days. We also count requests per IP address per day to prevent abuse, and keep those counts for up to 90 days.</p>
-<h3>The Dupefont app in ChatGPT</h3>
+<h3>The DupeFont app in ChatGPT</h3>
 <p>When you use the app, OpenAI sends us a temporary link to the image you share, plus a pseudonymous identifier for your ChatGPT account, and may send your locale and coarse location (such as country). We download the image to process your request and don't keep it. We store a one-way hash of the identifier (not the identifier itself) with the tool used, the time, whether the call succeeded, how long it took, the top font returned, your locale and country, and, for name searches, the font name. We keep these records for up to 180 days to measure usage, fix errors and prevent abuse. We don't receive your name, email address or ChatGPT conversation, and we don't use app data for advertising.</p>
 <h3 id="analytics">Analytics (Microsoft Clarity)</h3>
 <p>The website uses Microsoft Clarity, which uses cookies and similar technology to record how visitors interact with pages (clicks, scrolling, mouse movement, pages viewed) along with device and browser details. In the EEA, the UK and Switzerland we load Clarity only after you accept it in the cookie banner. Elsewhere it loads by default unless you decline or your browser sends a Global Privacy Control signal. You can change your choice at any time with &quot;Cookie settings&quot; at the bottom of every page. Clarity never runs on the pages where you upload files or see results for your uploads. Microsoft may use Clarity data as described in the Microsoft Privacy Statement (<a href="https://privacy.microsoft.com/privacystatement" rel="noopener" target="_blank">https://privacy.microsoft.com/privacystatement</a>).</p>
@@ -84,7 +84,7 @@
 <ul>
 <li>with service providers that host and run the Service (cloud hosting and network providers) and with Microsoft for Clarity analytics, as described above;</li>
 <li>with OpenAI, as part of running the ChatGPT app (OpenAI's own privacy policy covers your ChatGPT data);</li>
-<li>when the law requires it, or to protect the rights, safety and security of Dupefont, our users or others;</li>
+<li>when the law requires it, or to protect the rights, safety and security of DupeFont, our users or others;</li>
 <li>as part of a merger, acquisition, financing or sale of assets. In that case we will require the recipient to honor this policy for information collected under it, or give you notice before any material change.</li>
 </ul>
 <h2>How long we keep it</h2>

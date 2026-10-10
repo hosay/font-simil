@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{% if prop %}Free Open-Source Alternative to {{ family_name }}{% else %}Fonts Similar to {{ family_name }} &mdash; Free Alternatives{% endif %}{% endblock %}
 {% block meta_description %}{% if prop %}{{ family_name }} is a proprietary {{ prop.category }} font{% if prop.vendor %} by {{ prop.vendor }}{% endif %}. Find the best free, open-source replacements like {{ corpus_family }} with side-by-side comparison.{% else %}Find open-source alternatives to {{ family_name }}. See the top matches ranked by metric and visual similarity.{% endif %}{% endblock %}
-{% block og_title %}{% if prop %}Free Alternative to {{ family_name }}{% else %}Open-source alternatives to {{ family_name }}{% endif %} &mdash; Dupefont{% endblock %}
+{% block og_title %}{% if prop %}Free Alternative to {{ family_name }}{% else %}Open-source alternatives to {{ family_name }}{% endif %} &mdash; DupeFont{% endblock %}
 {% block og_description %}{% if prop %}{{ corpus_family }} is a free, open-source {{ prop.category }} font you can use instead of {{ family_name }}. Compare them side by side.{% else %}Find free, open-source fonts similar to {{ family_name }}. Side-by-side comparison with match scores.{% endif %}{% endblock %}
 
 {% block head %}

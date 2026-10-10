@@ -95,7 +95,7 @@ def test_consent_checkbox_mentions_training(app, monkeypatch):
     [
         "except where the law allows",  # no invitations to reverse engineer
         "except through the API",  # no carve-out for competitors
-        "if you credit Dupefont",  # no blanket licence to reuse results
+        "if you credit DupeFont",  # no blanket licence to reuse results
         "without crediting",
         "you may also bring proceedings in the courts where you live",
         "rely on statutory limitation periods",

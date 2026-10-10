@@ -1,4 +1,4 @@
-"""MCP server for the Dupefont ChatGPT app.
+"""MCP server for the DupeFont ChatGPT app.
 
 Runs as its own small ASGI process (uvicorn) and imports no ML code: it
 downloads the user's image (SSRF-guarded) and forwards it to the Flask app's
@@ -24,7 +24,7 @@ from mcp.server.mcpserver import Context, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.mcpserver.resources import TextResource
 from mcp.server.transport_security import TransportSecuritySettings
-from mcp_types import ToolAnnotations
+from mcp_types import Icon, ToolAnnotations
 from pydantic import BaseModel, Field
 
 from fontmatch.image.fetch import FetchedImage, FetchError, fetch_image_bytes
@@ -337,7 +337,7 @@ def _widget_resource() -> TextResource:
     return TextResource(
         uri=WIDGET_URI,
         name="dupefont-results",
-        title="Dupefont results",
+        title="DupeFont results",
         mime_type=APP_MIME_TYPE,
         text=WIDGET_HTML,
         meta={
@@ -469,10 +469,17 @@ def create_server(
     apps.add_resource(_widget_resource())
     server = MCPServer(
         "dupefont",
-        title="Dupefont",
+        title="DupeFont",
         description="Find free look-alike fonts for any font or image of text.",
         website_url=SITE_URL,
         version="1.1.0",
+        icons=[
+            Icon(
+                src=f"{SITE_URL}/static/favicon.svg",
+                mime_type="image/svg+xml",
+                sizes=["any"],
+            )
+        ],
         extensions=[apps],
     )
     _inline_schema_refs(server, "find_free_font_from_image")

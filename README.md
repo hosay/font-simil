@@ -1,6 +1,6 @@
-# Dupefont
+# DupeFont
 
-Public name **Dupefont** (https://dupefont.com). Internally the Python package, systemd units, service user and database are still named `fontmatch`.
+Public name **DupeFont** (https://dupefont.com). Internally the Python package, systemd units, service user and database are still named `fontmatch`.
 
 Find the closest **open-source** font for any given font file. Upload a TTF, OTF, WOFF, or WOFF2 font and get ranked matches from a corpus of thousands of open-source fonts, complete with license info and Google Fonts links.
 
@@ -65,7 +65,7 @@ Fingerprint schema versions: the code only uses rows matching `FINGERPRINT_SCHEM
 
 ### Current deploy state
 
-- **Deployed 2026-10-03** (commit `d918afc`): image matching (`/api/identify-image`), `/api/similar-to`, the ChatGPT MCP app, fingerprint schema v6, and the Dupefont rebrand. The live DB has v6 fingerprints (3,935 rows; the index loads 3,899).
+- **Deployed 2026-10-03** (commit `d918afc`): image matching (`/api/identify-image`), `/api/similar-to`, the ChatGPT MCP app, fingerprint schema v6, and the DupeFont rebrand. The live DB has v6 fingerprints (3,935 rows; the index loads 3,899).
 - Smoke-tested after the restart: health, rebranded pages, `/similar-to/*`, image API through `https://dupefont.com` (Playfair Display screenshot → Playfair Display, 95%), MCP `tools/list` and both tools through `https://dupefont.com/mcp`.
 - **ChatGPT**: the app is added in Developer mode with MCP URL `https://dupefont.com/mcp`, no auth. Next: run the golden prompts in `docs/chatgpt-golden-prompts.md` and record the results there. Directory submission needs a privacy policy page.
 - **Batch 2 (2026-10-04):** image upload on `/identify` (default tab; paste/drag-drop), ChatGPT results widget with font samples (now `ui://widget/dupefont-results-v2.html`; bump the version on any widget change, since ChatGPT caches templates by URI, and refresh the connector in ChatGPT), MCP usage log + `/admin/stats`, `/privacy` page, Microsoft Clarity (`DUPEFONT_CLARITY_ID`, default `ys6l88q2n9`; consent banner for European time zones, honours GPC, never on upload/result/admin pages), Inter self-hosted (no Google Fonts requests).
