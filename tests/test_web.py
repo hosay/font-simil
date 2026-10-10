@@ -1,5 +1,6 @@
 """Flask HTML page tests."""
 
+import re
 from pathlib import Path
 
 import pytest
@@ -401,4 +402,6 @@ class TestReverseProxy:
             "/",
             headers={"Host": "dupefont.com", "X-Forwarded-Proto": "https"},
         )
-        assert b'href="https://dupefont.com/"' in resp.data
+        canonical = re.search(r'<link rel="canonical" href="([^"]+)"', resp.data.decode())
+        assert canonical, "no canonical link rendered on /"
+        assert canonical.group(1) == "https://dupefont.com/"
