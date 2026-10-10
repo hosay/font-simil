@@ -65,3 +65,13 @@ claiming "this is font X" when X is one of our matches?
 
 | Date | # | Tool called | text_hint passed | Top match | Useful (1-3) | Notes |
 |---|---|---|---|---|---|---|
+| 2026-10-10 | 9 (bare) | none | – | – | 1 | Answered from model knowledge; "Use DupeFont to …" phrasing called the tool 3/3 |
+| 2026-10-10 | 9 (named) ×3 | find_free_alternatives | – | Liberation Sans 91% | 3 | Licence shown as unknown (DB gap, backfill pending) |
+| 2026-10-10 | 12 (named) ×3 | find_free_alternatives | – | Plus Jakarta Sans 61% | 2 | Jost never mentioned |
+| 2026-10-10 | 1 (named) ×3 | find_free_font_from_image | 0/3 | Poppins SemiBold 99% | 3 | synthetic hero screenshot |
+| 2026-10-10 | 3 (named) ×4 | find_free_font_from_image | 2/4 | Playfair Display 94% (serif logo); Share Tech Mono 15% (Lobster script logo) | 3 / 1 | script wordmarks are not read by OCR |
+| 2026-10-10 | 6 (named) ×3 | find_free_font_from_image | 0/3 | Ovo 98% | 3 | reddit banner hchz81 |
+| 2026-10-10 | 15 ×3 | none | – | – | – | correct: no call |
+| 2026-10-10 | 17 ×3 | none | – | – | – | correct: no call, menu translated |
+| 2026-10-10 | 22 ×3 | none ×2, image tool ×1 | – | – | 3 | error relayed verbatim and politely when called |
+| 2026-10-10 | 14 ×1 | none | – | – | – | correct: no call |

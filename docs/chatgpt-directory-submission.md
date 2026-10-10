@@ -183,26 +183,56 @@ role.
 Derived from `docs/chatgpt-golden-prompts.md` (numbers in brackets). The portal wants exactly
 5 + 3. Each needs an input and an expected result; attach the images where noted.
 
-**Positive**
+**Run 2026-10-10, three fresh chats per case, ChatGPT (Instant) with the dev-mode app
+installed.** Every call was cross-checked against the server (`request_log` rows tagged
+`(chatgpt)` and the `image tool:` lines in `journalctl -u dupefont-mcp`).
+
+Two things the runs changed:
+
+- **Positive prompts name the app.** The bare golden prompt "What's a free alternative to
+  Helvetica?" was answered from ChatGPT's own knowledge with no tool call (0/1). The same ask
+  phrased "Use DupeFont to …" called the tool 3/3. Naming the app is how directory reviewers
+  exercise an app anyway, and it does not change what the tool does. Negative prompts stay
+  bare: naming the app there would be a prompt to invoke it.
+- **The logo must have readable lettering.** A script wordmark (Lobster) came back with
+  monospace matches at 15% because OCR could not read it. A serif wordmark (Playfair Display)
+  matched at 94% three times out of three. The P2 input says so.
+
+**Positive** (each 3/3)
 
 | # | Input | Expected |
 |---|---|---|
-| P1 | Attach a website hero screenshot; "What font is this?" [1] | Calls `find_free_font_from_image` with a `text_hint`; widget shows ≥3 free fonts with samples, scores and licences. |
-| P2 | Attach a product logo; "Is there a Google Font similar to this logo?" [3] | Image tool; every result carries a Google Fonts link. |
-| P3 | Attach a banner; "Need a free alternative to the font in this image for a commercial project" [6] | Image tool; all results show an open licence (OFL-1.1 etc.), none "unknown". |
-| P4 | "What's a free alternative to Helvetica?" (no image) [9] | Calls `find_free_alternatives`; ≥3 results; answer frames them as alternatives, not identification. |
-| P5 | "I need something like Futura but free for commercial use" [12] | `find_free_alternatives`; geometric sans results (Jost resolves as the reference). |
+| P1 | Attach a website hero screenshot (dark background, large sans-serif headline); "What font is this? Use DupeFont to find a free look-alike." [1] | Calls `find_free_font_from_image`; the widget lists ≥3 free fonts with rendered samples, similarity scores and licences. Seen: Poppins SemiBold 99%, then Rethink Sans, Parkinsans, Cal Sans, Vend Sans, all OFL-1.1. |
+| P2 | Attach a product logo whose wordmark is clear serif or sans lettering (not script); "Is there a Google Font similar to this logo? Check with DupeFont." [3] | Image tool; every result links to Google Fonts and shows an open licence. Seen: Playfair Display Bold 94%, Gelasio, Song Myung, Shippori Mincho, Tai Heritage Pro. |
+| P3 | Attach a banner or poster with a short all-caps line; "Need a free alternative to the font in this image for a commercial project. Use DupeFont." [6] | Image tool; all results show an open licence (OFL-1.1 etc.), none "unknown"; the answer states they can be used commercially. Seen: Ovo 98%, Lusitana, Cardo, Nanum Myeongjo. |
+| P4 | "Use DupeFont to find free alternatives to Helvetica." (no image) [9] | Calls `find_free_alternatives`; ≥3 results with scores; the answer frames them as free alternatives, not as identification. Seen: Liberation Sans 91%, Pontano Sans, Istok Web, Roboto Flex, Zalando Sans. |
+| P5 | "I need something like Futura but free for commercial use. Use DupeFont." [12] | `find_free_alternatives`; ≥3 geometric sans results, all with an open licence; the answer confirms commercial use is allowed. Seen: Plus Jakarta Sans 61%, Kumbh Sans, Wix Madefor Text, DM Sans, Hanken Grotesk. |
 
-**Negative**
+**Negative** (each 3/3)
 
 | # | Input | Expected |
 |---|---|---|
-| N1 | "Write a CSS rule that sets the body font to Inter" [15] | **No** DupeFont tool call. |
-| N2 | Attach a menu photo; "Translate the text in this image" [17] | **No** DupeFont tool call. |
-| N3 | Attach a photo with no text; "What font is this?" [22] | Tool returns "No readable text…"; ChatGPT relays it politely and invents no font. |
+| N1 | "Write a CSS rule that sets the body font to Inter" [15] | **No** DupeFont tool call; plain CSS answer. |
+| N2 | Attach a restaurant menu photo; "Translate the text in this image" [17] | **No** DupeFont tool call; ChatGPT translates the menu itself. |
+| N3 | Attach a photo with no text (landscape, no lettering); "What font is this? Use DupeFont." [22] | Either no tool call, or the tool's "No readable text found in the image." relayed politely. ChatGPT names no font. Seen: 2 runs answered without calling, 1 run called and quoted the error. |
 
 If the portal defines "negative" strictly as *must not invoke*, swap N3 for [14] "What is a
-font?" → no tool call, and keep N3 as a positive-path error case in the video instead.
+font?" (checked once: no call) and keep N3 as a positive-path error case in the video instead.
+
+Test images used (regenerable, not committed): `hero_screenshot.png` (Poppins headline on
+navy), `product_logo_v2.png` ("Marigold" in Playfair Display Black), `banner.png`
+(`eval_reports/reddit_test/hchz81.png`), `menu_photo.jpg` (Playfair menu, rotated 2.5°),
+`no_text_photo.jpg` (gradient sky and hills).
+
+Observations from the runs that are not test failures:
+
+- `text_hint` was passed on 3 of 9 image calls (`source=hint` in the log). Results were the
+  same either way for these images, so the expected results do not mention it.
+- Liberation Sans, the top Helvetica match, had `license_id='unknown'` in the DB, so the
+  answer said "License not identified by DupeFont" every time. The font declares OFL-1.1 in
+  its own name table; a backfill from the name table is in `fontmatch/index/relicense.py`.
+- ChatGPT never mentioned Jost for Futura; the earlier expected text that relied on it was
+  dropped.
 
 ---
 
