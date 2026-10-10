@@ -208,11 +208,11 @@ Two things the runs changed:
 
 | # | Input | Expected |
 |---|---|---|
-| P1 | Attach a website hero screenshot (dark background, large sans-serif headline); "What font is this? Use DupeFont to find a free look-alike." [1] | Calls `find_free_font_from_image`; the widget lists ≥3 free fonts with rendered samples, similarity scores and licences. Seen: Poppins SemiBold 99%, then Rethink Sans, Parkinsans, Cal Sans, Vend Sans, all OFL-1.1. |
-| P2 | Attach a product logo whose wordmark is clear serif or sans lettering (not script); "Is there a Google Font similar to this logo? Check with DupeFont." [3] | Image tool; every result links to Google Fonts and shows an open licence. Seen: Playfair Display Bold 94%, Gelasio, Song Myung, Shippori Mincho, Tai Heritage Pro. |
-| P3 | Attach a banner or poster with a short all-caps line; "Need a free alternative to the font in this image for a commercial project. Use DupeFont." [6] | Image tool; all results show an open licence (OFL-1.1 etc.), none "unknown"; the answer states they can be used commercially. Seen: Ovo 98%, Lusitana, Cardo, Nanum Myeongjo. |
-| P4 | "Use DupeFont to find free alternatives to Helvetica." (no image) [9] | Calls `find_free_alternatives`; ≥3 results with scores; the answer frames them as free alternatives, not as identification. Seen: Liberation Sans 91%, Pontano Sans, Istok Web, Roboto Flex, Zalando Sans. |
-| P5 | "I need something like Futura but free for commercial use. Use DupeFont." [12] | `find_free_alternatives`; ≥3 geometric sans results, all with an open licence; the answer confirms commercial use is allowed. Seen: Plus Jakarta Sans 61%, Kumbh Sans, Wix Madefor Text, DM Sans, Hanken Grotesk. |
+| P1 | Attach a website hero screenshot (dark background, large sans-serif headline); "What font is this? Use dupefont to find a free look-alike." [1] | Calls `find_free_font_from_image`; the widget lists ≥3 free fonts with rendered samples, similarity scores and licences. Seen: Poppins SemiBold 99%, then Rethink Sans, Parkinsans, Cal Sans, Vend Sans, all OFL-1.1. |
+| P2 | Attach a product logo whose wordmark is clear serif or sans lettering (not script); "Is there a Google Font similar to this logo? Check with dupefont." [3] | Image tool; every result links to Google Fonts and shows an open licence. Seen: Playfair Display Bold 94%, Gelasio, Song Myung, Shippori Mincho, Tai Heritage Pro. |
+| P3 | Attach a banner or poster with a short all-caps line; "Need a free alternative to the font in this image for a commercial project. Use dupefont." [6] | Image tool; all results show an open licence (OFL-1.1 etc.), none "unknown"; the answer states they can be used commercially. Seen: Ovo 98%, Lusitana, Cardo, Nanum Myeongjo. |
+| P4 | "Use dupefont to find free alternatives to Helvetica." (no image) [9] | Calls `find_free_alternatives`; ≥3 results with scores; the answer frames them as free alternatives, not as identification. Seen: Liberation Sans 91%, Pontano Sans, Istok Web, Roboto Flex, Zalando Sans. |
+| P5 | "I need something like Futura but free for commercial use. Use dupefont." [12] | `find_free_alternatives`; ≥3 geometric sans results, all with an open licence; the answer confirms commercial use is allowed. Seen: Plus Jakarta Sans 61%, Kumbh Sans, Wix Madefor Text, DM Sans, Hanken Grotesk. |
 
 **Negative** (each 3/3)
 
@@ -220,7 +220,7 @@ Two things the runs changed:
 |---|---|---|
 | N1 | "Write a CSS rule that sets the body font to Inter" [15] | **No** DupeFont tool call; plain CSS answer. |
 | N2 | Attach a restaurant menu photo; "Translate the text in this image" [17] | **No** DupeFont tool call; ChatGPT translates the menu itself. |
-| N3 | Attach a photo with no text (landscape, no lettering); "What font is this? Use DupeFont." [22] | Either no tool call, or the tool's "No readable text found in the image." relayed politely. ChatGPT names no font. Seen: 2 runs answered without calling, 1 run called and quoted the error. |
+| N3 | Attach a photo with no text (landscape, no lettering); "What font is this? Use dupefont." [22] | Either no tool call, or the tool's "No readable text found in the image." relayed politely. ChatGPT names no font. Seen: 2 runs answered without calling, 1 run called and quoted the error. |
 
 If the portal defines "negative" strictly as *must not invoke*, swap N3 for [14] "What is a
 font?" (checked once: no call) and keep N3 as a positive-path error case in the video instead.

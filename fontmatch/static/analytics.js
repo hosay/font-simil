@@ -52,7 +52,7 @@
         bar.setAttribute("aria-label", "Analytics cookies");
         bar.innerHTML =
             '<p>We use Microsoft Clarity cookies to see how people use this site so we can improve it. ' +
-            'No advertising. <a href="/privacy#analytics">Privacy policy</a></p>' +
+            '<a href="/privacy#analytics">Privacy policy</a></p>' +
             '<div class="consent-actions">' +
             '<button type="button" class="btn btn-outline btn-sm" data-choice="denied">Decline</button>' +
             '<button type="button" class="btn btn-primary btn-sm" data-choice="granted">Accept</button></div>';

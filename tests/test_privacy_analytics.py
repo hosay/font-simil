@@ -97,7 +97,7 @@ def test_policy_covers_share_links_and_feedback_images(tmp_path):
         "Was this right?",
         "Let DupeFont keep this image",
         "Up to 2 years",
-        "October 5, 2026",
+        "October 10, 2026",
     ]:
         assert text in html, text
     assert "We don't use your uploads to train" not in html
