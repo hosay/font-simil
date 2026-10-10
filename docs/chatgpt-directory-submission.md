@@ -9,7 +9,7 @@ OpenAI submission docs and the platform dashboard on that date.
 | MCP server identity (`title`, icon) | deployed (`a8cc684`), verified on the wire |
 | `/support`, `/.well-known/openai-apps-challenge`, retention timer | built and tested on `feature/submission-prereqs` (`7bf9cf4`), **not deployed yet** |
 | mTLS on `/mcp` (mr02) | **enforced** — cert-less and forged callers get 403; ChatGPT verified working after — see §8 |
-| Submission package (`mcp.json` form, no `.app.json`) | built: `scratchpad/dupefont-submission.zip` |
+| Submission package (`mcp.json` form, no `.app.json`) | built: `dev/chatgpt-plugin/dist/dupefont-submission.zip` (build: `dev/chatgpt-plugin/build.sh`) |
 | Submitted to OpenAI | **no** — nothing uploaded, no drafts exist on the platform |
 
 ---
@@ -39,9 +39,9 @@ OpenAI submission docs and the platform dashboard on that date.
    sudo systemctl restart fontmatch          # dupefont-mcp is unaffected by this branch
    curl -s -o /dev/null -w '%{http_code}\n' https://dupefont.com/support   # expect 200
    ```
-   Install the retention timer (units are in `scratchpad/mtls/`):
+   Install the retention timer (units are in `dev/systemd/`):
    ```bash
-   sudo cp fontmatch-maintenance.{service,timer} /etc/systemd/system/
+   sudo cp dev/systemd/fontmatch-maintenance.{service,timer} /etc/systemd/system/
    sudo systemctl daemon-reload && sudo systemctl enable --now fontmatch-maintenance.timer
    sudo systemctl start fontmatch-maintenance.service && journalctl -u fontmatch-maintenance -n 5
    ```
@@ -153,7 +153,7 @@ keep it to a few minutes, host on YouTube (unlisted is fine) or Loom. Sources:
 Treat these as guidance, not spec; check the form when you get there.
 
 **Before recording:** fresh chats for every scene, notifications muted, no other tabs or
-personal data visible, 1080p, narration or captions. Test image: `scratchpad/test-font.png`
+personal data visible, 1080p, narration or captions. Test image: `eval_reports/browser_dev/merriweather__logo.png`
 (the Google wordmark set in Merriweather — DupeFont returns Merriweather at 99%, which reads
 well on camera). Have a real-world screenshot ready too.
 

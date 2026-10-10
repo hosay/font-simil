@@ -1,0 +1,30 @@
+{
+  "apps": "./.app.json",
+  "author": {
+    "name": "DupeFont"
+  },
+  "description": "Identify fonts from images and find visually similar free font alternatives.",
+  "interface": {
+    "brandColor": "#2563eb",
+    "capabilities": [
+      "Interactive"
+    ],
+    "category": "Design",
+    "composerIcon": "./assets/logo.png",
+    "defaultPrompt": [
+      "Identify the font in this image.",
+      "Find free font alternatives that look like this.",
+      "Compare this font with the closest free alternatives."
+    ],
+    "developerName": "DupeFont",
+    "displayName": "DupeFont",
+    "logo": "./assets/logo.png",
+    "longDescription": "Show DupeFont a screenshot, photo, logo or design and it reads the typography, then ranks the closest free and open-source look-alikes. Every match comes with a similarity score, its licence, a live preview, and a link to its Google Fonts page or to a DupeFont page with more alternatives. Results are always openly licensed fonts, not commercial ones.",
+    "privacyPolicyURL": "https://dupefont.com/privacy",
+    "shortDescription": "Identify fonts from images",
+    "termsOfServiceURL": "https://dupefont.com/terms",
+    "websiteURL": "https://dupefont.com"
+  },
+  "name": "dev-6ac1684b48fc8191b8fda7ddf1bb0101",
+  "version": "1.1.2"
+}

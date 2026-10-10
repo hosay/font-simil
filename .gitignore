@@ -28,3 +28,6 @@ font_samples/
 # Local run artifacts (regenerable, not part of the service)
 *.log
 qa_screenshots/
+
+# ChatGPT plugin ZIPs are build output (dev/chatgpt-plugin*/build.sh)
+dev/chatgpt-plugin*/dist/

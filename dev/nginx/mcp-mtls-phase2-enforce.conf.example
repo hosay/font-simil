@@ -1,0 +1,10 @@
+# PHASE 2 — ENFORCE. Apply only after phase 1 shows verify=SUCCESS for real traffic.
+# Add inside `location = /mcp`, before proxy_pass:
+
+    if ($ssl_client_verify != SUCCESS) { return 403; }
+
+# Optional, tighter — also pin the client identity OpenAI documents:
+#   if ($ssl_client_s_dn !~ "CN=mtls\.prod\.connectors\.openai\.com") { return 403; }
+#
+# Do NOT pin the leaf fingerprint: OpenAI rotates leaves under the same CA.
+# Rollback is removing these lines + `systemctl reload nginx`.

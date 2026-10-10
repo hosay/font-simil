@@ -1,0 +1,20 @@
+# PHASE 1 — OBSERVE ONLY. Nothing is blocked. Confirms real ChatGPT traffic
+# presents OpenAI's client certificate before we start enforcing it.
+#
+# In the `server { listen 443 ssl; server_name dupefont.com ...}` block:
+
+    ssl_client_certificate /etc/nginx/openai-mtls-chain.pem;   # intermediate + root
+    ssl_verify_client      optional;                            # never "on" here: this
+    ssl_verify_depth       3;                                   # vhost also serves the site
+
+    log_format mcp_mtls '$time_iso8601 $remote_addr verify=$ssl_client_verify '
+                        'dn="$ssl_client_s_dn" issuer="$ssl_client_i_dn"';
+
+# In `location = /mcp` add ONLY this line (leave proxy_pass etc. untouched):
+
+    access_log /var/log/nginx/mcp_mtls.log mcp_mtls;
+
+# Then: nginx -t && systemctl reload nginx
+# Watch:  tail -f /var/log/nginx/mcp_mtls.log
+# Expect real ChatGPT calls to log verify=SUCCESS with
+# dn="CN=mtls.prod.connectors.openai.com". Only proceed to phase 2 once they do.

@@ -1,0 +1,10 @@
+[Unit]
+Description=DupeFont data-retention sweeps
+After=network.target
+
+[Service]
+Type=oneshot
+User=fontmatch
+WorkingDirectory=/opt/projects/font_simil
+EnvironmentFile=/etc/fontmatch/env
+ExecStart=/opt/projects/font_simil/venv/bin/python -m fontmatch.maintenance --db /opt/projects/font_simil/fontmatch.db
