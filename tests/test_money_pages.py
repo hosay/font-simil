@@ -49,19 +49,22 @@ def test_metric_compatible_claim_only_where_true(client):
         assert "metrically compatible" not in _html(client, f"/similar-to/{slug}")
 
 
-def test_license_claim_matches_the_font(client, tmp_path, monkeypatch):
+def test_license_claim_matches_the_font(client):
     # The FAQ used to say every alternative is under the SIL Open Font
-    # License. It must name the font's own license (here: Apache, from the
-    # google/fonts directory the family lives in).
-    d = tmp_path / "apache" / "arimo"
-    d.mkdir(parents=True)
-    (d / "METADATA.pb").write_text('name: "Arimo"\n')
-    monkeypatch.setattr(helpers, "GOOGLE_FONTS_REPOS", [tmp_path])
-    helpers.google_fonts_name.cache_clear()
-    helpers.google_fonts_dir.cache_clear()
-    html = _html(client, "/similar-to/arial")
-    helpers.google_fonts_name.cache_clear()
-    helpers.google_fonts_dir.cache_clear()
+    # License. It must name the font's own recorded license, whatever it is.
+    # (The fixture Arimo declares OFL-1.1 in its name table, so flip the row.)
+    import sqlite3
+
+    db_path = client.application.config["STORE"].db_path
+    with sqlite3.connect(db_path) as db:
+        db.execute("UPDATE fonts SET license_id = 'Apache-2.0' WHERE family = 'Arimo'")
+        db.execute("DELETE FROM match_cache")
+    try:
+        html = _html(client, "/similar-to/arial")
+    finally:
+        with sqlite3.connect(db_path) as db:
+            db.execute("UPDATE fonts SET license_id = 'OFL-1.1' WHERE family = 'Arimo'")
+            db.execute("DELETE FROM match_cache")
     faq = html[html.find("Frequently Asked Questions") :]
     assert "released under the Apache 2.0" in faq
     assert "SIL Open Font License" not in faq
