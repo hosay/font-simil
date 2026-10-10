@@ -20,8 +20,9 @@ class TestSupportPage:
     def test_is_public(self, client):
         assert client.get("/support").status_code == 200
 
-    def test_shows_a_contact_address(self, client):
-        assert "support@dupefont.com" in client.get("/support").data.decode()
+    def test_shows_the_default_contact_address(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("DUPEFONT_SUPPORT_EMAIL", raising=False)
+        assert "support@dupefont.com" in _client(tmp_path).get("/support").data.decode()
 
     def test_address_is_configurable(self, tmp_path, monkeypatch):
         monkeypatch.setenv("DUPEFONT_SUPPORT_EMAIL", "help@example.com")
@@ -47,6 +48,15 @@ class TestAppsChallenge:
     def test_404s_when_no_token_is_configured(self, tmp_path, monkeypatch):
         monkeypatch.delenv("DUPEFONT_APPS_CHALLENGE", raising=False)
         assert _client(tmp_path).get("/.well-known/openai-apps-challenge").status_code == 404
+
+    def test_whitespace_only_token_counts_as_unset(self, tmp_path, monkeypatch):
+        """Never answer the verifier with a blank body."""
+        monkeypatch.setenv("DUPEFONT_APPS_CHALLENGE", "  \n")
+        assert _client(tmp_path).get("/.well-known/openai-apps-challenge").status_code == 404
+
+    def test_token_is_served_without_surrounding_whitespace(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("DUPEFONT_APPS_CHALLENGE", " tok-xyz\n")
+        assert _client(tmp_path).get("/.well-known/openai-apps-challenge").data == b"tok-xyz"
 
     def test_is_not_indexed(self, client):
         """A verification token has no business in search results."""

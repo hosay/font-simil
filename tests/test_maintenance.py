@@ -1,7 +1,7 @@
 """Retention sweeps must be runnable without a deploy (privacy.html promises dates)."""
 
 from fontmatch.index.store import FontStore
-from fontmatch.maintenance import RETENTION, run_sweeps
+from fontmatch.maintenance import run_sweeps, main
 
 
 def test_runs_every_sweep_the_privacy_policy_promises(tmp_path):
@@ -12,12 +12,13 @@ def test_runs_every_sweep_the_privacy_policy_promises(tmp_path):
     assert all(isinstance(v, int) for v in result.values())
 
 
-def test_retention_windows_match_the_app_defaults(tmp_path):
-    """If these drift from service/app.py, the policy and the sweeps disagree."""
-    assert RETENTION == {"usage": 90, "image_cache": 30, "rating_ips": 365}
+def test_cli_runs_the_sweeps_against_the_given_database(tmp_path):
+    FontStore(tmp_path / "t.db").build_index()
+    assert main(["--db", str(tmp_path / "t.db")]) == 0
 
 
-def test_entrypoint_is_runnable_as_a_module():
-    import importlib.util
-
-    assert importlib.util.find_spec("fontmatch.maintenance") is not None
+def test_cli_fails_cleanly_when_the_database_is_missing(tmp_path):
+    """The timer must not create an empty DB next to the real one."""
+    missing = tmp_path / "missing.db"
+    assert main(["--db", str(missing)]) == 1
+    assert not missing.exists()

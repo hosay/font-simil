@@ -316,7 +316,7 @@ def support():
 @web_bp.get("/.well-known/openai-apps-challenge")
 def openai_apps_challenge():
     """Domain verification for the ChatGPT plugin directory: the token, verbatim."""
-    token = current_app.config.get("APPS_CHALLENGE", "")
+    token = (current_app.config.get("APPS_CHALLENGE") or "").strip()
     if not token:
         abort(404)
     return Response(token, mimetype="text/plain")

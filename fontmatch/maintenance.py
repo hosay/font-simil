@@ -16,8 +16,8 @@ from pathlib import Path
 
 from fontmatch.index.store import FontStore
 
-# Days each kind of record is kept. Must match the windows stated in
-# templates/privacy.html and the defaults in service/app.py.
+# Days each kind of record is kept: the single source for the windows stated in
+# templates/privacy.html. service/app.py runs these same sweeps at startup.
 RETENTION = {"usage": 90, "image_cache": 30, "rating_ips": 365}
 
 log = logging.getLogger(__name__)
