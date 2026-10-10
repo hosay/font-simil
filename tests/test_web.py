@@ -386,3 +386,19 @@ class TestDailyRateLimit:
             "SELECT COUNT(*) FROM daily_usage WHERE ip_address = '192.168.1.1' AND date = '2020-01-01'"
         ).fetchone()
         assert row[0] == 0
+
+
+class TestReverseProxy:
+    def test_robots_uses_forwarded_proto_and_host(self, client):
+        resp = client.get(
+            "/robots.txt",
+            headers={"Host": "dupefont.com", "X-Forwarded-Proto": "https"},
+        )
+        assert b"Sitemap: https://dupefont.com/sitemap.txt" in resp.data
+
+    def test_canonical_url_uses_forwarded_proto(self, client):
+        resp = client.get(
+            "/",
+            headers={"Host": "dupefont.com", "X-Forwarded-Proto": "https"},
+        )
+        assert b'href="https://dupefont.com/"' in resp.data
