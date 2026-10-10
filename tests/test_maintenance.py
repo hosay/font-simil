@@ -1,7 +1,7 @@
 """Retention sweeps must be runnable without a deploy (privacy.html promises dates)."""
 
 from fontmatch.index.store import FontStore
-from fontmatch.maintenance import run_sweeps, main
+from fontmatch.maintenance import main, run_sweeps
 
 
 def test_runs_every_sweep_the_privacy_policy_promises(tmp_path):
