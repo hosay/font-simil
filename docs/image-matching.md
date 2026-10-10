@@ -1,4 +1,4 @@
-# Image → free font matching, and the Dupefont ChatGPT app
+# Image → free font matching, and the DupeFont ChatGPT app
 
 Status: **Deployed 2026-10-03** (master `d918afc`, see README "Current deploy state"). Phases
 0–3 were built and reviewed on branch `feature/image-identify`; the Phase 4 runbook below was executed
@@ -354,7 +354,7 @@ over-specific ones (e.g. "Futura Condensed"); fix them with `truth` in `annotati
 
 First scrape: 402 posts, 458 images; 208 labelled; 186 annotated (56 skipped: rotated, curved, 3D,
 photo-filled or several fonts); 146 scoreable rows (dev 103, test 43). Most truths are commercial
-(only 7 in the catalog), which is Dupefont's real use case.
+(only 7 in the catalog), which is DupeFont's real use case.
 
 **Baseline (master af27d08, dev, transcript as hint):** category@1 0.47 (sans 0.48, display 0.52,
 handwriting 0.70, **serif 0.24**, mono 0.33 on 3), acceptable@5 0.07, catalog family@5 0/5.

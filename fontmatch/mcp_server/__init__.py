@@ -1,1 +1,1 @@
-"""MCP server exposing Dupefont to ChatGPT (Apps SDK) and other MCP clients."""
+"""MCP server exposing DupeFont to ChatGPT (Apps SDK) and other MCP clients."""

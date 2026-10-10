@@ -95,7 +95,7 @@ def test_policy_covers_share_links_and_feedback_images(tmp_path):
         "Share links",
         "Get a share link",
         "Was this right?",
-        "Let Dupefont keep this image",
+        "Let DupeFont keep this image",
         "Up to 2 years",
         "October 5, 2026",
     ]:

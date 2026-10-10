@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Find Free Open-Source Font Alternatives{% endblock %} | Dupefont</title>
+    <title>{% block title %}Find Free Open-Source Font Alternatives{% endblock %} | DupeFont</title>
     <meta name="description" content="{% block meta_description %}Find the perfect open-source replacement for any font. Upload a font file and get instant matches from {{ font_count|default('5000+') }} indexed fonts.{% endblock %}">
     {% set page_url = canonical_url if canonical_url is defined else request.url_root.rstrip('/') ~ request.path %}
     {% if page_url %}<link rel="canonical" href="{{ page_url }}">{% endif %}
@@ -13,9 +13,9 @@
     {# Open Graph / Social #}
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ page_url or (request.url_root.rstrip('/') ~ request.path) }}">
-    <meta property="og:title" content="{% block og_title %}Dupefont &mdash; Find Free Open-Source Alternatives to Any Font{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}DupeFont &mdash; Find Free Open-Source Alternatives to Any Font{% endblock %}">
     <meta property="og:description" content="{% block og_description %}Upload any font file and find the best open-source alternatives using metric and visual analysis.{% endblock %}">
-    <meta property="og:site_name" content="Dupefont">
+    <meta property="og:site_name" content="DupeFont">
     <meta property="og:image" content="{{ og_image if og_image is defined and og_image else url_for('static', filename='og-default.png', _external=True) }}">
     {% if not (og_image is defined and og_image and '/r/' in og_image) %}
     <meta property="og:image:width" content="1200">
@@ -36,7 +36,7 @@
         <div class="container nav-inner">
             <a href="{{ url_for('web.index') }}" class="nav-brand">
                 <span class="brand-logo" aria-hidden="true"><span class="logo-a logo-a-back">A</span><span class="logo-a logo-a-front">A</span></span>
-                Dupefont
+                DupeFont
             </a>
             <div class="nav-links">
                 <a href="{{ url_for('web.popular') }}">Popular</a>
@@ -64,7 +64,7 @@
         <div class="container">
             <div class="footer-inner">
                 <div>
-                    <div class="footer-brand">Dupefont</div>
+                    <div class="footer-brand">DupeFont</div>
                     <p class="footer-tagline">Find free, open-source replacements for any font. We analyze OpenType metrics and use CLIP neural embeddings of individual glyph shapes to rank the closest matches from thousands of open-source fonts.</p>
                 </div>
                 <div class="footer-links">

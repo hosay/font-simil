@@ -191,7 +191,7 @@ def _challenge() -> Response | None:
         abort(404)
     if not _authorized():
         return Response(
-            "Authentication required", 401, {"WWW-Authenticate": 'Basic realm="Dupefont admin"'}
+            "Authentication required", 401, {"WWW-Authenticate": 'Basic realm="DupeFont admin"'}
         )
     # Browsers resend Basic credentials automatically, so a form on another
     # site could post here: changes must come from our own pages.
