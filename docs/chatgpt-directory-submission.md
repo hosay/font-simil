@@ -229,14 +229,26 @@ Observations from the runs that are not test failures:
 - `text_hint` was passed on 3 of 9 image calls (`source=hint` in the log). Results were the
   same either way for these images, so the expected results do not mention it.
 - Liberation Sans, the top Helvetica match, had `license_id='unknown'` in the DB, so the
-  answer said "License not identified by DupeFont" every time. The font declares OFL-1.1 in
-  its own name table; a backfill from the name table is in `fontmatch/index/relicense.py`.
+  answer said "License not identified by DupeFont" every time. Fixed the same day: licences
+  are now read from the font's own name table (`fontmatch/index/relicense.py`, backfill run
+  on production: 90 rows updated, 27 still unknown; glyph catalog patched to match). P4 now
+  shows OFL-1.1 for Liberation Sans, verified in ChatGPT.
+- ChatGPT pasted the per-font sample-image URLs from the tool result into its prose as
+  broken image placeholders under the widget. The sample URLs now travel in the result's
+  `_meta` (widget-only) and the widget URI was bumped to `dupefont-results-v3.html` because
+  ChatGPT caches widget templates by URI. Verified: samples render, prose is clean.
 - ChatGPT never mentioned Jost for Futura; the earlier expected text that relied on it was
   dropped.
 
 ---
 
 ## 8. Engineering status and what's left (mine)
+
+**Procedure learned today (dev-mode app):** after any widget or tool-schema change, bump
+`WIDGET_URI`, restart `dupefont-mcp`, click *Refresh tools* on the app's settings page,
+then re-upload the dev-mode package with a bumped version (Refresh tools wipes the package
+metadata: developer, category, website, prompts). Package re-upload alone does not refresh
+the widget.
 
 **mTLS on `/mcp` (mr02) — enforced and verified.** `ssl_verify_client optional` + OpenAI's CA
 chain (`/etc/nginx/openai-mtls-chain.pem`) are in the `dupefont.com` vhost; `location = /mcp`
