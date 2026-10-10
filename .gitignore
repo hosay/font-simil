@@ -24,3 +24,7 @@ font_samples/
 *.db-shm
 *.db-wal
 /venv-scrape
+
+# Local run artifacts (regenerable, not part of the service)
+*.log
+qa_screenshots/
