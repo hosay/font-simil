@@ -202,10 +202,42 @@ class TestResultsWidget:
         r = _call(server, "find_free_alternatives", {"font_name": "Helvetica"})
         match = r.structured_content["matches"][0]
         assert "sample_image_url" not in match
-        assert "sample" not in str(r.structured_content).lower()
+        assert "font-sample/" not in str(r.structured_content)
+        assert "font-sample/" not in r.content[0].text
         samples = r.meta["dupefont/sampleImages"]
         assert len(samples) == len(r.structured_content["matches"])
         assert samples[0] == "https://dupefont.com/font-sample/Tinos-Regular.ttf.png?style=Regular"
+
+    def test_image_tool_carries_samples_in_meta_too(self, server):
+        r = _call(server, "find_free_font_from_image", {"image": IMAGE, "text_hint": "Hello"})
+        assert "font-sample/" not in str(r.structured_content)
+        assert r.meta["dupefont/sampleImages"] == [
+            "https://dupefont.com/font-sample/Tinos-Regular.ttf.png?style=Regular"
+        ]
+
+    def test_match_without_a_file_name_keeps_the_sample_list_aligned(self, usage):
+        from fontmatch.mcp_server.server import create_server
+
+        class Backend(FakeBackend):
+            def similar(self, name):
+                return {
+                    "query": name,
+                    "matched_font": "Tinos",
+                    "matches": [MATCH | {"name": None}, MATCH],
+                }
+
+        server = create_server(fetch=_fake_fetch, backend=Backend(), usage=usage)
+        r = _call(server, "find_free_alternatives", {"font_name": "Helvetica"})
+        assert len(r.structured_content["matches"]) == 2
+        assert r.meta["dupefont/sampleImages"] == [
+            None,
+            "https://dupefont.com/font-sample/Tinos-Regular.ttf.png?style=Regular",
+        ]
+
+    def test_error_result_has_no_sample_meta(self, server):
+        r = _call(server, "find_free_font_from_image", {"image": IMAGE, "text_hint": "notext"})
+        assert r.is_error
+        assert "dupefont/sampleImages" not in (r.meta or {})
 
     def test_output_schema_has_no_sample_image_field(self, server):
         from tests.test_mcp_server import _list_tools

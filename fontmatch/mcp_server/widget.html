@@ -87,9 +87,15 @@
     return url.charAt(0) === "/" ? SITE + url : url;
   }
 
+  var lastSamples = [];
+
   function render(data, meta) {
-    // Type samples are widget-only: they arrive in the result's _meta, not structuredContent.
-    var samples = (meta && meta["dupefont/sampleImages"]) || [];
+    // Type samples are widget-only: they arrive in the result's _meta, not
+    // structuredContent. Both render paths (window.openai globals and the
+    // tool-result notification) redraw everything, so keep the last samples
+    // seen in case one path carries the meta and the other does not.
+    if (meta && meta["dupefont/sampleImages"]) lastSamples = meta["dupefont/sampleImages"];
+    var samples = lastSamples;
     if (!data || !Array.isArray(data.matches)) return;
     app.textContent = "";
     var head = el("div", "head");
@@ -125,11 +131,11 @@
         item.appendChild(img);
       }
 
-      var meta = el("div", "meta");
-      meta.appendChild(el("span", null, m.license));
-      if (m.google_fonts_url) meta.appendChild(link("Google Fonts", m.google_fonts_url));
-      if (m.dupefont_url) meta.appendChild(link("More like this", m.dupefont_url));
-      item.appendChild(meta);
+      var info = el("div", "meta");
+      info.appendChild(el("span", null, m.license));
+      if (m.google_fonts_url) info.appendChild(link("Google Fonts", m.google_fonts_url));
+      if (m.dupefont_url) info.appendChild(link("More like this", m.dupefont_url));
+      item.appendChild(info);
       list.appendChild(item);
     });
     app.appendChild(list);
