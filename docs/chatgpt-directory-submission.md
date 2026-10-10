@@ -248,7 +248,8 @@ Observations from the runs that are not test failures:
 `WIDGET_URI`, restart `dupefont-mcp`, click *Refresh tools* on the app's settings page,
 then re-upload the dev-mode package with a bumped version (Refresh tools wipes the package
 metadata: developer, category, website, prompts). Package re-upload alone does not refresh
-the widget.
+the widget. ChatGPT keeps asking for the old URI for a while, so `LEGACY_WIDGET_URIS` in
+`server.py` keeps the previous one readable; drop it a release later.
 
 **mTLS on `/mcp` (mr02) — enforced and verified.** `ssl_verify_client optional` + OpenAI's CA
 chain (`/etc/nginx/openai-mtls-chain.pem`) are in the `dupefont.com` vhost; `location = /mcp`
