@@ -50,7 +50,7 @@ BACKEND_TIMEOUT = 35.0  # + 15 s image fetch, well under nginx's 130 s
 # Results UI shown in ChatGPT (font samples can't be sent as MCP image
 # content: ChatGPT doesn't render it). Bump the version when the HTML changes
 # in a breaking way: hosts cache by URI.
-WIDGET_URI = "ui://widget/dupefont-results-v2.html"  # bump on change: ChatGPT caches templates
+WIDGET_URI = "ui://widget/dupefont-results-v3.html"  # bump on change: ChatGPT caches templates
 WIDGET_HTML = (Path(__file__).parent / "widget.html").read_text()
 
 READ_ONLY = ToolAnnotations(read_only_hint=True, destructive_hint=False, open_world_hint=False)
