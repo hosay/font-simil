@@ -5,27 +5,26 @@ OpenAI submission docs and the platform dashboard on that date.
 
 | Item | State |
 |---|---|
-| Dev listing (Entry A, `plugin_asdk_app_6ac1684b…`) | correct metadata, v1.1.2, tested in chat |
+| Dev listing (Entry A, `plugin_asdk_app_6ac1684b…`) | correct metadata, v1.1.3, tested in chat |
+| Entry B (`plugins_6ac1570077…`, the Plugin Creator duplicate) | renamed **DupeFont_deprecated** (v0.1.3) via Plugin Creator — it can update what it cannot delete |
 | MCP server identity (`title`, icon) | deployed (`a8cc684`), verified on the wire |
-| `/support`, `/.well-known/openai-apps-challenge`, retention timer | built and tested on `feature/submission-prereqs` (`7bf9cf4`), **not deployed yet** |
+| `/support`, `/.well-known/openai-apps-challenge`, retention timer | **deployed 2026-10-10** — merged to master, `fontmatch` restarted; `/support` 200; challenge route 404 until a token is set; `fontmatch-maintenance.timer` enabled, first run clean |
 | mTLS on `/mcp` (mr02) | **enforced** — cert-less and forged callers get 403; ChatGPT verified working after — see §8 |
 | Submission package (`mcp.json` form, no `.app.json`) | built: `dev/chatgpt-plugin/dist/dupefont-submission.zip` (build: `dev/chatgpt-plugin/build.sh`) |
+| Developer identity | **verified** (organization, 2026-10-10) |
 | Submitted to OpenAI | **no** — nothing uploaded, no drafts exist on the platform |
 
 ---
 
 ## 1. Things only you can do
 
-1. **Verify your developer identity** (§6). Required before the portal lets you submit.
+1. ~~Verify your developer identity~~ — **done**, organization verified 2026-10-10.
 2. **Record the demo video** (§5). The portal requires a public URL to it.
-3. **Confirm `support@dupefont.com` delivers.** The new `/support` page shows it. If it doesn't
-   exist, either create it or set `DUPEFONT_SUPPORT_EMAIL` in `/etc/fontmatch/env` to an address
-   that does (you confirmed `privacy@` and `legal@` work). A reviewer who emails support and
-   gets a bounce is a cheap rejection.
-4. **Review the listing copy** (§3) and tell me which version to ship.
-5. **Delete Entry B** (`plugins_6ac1570077d48191ab2e3609d85aad56`, the Plugin Creator package)
-   from the ChatGPT **desktop app** — it has no delete control on the web, and Plugin Creator
-   has no delete operation. Its only unique content, the skill, is already recovered (§4).
+3. ~~Confirm `support@dupefont.com` delivers~~ — **done**, confirmed active; it is what `/support` shows.
+4. ~~Review the listing copy~~ — **done**: version A with ", not commercial ones" removed is in both
+   packages and live on Entry A (v1.1.3).
+5. ~~Delete Entry B~~ — it cannot be deleted from the web or by Plugin Creator, so it is **renamed
+   `DupeFont_deprecated`** (v0.1.3). Delete it from the ChatGPT desktop app whenever convenient.
 6. **Rotate the sudo password** for `user4` on a01 — it's in this session's transcript.
 
 ---
@@ -33,18 +32,8 @@ OpenAI submission docs and the platform dashboard on that date.
 ## 2. Submission runbook, in order
 
 1. Identity verification (§6).
-2. Merge and deploy `feature/submission-prereqs`:
-   ```bash
-   cd /opt/projects/font_simil && git merge feature/submission-prereqs
-   sudo systemctl restart fontmatch          # dupefont-mcp is unaffected by this branch
-   curl -s -o /dev/null -w '%{http_code}\n' https://dupefont.com/support   # expect 200
-   ```
-   Install the retention timer (units are in `dev/systemd/`):
-   ```bash
-   sudo cp dev/systemd/fontmatch-maintenance.{service,timer} /etc/systemd/system/
-   sudo systemctl daemon-reload && sudo systemctl enable --now fontmatch-maintenance.timer
-   sudo systemctl start fontmatch-maintenance.service && journalctl -u fontmatch-maintenance -n 5
-   ```
+2. ~~Merge and deploy~~ — **done 2026-10-10**: merged to master, `fontmatch` restarted, `/support` 200,
+   `fontmatch-maintenance.timer` enabled (daily, 00:49 PDT; first manual run removed 0 rows, as expected).
 3. Record and host the video (§5); keep the URL.
 4. `platform.openai.com/plugins` → **Upload plugin** → `dupefont-submission.zip`.
    The automated checks will issue a **domain-verification token**. Put it in
@@ -237,8 +226,9 @@ Why `optional` isn't a hole: on its own it validates a certificate *if one is of
 blocks nothing — that's deliberate for phase 1. The enforcement is the phase-2 `if`. `on` would
 demand a certificate from every browser visiting the website, since the same vhost serves it.
 
-**Still to do (me):** deploy `7bf9cf4` (your go-ahead — it restarts `fontmatch`); install the
-timer; set the challenge token when the portal issues it; rebuild the ZIP after you pick the copy.
+**Still to do (me):** upload `dist/dupefont-submission.zip` to the portal; put the token it issues
+in `/etc/fontmatch/env` as `DUPEFONT_APPS_CHALLENGE` and restart `fontmatch`; run the automated
+checks; enter the test cases (§7) and your video URL; submit for review.
 
 **Quality observations from today (not blockers):**
 
