@@ -173,10 +173,10 @@ class TestResultsWidget:
         return anyio.run(go)
 
     def test_widget_resource_is_an_mcp_app_with_csp_for_samples(self, server):
-        from fontmatch.mcp_server.server import SITE_URL, WIDGET_URI
+        from fontmatch.mcp_server.server import LEGACY_WIDGET_URIS, SITE_URL, WIDGET_URI
 
         listed, read = self._resources(server)
-        assert [str(r.uri) for r in listed] == [WIDGET_URI]
+        assert [str(r.uri) for r in listed] == [WIDGET_URI, *LEGACY_WIDGET_URIS]
         content = read.contents[0]
         assert content.mime_type == "text/html;profile=mcp-app"
         meta = content.meta
@@ -245,7 +245,23 @@ class TestResultsWidget:
         tool = next(t for t in _list_tools(server) if t.name == "find_free_alternatives")
         assert "sample_image_url" not in str(tool.output_schema)
 
-    def test_widget_reads_samples_from_response_metadata(self):
+    def test_previous_widget_uri_still_serves_the_current_widget(self, server):
+        """ChatGPT asks for the URI it cached per tool for a while after a bump."""
+        from mcp import Client
+
+        from fontmatch.mcp_server.server import LEGACY_WIDGET_URIS, WIDGET_HTML, WIDGET_URI
+        from tests.test_mcp_server import _run
+
+        async def go():
+            async with Client(server) as client:
+                return [
+                    (await client.read_resource(uri)).contents[0].text
+                    for uri in (WIDGET_URI, *LEGACY_WIDGET_URIS)
+                ]
+
+        assert LEGACY_WIDGET_URIS
+        assert all(text == WIDGET_HTML for text in _run(go))
+
         from fontmatch.mcp_server.server import WIDGET_HTML
 
         assert "dupefont/sampleImages" in WIDGET_HTML

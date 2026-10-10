@@ -51,6 +51,9 @@ BACKEND_TIMEOUT = 35.0  # + 15 s image fetch, well under nginx's 130 s
 # content: ChatGPT doesn't render it). Bump the version when the HTML changes
 # in a breaking way: hosts cache by URI.
 WIDGET_URI = "ui://widget/dupefont-results-v3.html"  # bump on change: ChatGPT caches templates
+# ChatGPT keeps asking for the URI it cached per tool for a while after a bump ("Couldn't
+# open ..." if the server no longer serves it), so the previous URI stays readable.
+LEGACY_WIDGET_URIS = ("ui://widget/dupefont-results-v2.html",)
 WIDGET_HTML = (Path(__file__).parent / "widget.html").read_text()
 
 READ_ONLY = ToolAnnotations(read_only_hint=True, destructive_hint=False, open_world_hint=False)
@@ -355,10 +358,10 @@ def _fetch_capped(url: str) -> FetchedImage:
     return fetch_image_bytes(url, max_bytes=MAX_IMAGE_BYTES)
 
 
-def _widget_resource() -> TextResource:
+def _widget_resource(uri: str = WIDGET_URI) -> TextResource:
     csp = {"resourceDomains": [SITE_URL], "connectDomains": []}
     return TextResource(
-        uri=WIDGET_URI,
+        uri=uri,
         name="dupefont-results",
         title="DupeFont results",
         mime_type=APP_MIME_TYPE,
@@ -497,6 +500,8 @@ def create_server(
             return _tool_result(payload, raw)
 
     apps.add_resource(_widget_resource())
+    for legacy in LEGACY_WIDGET_URIS:
+        apps.add_resource(_widget_resource(legacy))
     server = MCPServer(
         "dupefont",
         title="DupeFont",
