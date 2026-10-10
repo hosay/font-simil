@@ -14,8 +14,8 @@ import os
 import threading
 import time
 from collections import deque
-from pathlib import Path
 from collections.abc import Callable
+from pathlib import Path
 from typing import Annotated, Any
 
 import httpx
@@ -24,7 +24,7 @@ from mcp.server.mcpserver import Context, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.mcpserver.resources import TextResource
 from mcp.server.transport_security import TransportSecuritySettings
-from mcp_types import Icon, ToolAnnotations
+from mcp_types import CallToolResult, Icon, TextContent, ToolAnnotations
 from pydantic import BaseModel, Field
 
 from fontmatch.image.fetch import FetchedImage, FetchError, fetch_image_bytes
@@ -80,10 +80,6 @@ class FontResult(BaseModel):
     google_fonts_url: str | None
     dupefont_url: str = Field(description="Page with previews and more alternatives")
     css: str = Field(description="CSS font-family declaration with a generic fallback")
-    sample_image_url: str | None = Field(
-        default=None,
-        description="PNG of 'The quick brown fox jumps over the lazy dog' set in this font",
-    )
 
 
 class ImageMatchResult(BaseModel):
@@ -244,7 +240,13 @@ def _subject(ctx: Context | None) -> str:
 # --- Usage tracking ----------------------------------------------------------------
 
 
-_BACKEND_STATUS = {400: "bad_input", 404: "not_found", 413: "bad_input", 422: "no_text", 429: "busy"}
+_BACKEND_STATUS = {
+    400: "bad_input",
+    404: "not_found",
+    413: "bad_input",
+    422: "no_text",
+    429: "busy",
+}
 
 
 def _fail(message: str, status: str) -> ToolError:
@@ -321,7 +323,28 @@ def _font_match(m: dict) -> FontResult:
         google_fonts_url=m.get("google_fonts_url"),
         dupefont_url=SITE_URL + (m.get("similar_url") or ""),
         css=f"font-family: '{family}', {generic};",
-        sample_image_url=SITE_URL + sample_url(m["name"], style) if m.get("name") else None,
+    )
+
+
+def _sample_image(m: dict) -> str | None:
+    """Absolute URL of the 'quick brown fox' PNG for a backend match, if any."""
+    style = m.get("style") or "Regular"
+    return SITE_URL + sample_url(m["name"], style) if m.get("name") else None
+
+
+SAMPLES_META_KEY = "dupefont/sampleImages"
+
+
+def _tool_result(payload: BaseModel, raw_matches: list[dict]) -> CallToolResult:
+    """Wire result: ``payload`` is what the assistant reads (structuredContent and
+    text); the type samples are widget-only, so they travel in ``_meta`` (the
+    widget gets it as window.openai.toolResponseMetadata). ChatGPT otherwise
+    pastes image URLs from structuredContent into its prose as markdown images,
+    which it then renders as broken placeholders."""
+    return CallToolResult(
+        content=[TextContent(type="text", text=payload.model_dump_json())],
+        structured_content=payload.model_dump(mode="json"),
+        meta={SAMPLES_META_KEY: [_sample_image(m) for m in raw_matches]},
     )
 
 
@@ -379,7 +402,9 @@ def create_server(
 
     def _check_rate(call: _Call, bucket: RateLimiter) -> None:
         if not bucket.allow(call.subject):
-            raise _fail("Too many requests right now. Please wait a minute and try again.", "rate_limited")
+            raise _fail(
+                "Too many requests right now. Please wait a minute and try again.", "rate_limited"
+            )
 
     def _backend_failed(exc: BackendError) -> ToolError:
         return _fail(str(exc), _BACKEND_STATUS.get(exc.status, "backend_error"))
@@ -403,7 +428,9 @@ def create_server(
         with _Call(usage, "find_free_font_from_image", ctx) as call:
             _check_rate(call, image_limiter)
             if not _IMAGE_SLOTS.acquire(blocking=False):
-                raise _fail("The font service is busy right now, please try again shortly.", "busy")
+                raise _fail(
+                    "The font service is busy right now, please try again shortly.", "busy"
+                )
             try:
                 try:
                     fetched = fetch(image.download_url)
@@ -428,12 +455,13 @@ def create_server(
                 matches[0].family if matches else None,
                 time.perf_counter() - call.started,
             )
-            return ImageMatchResult(
+            payload = ImageMatchResult(
                 transcript=result.get("transcript", ""),
                 transcript_source=result.get("transcript_source", ""),
                 matches=matches,
                 note=NOTE,
             )
+            return _tool_result(payload, result.get("matches", []))
 
     @apps.tool(
         resource_uri=WIDGET_URI,
@@ -456,15 +484,17 @@ def create_server(
                 result = backend.similar(font_name.strip())
             except BackendError as exc:
                 raise _backend_failed(exc) from exc
-            matches = [_font_match(m) for m in result.get("matches", [])[:5]]
+            raw = result.get("matches", [])[:5]
+            matches = [_font_match(m) for m in raw]
             call.result(matches)
-            return AlternativesResult(
+            payload = AlternativesResult(
                 query=result.get("query", font_name),
                 matched_font=result.get("matched_font", ""),
                 is_proprietary=result.get("proprietary") is not None,
                 matches=matches,
                 note=NOTE,
             )
+            return _tool_result(payload, raw)
 
     apps.add_resource(_widget_resource())
     server = MCPServer(

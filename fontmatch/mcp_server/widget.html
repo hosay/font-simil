@@ -87,7 +87,9 @@
     return url.charAt(0) === "/" ? SITE + url : url;
   }
 
-  function render(data) {
+  function render(data, meta) {
+    // Type samples are widget-only: they arrive in the result's _meta, not structuredContent.
+    var samples = (meta && meta["dupefont/sampleImages"]) || [];
     if (!data || !Array.isArray(data.matches)) return;
     app.textContent = "";
     var head = el("div", "head");
@@ -113,7 +115,7 @@
       row.appendChild(el("span", "score", m.similarity + "/100"));
       item.appendChild(row);
 
-      var sampleUrl = absolute(m.sample_image_url);
+      var sampleUrl = absolute(samples[i]);
       if (sampleUrl) {
         var img = el("img", "sample");
         img.alt = m.family + " sample: The quick brown fox jumps over the lazy dog";
@@ -164,7 +166,7 @@
       if (msg.params.isError || !msg.params.structuredContent) {
         showError(msg.params);
       } else {
-        render(msg.params.structuredContent);
+        render(msg.params.structuredContent, msg.params._meta);
       }
     } else if (msg.method === "ui/notifications/host-context-changed" && msg.params) {
       setTheme(msg.params.theme);
@@ -184,7 +186,7 @@
   function fromOpenAI() {
     if (!window.openai) return;
     setTheme(window.openai.theme);
-    if (window.openai.toolOutput) render(window.openai.toolOutput);
+    if (window.openai.toolOutput) render(window.openai.toolOutput, window.openai.toolResponseMetadata);
   }
   window.addEventListener("openai:set_globals", fromOpenAI, { passive: true });
   fromOpenAI();

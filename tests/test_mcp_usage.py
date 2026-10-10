@@ -117,7 +117,11 @@ class TestServerRecordsCalls:
 
     def test_failures_are_recorded_with_status(self, server, usage):
         _call(server, "find_free_alternatives", {"font_name": "Nope"})
-        _call(server, "find_free_font_from_image", {"image": {**IMAGE, "download_url": "https://bad/x"}})
+        _call(
+            server,
+            "find_free_font_from_image",
+            {"image": {**IMAGE, "download_url": "https://bad/x"}},
+        )
         _call(server, "find_free_font_from_image", {"image": IMAGE, "text_hint": "notext"})
         statuses = [(r["tool"], r["status"]) for r in _rows(usage.path)]
         assert statuses == [
@@ -178,12 +182,11 @@ class TestResultsWidget:
         meta = content.meta
         assert SITE_URL in meta["ui"]["csp"]["resourceDomains"]
         assert SITE_URL in meta["openai/widgetCSP"]["resource_domains"]
-        assert "sample_image_url" in content.text
+        assert "dupefont/sampleImages" in content.text
 
     def test_both_tools_point_at_the_widget(self, server):
-        from tests.test_mcp_server import _list_tools
-
         from fontmatch.mcp_server.server import WIDGET_URI
+        from tests.test_mcp_server import _list_tools
 
         for tool in _list_tools(server):
             assert tool.meta["ui"]["resourceUri"] == WIDGET_URI
@@ -192,12 +195,30 @@ class TestResultsWidget:
         assert image_tool.meta["openai/fileParams"] == ["image"]
         assert "$ref" not in str(image_tool.input_schema)
 
-    def test_matches_carry_absolute_sample_image_urls(self, server):
+    def test_sample_images_travel_in_result_meta_not_structured_content(self, server):
+        """ChatGPT shows the model everything in structuredContent and it embeds
+        image URLs as broken markdown images. Samples are widget-only, so they
+        ride in ``_meta`` (window.openai.toolResponseMetadata)."""
         r = _call(server, "find_free_alternatives", {"font_name": "Helvetica"})
         match = r.structured_content["matches"][0]
-        assert match["sample_image_url"] == (
-            "https://dupefont.com/font-sample/Tinos-Regular.ttf.png?style=Regular"
-        )
+        assert "sample_image_url" not in match
+        assert "sample" not in str(r.structured_content).lower()
+        samples = r.meta["dupefont/sampleImages"]
+        assert len(samples) == len(r.structured_content["matches"])
+        assert samples[0] == "https://dupefont.com/font-sample/Tinos-Regular.ttf.png?style=Regular"
+
+    def test_output_schema_has_no_sample_image_field(self, server):
+        from tests.test_mcp_server import _list_tools
+
+        tool = next(t for t in _list_tools(server) if t.name == "find_free_alternatives")
+        assert "sample_image_url" not in str(tool.output_schema)
+
+    def test_widget_reads_samples_from_response_metadata(self):
+        from fontmatch.mcp_server.server import WIDGET_HTML
+
+        assert "dupefont/sampleImages" in WIDGET_HTML
+        assert "toolResponseMetadata" in WIDGET_HTML
+        assert "sample_image_url" not in WIDGET_HTML
 
 
 def test_odd_request_meta_does_not_fail_the_call(usage, monkeypatch):
