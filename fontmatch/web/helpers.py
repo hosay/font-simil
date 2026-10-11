@@ -7,6 +7,8 @@ import math
 import re
 from pathlib import Path
 
+from fontmatch import licenses
+
 # Weight/style suffixes to strip when building a Google Fonts URL.
 _WEIGHT_SUFFIXES = re.compile(
     r"\s+(Extra\s*Light|Ultra\s*Light|Thin|Light|Regular|Medium|"
@@ -579,8 +581,14 @@ PROPRIETARY_FONTS = {
 # document switched to it keeps its line breaks and page count. Only these
 # pages may say "metrically compatible".
 METRIC_COMPATIBLE = {
-    "Times New Roman", "Times", "Arial", "Helvetica", "Courier New",
-    "Calibri", "Cambria", "Georgia",
+    "Times New Roman",
+    "Times",
+    "Arial",
+    "Helvetica",
+    "Courier New",
+    "Calibri",
+    "Cambria",
+    "Georgia",
 }
 
 # How each alternative compares: unique copy for every /similar-to page.
@@ -709,7 +717,7 @@ def distance_to_score(distance: float) -> int:
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 GOOGLE_FONTS_REPOS = [_PROJECT_ROOT / "google-fonts-repo"]
-_LICENSE_DIRS = ("ofl", "apache", "ufl")
+_LICENSE_DIRS = tuple(licenses.GOOGLE_FONTS_DIRS)
 _METADATA_NAME = re.compile(r'^name:\s*"([^"]+)"', re.MULTILINE)
 
 
@@ -740,7 +748,7 @@ def google_fonts_name(source: str) -> str | None:
     return None
 
 
-_DIR_LICENSES = {"ofl": "OFL-1.1", "apache": "Apache-2.0", "ufl": "UFL-1.0"}
+_DIR_LICENSES = licenses.GOOGLE_FONTS_DIRS
 
 
 @functools.lru_cache(maxsize=8192)
@@ -863,8 +871,6 @@ def google_fonts_url(family: str, source: str | None = None) -> str | None:
     return "https://fonts.google.com/specimen/" + name.replace(" ", "+") if name else None
 
 
-
-
 def _is_crawled_source(source: str) -> bool:
     """Check if a source looks like a crawled web font (domain name, not a file path)."""
     if not source:
@@ -880,15 +886,7 @@ def distance_to_score_component(distance: float, scale: float = 6.0) -> int:
     return max(0, min(100, round(100 * math.exp(-scale * d))))
 
 
-_LICENSE_LABELS = {
-    "OFL-1.1": "SIL Open Font License",
-    "Apache-2.0": "Apache 2.0",
-    "MIT": "MIT License",
-    "UFL-1.0": "Ubuntu Font License",
-    "Bitstream-Vera": "Bitstream Vera License",
-    "GPL-3.0-or-later WITH Font-exception-2.0": "GPL with font exception",
-    "unknown": "Unknown",
-}
+_LICENSE_LABELS = licenses.LICENSE_LABELS
 
 
 def license_label(license_id: str) -> str:

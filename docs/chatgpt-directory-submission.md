@@ -247,8 +247,14 @@ Observations from the runs that are not test failures:
 - Liberation Sans, the top Helvetica match, had `license_id='unknown'` in the DB, so the
   answer said "License not identified by DupeFont" every time. Fixed the same day: licences
   are now read from the font's own name table (`fontmatch/index/relicense.py`, backfill run
-  on production: 90 rows updated, 27 still unknown; glyph catalog patched to match). P4 now
-  shows OFL-1.1 for Liberation Sans, verified in ChatGPT.
+  on production: 90 rows updated; glyph catalog patched to match). P4 now shows OFL-1.1 for
+  Liberation Sans, verified in ChatGPT. Later the same day the remaining 44 unknown rows were
+  resolved too (`fontmatch/index/ingest.py::resolve_license`: licence file, METADATA.pb, name
+  table, recognised parent licence folder, then the owning Debian package's copyright file
+  via dpkg; identical copies are judged tier by tier): 21 test-fixture fonts → OFL/Apache,
+  4 Liberation Sans Narrow → `LicenseRef-Liberation-1.0`, 17 Ubuntu → UFL-1.0, 6 jsMath →
+  Apache-2.0. **No corpus font carries an unknown licence now**, so the listing's "always
+  openly licensed" claim holds for every result.
 - ChatGPT pasted the per-font sample-image URLs from the tool result into its prose as
   broken image placeholders under the widget. The sample URLs now travel in the result's
   `_meta` (widget-only) and the widget URI was bumped to `dupefont-results-v3.html` because

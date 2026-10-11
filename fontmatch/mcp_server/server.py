@@ -74,7 +74,7 @@ class OpenAIFile(BaseModel):
 class FontResult(BaseModel):
     family: str
     style: str
-    license: str = Field(description="SPDX license id, e.g. OFL-1.1")
+    license: str = Field(description="SPDX license expression or LicenseRef-*, e.g. OFL-1.1; 'unknown' if unrecorded")
     similarity: int = Field(description="0-100 visual similarity, higher is closer")
     match: str = Field(
         default="similar alternative",

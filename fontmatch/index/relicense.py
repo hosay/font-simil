@@ -1,10 +1,12 @@
-"""Backfill ``fonts.license_id`` from the fonts' own name tables.
+"""Backfill ``fonts.license_id`` for rows stored as 'unknown'.
 
-Rows ingested from directories without an OFL.txt/LICENSE (system packages
-such as Liberation, DejaVu, Noto, FreeFont) were stored as 'unknown' even
-though the font file declares its licence (OpenType name IDs 13/14). This
-reads it back for every 'unknown' row whose file can be found under the
-given directories, and drops cached match results that embed the old value.
+Rows ingested before a licence source was understood (system packages such as
+Liberation, DejaVu, Noto, FreeFont with the licence only in the font's name
+table; google/fonts families with METADATA.pb but no licence file; Debian
+packages whose licence is in /usr/share/doc) are re-resolved with the same
+evidence chain ingest uses (``ingest.resolve_license``), for every 'unknown'
+row whose file can be found under the given directories, and cached match
+results that embed the old value are dropped.
 
     python -m fontmatch.index.relicense --db PATH --font-dir DIR [--font-dir DIR ...]
 """
@@ -18,8 +20,9 @@ import logging
 import os
 from pathlib import Path
 
+from fontmatch import licenses
 from fontmatch.features.perceptual import FINGERPRINT_SCHEMA_VERSION
-from fontmatch.index.ingest import FONT_EXTENSIONS, license_from_name_table
+from fontmatch.index.ingest import FONT_EXTENSIONS, resolve_license_across
 from fontmatch.index.store import FontStore
 
 log = logging.getLogger(__name__)
@@ -57,11 +60,14 @@ def _candidates(
     return found
 
 
-def _find_file(row, search_dirs: list[Path], index: dict[str, list[Path]]) -> tuple:
-    """(path, outcome): the candidate whose sha256 is the row's file_hash,
-    else (None, "hash_mismatch") when same-named files exist, else
-    (None, "not_found"). Unreadable files are skipped."""
+def _matching_files(row, search_dirs: list[Path], index: dict[str, list[Path]]) -> tuple:
+    """(paths, outcome): every candidate whose sha256 is the row's file_hash
+    (the same bytes often sit in several places, e.g. a bare fixtures copy and
+    the google/fonts family directory with its licence file), else ([],
+    "hash_mismatch") when same-named files exist, else ([], "not_found").
+    Unreadable files are skipped."""
     outcome = "not_found"
+    matches: list[Path] = []
     for candidate in _candidates(row["source"] or "", row["name"], search_dirs, index):
         try:
             digest = hashlib.sha256(candidate.read_bytes()).hexdigest()
@@ -69,10 +75,11 @@ def _find_file(row, search_dirs: list[Path], index: dict[str, list[Path]]) -> tu
             log.warning("cannot read %s: %s", candidate, exc)
             continue
         if digest == row["file_hash"]:
-            return candidate, "found"
-        outcome = "hash_mismatch"
-        log.warning("hash mismatch, skipped: %s vs %s", row["source"], candidate)
-    return None, outcome
+            matches.append(candidate)
+        elif not matches:
+            outcome = "hash_mismatch"
+            log.warning("hash mismatch, skipped: %s vs %s", row["source"], candidate)
+    return matches, ("found" if matches else outcome)
 
 
 def _purge_cached_results(store: FontStore, names: set[str]) -> int:
@@ -129,15 +136,17 @@ def relicense_unknown(
             "SELECT id, name, source, file_hash FROM fonts WHERE license_id = 'unknown'"
         ).fetchall()
     for row in rows:
-        path, outcome = _find_file(row, search_dirs, index)
-        if path is None:
+        paths, outcome = _matching_files(row, search_dirs, index)
+        if not paths:
             counts[outcome] += 1
             log.debug("%s: %s (%s)", outcome, row["name"], row["source"])
             continue
-        license_id = license_from_name_table(path)
-        if license_id is None:
+        # Only hash-verified files are resolved, with the same evidence tiers as
+        # ingest; identical bytes in several places are judged tier by tier.
+        license_id = resolve_license_across(paths)
+        if license_id == licenses.UNKNOWN:
             counts["still_unknown"] += 1
-            log.debug("no licence in name table: %s", path)
+            log.debug("no licence evidence for: %s", paths)
             continue
         with store._lock:
             store.conn.execute(
