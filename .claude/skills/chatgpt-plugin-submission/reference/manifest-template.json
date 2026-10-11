@@ -1,0 +1,63 @@
+{
+  "name": "example-plugin",
+  "version": "1.0.0",
+  "description": "One sentence: what the plugin does.",
+  "author": { "name": "Example Co", "url": "https://example.com" },
+  "homepage": "https://example.com",
+  "license": "UNLICENSED",
+  "keywords": ["keyword", "keyword"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Example",
+    "shortDescription": "Subtitle, at most 30 chars",
+    "longDescription": "Up to 4000 chars. Describe functionality. No comparisons with other products, no pricing, trials, discounts or promotions, no unverifiable claims.",
+    "developerName": "Example Co",
+    "category": "Productivity",
+    "capabilities": ["Interactive"],
+    "brandColor": "#2563eb",
+    "logo": "./assets/logo.png",
+    "composerIcon": "./assets/logo.png",
+    "websiteURL": "https://example.com",
+    "supportURL": "https://example.com/support",
+    "privacyPolicyURL": "https://example.com/privacy",
+    "termsOfServiceURL": "https://example.com/terms",
+    "defaultPrompt": [
+      "Starter prompt one, at most 128 chars.",
+      "Starter prompt two.",
+      "Starter prompt three."
+    ]
+  },
+  "extensions": {
+    "com.openai": {
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "What the case exercises and what input it uses.",
+              "prompt": "Use Example to do the thing.",
+              "tools_triggered": "tool_name",
+              "expected_behavior": "Calls tool_name with X. The card shows at least N results each with Y. Typical top result: Z. The answer frames them as W.",
+              "file_attachment_urls": ["https://example.com/static/review/input.png"]
+            },
+            { "description": "...", "prompt": "Use Example to ...", "tools_triggered": "tool_name", "expected_behavior": "..." },
+            { "description": "...", "prompt": "Use Example to ...", "tools_triggered": "tool_name", "expected_behavior": "..." },
+            { "description": "...", "prompt": "Use Example to ...", "tools_triggered": "other_tool", "expected_behavior": "..." },
+            { "description": "...", "prompt": "Use Example to ...", "tools_triggered": "other_tool", "expected_behavior": "..." }
+          ],
+          "negative": [
+            { "description": "Why the plugin must NOT be called here. An attachment URL may be mentioned in this text.", "prompt": "Bare prompt, app not named" },
+            { "description": "...", "prompt": "..." },
+            { "description": "...", "prompt": "..." }
+          ]
+        },
+        "demo_recording_url": "https://www.youtube.com/watch?v=VIDEO_ID",
+        "commerce": false,
+        "commerce_description": "Example does not sell products or process payments."
+      },
+      "publication": {
+        "release_notes": "Initial release."
+      }
+    }
+  }
+}

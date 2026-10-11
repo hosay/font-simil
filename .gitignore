@@ -10,7 +10,11 @@ venv/
 *.db
 .coverage
 htmlcov/
-.claude/
+.claude/*
+# …except the reusable skills we ship with the repo
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/chatgpt-plugin-submission/
 google-fonts-repo/
 majestic_million.csv
 crawl_checkpoint.txt

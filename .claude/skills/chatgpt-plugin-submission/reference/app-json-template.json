@@ -1,0 +1,8 @@
+{
+  "_comment": "Dev-mode package ONLY. File name: .app.json at the package root. The manifest must also contain \"apps\": \"./.app.json\" and its \"name\" should equal the key below (dev-<hex>). The hex is the one in the dev app's page URL chatgpt.com/plugins/plugin_asdk_app_<hex>. Never ship this file in the public package.",
+  "apps": {
+    "dev-<hex>": {
+      "id": "asdk_app_<hex>"
+    }
+  }
+}
