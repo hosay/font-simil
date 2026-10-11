@@ -75,3 +75,4 @@ claiming "this is font X" when X is one of our matches?
 | 2026-10-10 | 17 ×3 | none | – | – | – | correct: no call, menu translated |
 | 2026-10-10 | 22 ×3 | none ×2, image tool ×1 | – | – | 3 | error relayed verbatim and politely when called |
 | 2026-10-10 | 14 ×1 | none | – | – | – | correct: no call |
+| 2026-10-10 | 6 ×3 (new Ovo banner) | image tool | yes (3/3) | Ovo 97 | 3 | then STIX Two Text 88, Cormorant Upright 88, Vollkorn 85, Fenix 85; identical 3/3, commercial use stated each time; banner replaced the Reddit photo |

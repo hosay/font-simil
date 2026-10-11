@@ -1,7 +1,6 @@
 {
   "mcpServers": {
     "dupefont": {
-      "type": "streamable-http",
       "url": "https://dupefont.com/mcp"
     }
   }

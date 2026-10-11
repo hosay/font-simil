@@ -19,7 +19,7 @@ OpenAI submission docs and the platform dashboard on that date.
 ## 1. Things only you can do
 
 1. ~~Verify your developer identity~~ — **done**, organization verified 2026-10-10.
-2. **Record the demo video** (§5). The portal requires a public URL to it.
+2. ~~Record the demo video~~ — **done 2026-10-10**: https://www.youtube.com/watch?v=u2Fhn2BJeSU
 3. ~~Confirm `support@dupefont.com` delivers~~ — **done**, confirmed active; it is what `/support` shows.
 4. ~~Review the listing copy~~ — **done**: version A with ", not commercial ones" removed is in both
    packages and live on Entry A (v1.1.3).
@@ -34,15 +34,19 @@ OpenAI submission docs and the platform dashboard on that date.
 1. Identity verification (§6).
 2. ~~Merge and deploy~~ — **done 2026-10-10**: merged to master, `fontmatch` restarted, `/support` 200,
    `fontmatch-maintenance.timer` enabled (daily, 00:49 PDT; first manual run removed 0 rows, as expected).
-3. Record and host the video (§5); keep the URL.
-4. `platform.openai.com/plugins` → **Upload plugin** → `dupefont-submission.zip`.
-   The automated checks will issue a **domain-verification token**. Put it in
-   `/etc/fontmatch/env` as `DUPEFONT_APPS_CHALLENGE=<token>`, `sudo systemctl restart fontmatch`,
-   confirm `curl https://dupefont.com/.well-known/openai-apps-challenge` prints it, then rescan.
-5. Resolve any Metadata/Skills/MCP findings (re-upload the ZIP for package changes; rescan for
-   server changes).
-6. Enter the five positive and three negative test cases (§7) and the video URL; complete the
-   policy attestations; **Submit for review**. Only one review can be active per plugin.
+3. ~~Record and host the video~~ — **done 2026-10-10**: https://www.youtube.com/watch?v=u2Fhn2BJeSU
+4. ~~Upload the ZIP~~ — **done 2026-10-10**: plugin `plugin_asdk_app_6acad58c7a9c8191920082f07024b8d8`
+   on `platform.openai.com/plugins`. The first ZIP (root `plugin.json` + `mcp.json`) was rejected
+   as "Invalid plugin package"; the package now uses the Codex layout (`.codex-plugin/plugin.json`
+   + `.mcp.json`), which is what the dev-mode package already used. The token is in
+   `/etc/fontmatch/env` as `DUPEFONT_APPS_CHALLENGE`, `/.well-known/openai-apps-challenge` serves
+   it, **domain verified**, MCP connected, both tools discovered, no MCP findings.
+5. ~~Resolve findings~~ — **done**: the only finding was "Select a valid category" (`Design` is
+   not on the current list); `Creativity` passes. Skills: checks passed. Metadata: no findings.
+6. Test cases and the video URL travel **in the manifest** (`extensions.com.openai.review`),
+   not in a form; the portal imported them read-only. What is left is the dialog with six
+   attestations and **Submit** (owner's call; see the risk summary sent 2026-10-10). Only one
+   review can be active per plugin.
 7. Feedback arrives by email. After approval, open the package version and **Publish plugin**.
 8. Once published, delete Entry B and (optionally) rename the dev Entry A to something like
    "DupeFont (dev)" so it can't be confused with the public listing.
@@ -62,7 +66,7 @@ tool's catalogue is restricted to licensed fonts, so "free" is true by construct
 | displayName | `DupeFont` | 8 / 30 |
 | shortDescription | `Identify fonts from images` | 26 / 30 |
 | developerName | `DupeFont` | |
-| category | `Design` | |
+| category | `Creativity` (the portal's current list; `Design` is rejected as invalid) | |
 | capabilities | `Interactive` | |
 | websiteURL | `https://dupefont.com` | |
 | supportURL | `https://dupefont.com/support` | live after step 2 |
@@ -131,6 +135,8 @@ the skill to match the listing copy exactly, change "or download page" to "or Du
 ---
 
 ## 5. Demo video — script
+
+**Recorded:** https://www.youtube.com/watch?v=u2Fhn2BJeSU (2026-10-10). The script below is what it was made from.
 
 **What OpenAI requires:** the submission form needs `review.demo_recording_url`, a public link
 (there is no upload). OpenAI's docs don't prescribe the content. Third-party guides converge on:
@@ -210,7 +216,7 @@ Two things the runs changed:
 |---|---|---|
 | P1 | Attach a website hero screenshot (dark background, large sans-serif headline); "What font is this? Use dupefont to find a free look-alike." [1] | Calls `find_free_font_from_image`; the widget lists ≥3 free fonts with rendered samples, similarity scores and licences. Seen: Poppins SemiBold 99%, then Rethink Sans, Parkinsans, Cal Sans, Vend Sans, all OFL-1.1. |
 | P2 | Attach a product logo whose wordmark is clear serif or sans lettering (not script); "Is there a Google Font similar to this logo? Check with dupefont." [3] | Image tool; every result links to Google Fonts and shows an open licence. Seen: Playfair Display Bold 94%, Gelasio, Song Myung, Shippori Mincho, Tai Heritage Pro. |
-| P3 | Attach a banner or poster with a short all-caps line; "Need a free alternative to the font in this image for a commercial project. Use dupefont." [6] | Image tool; all results show an open licence (OFL-1.1 etc.), none "unknown"; the answer states they can be used commercially. Seen: Ovo 98%, Lusitana, Cardo, Nanum Myeongjo. |
+| P3 | Attach a banner or poster with a short all-caps serif line ("HARVEST FESTIVAL" set in Ovo); "Need a free alternative to the font in this image for a commercial project. Use dupefont." [6] | Image tool; all results show an open licence (OFL-1.1 etc.), none "unknown"; the answer states they can be used commercially. Seen (new banner, 2026-10-10, 3/3 identical): Ovo 97%, STIX Two Text 88%, Cormorant Upright 88%, Vollkorn, Fenix. Earlier runs with the previous banner: Ovo 98%, Lusitana, Cardo, Nanum Myeongjo. |
 | P4 | "Use dupefont to find free alternatives to Helvetica." (no image) [9] | Calls `find_free_alternatives`; ≥3 results with scores; the answer frames them as free alternatives, not as identification. Seen: Liberation Sans 91%, Pontano Sans, Istok Web, Roboto Flex, Zalando Sans. |
 | P5 | "I need something like Futura but free for commercial use. Use dupefont." [12] | `find_free_alternatives`; ≥3 geometric sans results, all with an open licence; the answer confirms commercial use is allowed. Seen: Plus Jakarta Sans 61%, Kumbh Sans, Wix Madefor Text, DM Sans, Hanken Grotesk. |
 
@@ -220,15 +226,19 @@ Two things the runs changed:
 |---|---|---|
 | N1 | "Write a CSS rule that sets the body font to Inter" [15] | **No** DupeFont tool call; plain CSS answer. |
 | N2 | Attach a restaurant menu photo; "Translate the text in this image" [17] | **No** DupeFont tool call; ChatGPT translates the menu itself. |
-| N3 | Attach a photo with no text (landscape, no lettering); "What font is this? Use dupefont." [22] | Either no tool call, or the tool's "No readable text found in the image." relayed politely. ChatGPT names no font. Seen: 2 runs answered without calling, 1 run called and quoted the error. |
+| N3 | "What is a font?" [14] | **No** DupeFont tool call; ChatGPT explains in its own words. |
 
-If the portal defines "negative" strictly as *must not invoke*, swap N3 for [14] "What is a
-font?" (checked once: no call) and keep N3 as a positive-path error case in the video instead.
+The portal's negative cases have only a description and a prompt and are read as *must not
+invoke*, so the submitted N3 is [14] "What is a font?". The no-text photo case ([22], "What font
+is this? Use dupefont.") stays a useful manual check: either no tool call, or the tool's "No
+readable text found in the image." relayed politely, never an invented font (seen 2 + 1 of 3).
 
-Test images used (regenerable, not committed): `hero_screenshot.png` (Poppins headline on
-navy), `product_logo_v2.png` ("Marigold" in Playfair Display Black), `banner.png`
-(`eval_reports/reddit_test/hchz81.png`), `menu_photo.jpg` (Playfair menu, rotated 2.5°),
-`no_text_photo.jpg` (gradient sky and hills).
+Test images are committed under `fontmatch/static/review/` and served at
+`https://dupefont.com/static/review/<name>` (the portal's `file_attachment_urls` need public
+URLs): `hero_screenshot.png` (Poppins headline on navy), `product_logo_v2.png` ("Marigold" in
+Playfair Display Black), `banner.png` ("HARVEST FESTIVAL" in Ovo, rendered by us; it replaced a
+Reddit photo from the eval set so every test asset is ours), `menu_photo.jpg` (Playfair menu,
+rotated 2.5°), `no_text_photo.jpg` (gradient sky and hills). All lettering is set in OFL fonts.
 
 Observations from the runs that are not test failures:
 

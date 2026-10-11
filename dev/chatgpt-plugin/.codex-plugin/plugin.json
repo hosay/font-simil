@@ -1,0 +1,111 @@
+{
+  "name": "dupefont",
+  "version": "1.0.2",
+  "description": "Identify fonts from images and find visually similar free font alternatives.",
+  "author": {
+    "name": "DupeFont",
+    "url": "https://dupefont.com"
+  },
+  "homepage": "https://dupefont.com",
+  "license": "UNLICENSED",
+  "keywords": [
+    "fonts",
+    "typography",
+    "design",
+    "open-source",
+    "identification"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "DupeFont",
+    "shortDescription": "Identify fonts from images",
+    "longDescription": "Show DupeFont a screenshot, photo, logo or design and it reads the typography, then ranks the closest free and open-source look-alikes. Every match comes with a similarity score, its licence, a live preview, and a link to its Google Fonts page or to a DupeFont page with more alternatives. Results are always openly licensed fonts.",
+    "developerName": "DupeFont",
+    "category": "Creativity",
+    "capabilities": [
+      "Interactive"
+    ],
+    "brandColor": "#2563eb",
+    "logo": "./assets/logo.png",
+    "composerIcon": "./assets/logo.png",
+    "websiteURL": "https://dupefont.com",
+    "supportURL": "https://dupefont.com/support",
+    "privacyPolicyURL": "https://dupefont.com/privacy",
+    "termsOfServiceURL": "https://dupefont.com/terms",
+    "defaultPrompt": [
+      "Identify the font in this image.",
+      "Find free font alternatives that look like this.",
+      "Compare this font with the closest free alternatives."
+    ]
+  },
+  "extensions": {
+    "com.openai": {
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Identify the headline font in a website hero screenshot (dark background, large sans-serif headline) and suggest free look-alikes.",
+              "prompt": "What font is this? Use dupefont to find a free look-alike.",
+              "tools_triggered": "find_free_font_from_image",
+              "expected_behavior": "Calls find_free_font_from_image with the attached image. The DupeFont card lists at least three free fonts, each with a rendered type sample, a similarity score and a licence. Expected top match: Poppins SemiBold at about 99%, followed by other OFL-1.1 sans-serifs (e.g. Rethink Sans, Parkinsans, Cal Sans). The answer presents them as free look-alikes, with links to Google Fonts or dupefont.com.",
+              "file_attachment_urls": [
+                "https://dupefont.com/static/review/hero_screenshot.png"
+              ]
+            },
+            {
+              "description": "Find a Google Font similar to a product logo whose wordmark is clear serif lettering (\"Marigold\" set in a Playfair-style serif).",
+              "prompt": "Is there a Google Font similar to this logo? Check with dupefont.",
+              "tools_triggered": "find_free_font_from_image",
+              "expected_behavior": "Calls find_free_font_from_image. Every result in the card shows an open licence and links to its Google Fonts page. Expected top match: Playfair Display Bold at about 94%, followed by other serifs such as Gelasio, Song Myung, Shippori Mincho.",
+              "file_attachment_urls": [
+                "https://dupefont.com/static/review/product_logo_v2.png"
+              ]
+            },
+            {
+              "description": "Find a commercially usable free alternative to the font in an event banner with a short all-caps serif headline (\"HARVEST FESTIVAL\").",
+              "prompt": "Need a free alternative to the font in this image for a commercial project. Use dupefont.",
+              "tools_triggered": "find_free_font_from_image",
+              "expected_behavior": "Calls find_free_font_from_image. All results show an open licence (OFL-1.1 or similar), none 'unknown'. Expected top match: Ovo at about 97%, then serifs such as STIX Two Text, Cormorant Upright, Vollkorn, Fenix. The answer states the fonts can be used in commercial work.",
+              "file_attachment_urls": [
+                "https://dupefont.com/static/review/banner.png"
+              ]
+            },
+            {
+              "description": "Find free alternatives to a named commercial font (Helvetica), no image.",
+              "prompt": "Use dupefont to find free alternatives to Helvetica.",
+              "tools_triggered": "find_free_alternatives",
+              "expected_behavior": "Calls find_free_alternatives with font_name 'Helvetica'. The card lists at least three free fonts with similarity scores and licences; expected top match Liberation Sans (OFL-1.1) at about 91%, then Pontano Sans, Istok Web, Roboto Flex. The answer frames them as free alternatives, not as an identification."
+            },
+            {
+              "description": "Find free, commercially usable fonts similar to Futura, described in natural language.",
+              "prompt": "I need something like Futura but free for commercial use. Use dupefont.",
+              "tools_triggered": "find_free_alternatives",
+              "expected_behavior": "Calls find_free_alternatives with font_name 'Futura'. At least three geometric sans-serif results, all with an open licence; expected: Plus Jakarta Sans, Kumbh Sans, Wix Madefor Text, DM Sans, Hanken Grotesk. The answer confirms they are free for commercial use."
+            }
+          ],
+          "negative": [
+            {
+              "description": "A coding request that mentions a font name but needs no font identification or alternatives. DupeFont must not be called; ChatGPT answers with plain CSS.",
+              "prompt": "Write a CSS rule that sets the body font to Inter"
+            },
+            {
+              "description": "An image task unrelated to typography. The attached restaurant menu photo (https://dupefont.com/static/review/menu_photo.jpg) is to be translated; DupeFont must not be called, ChatGPT translates the text itself.",
+              "prompt": "Translate the text in this image"
+            },
+            {
+              "description": "A general typography question with no image and no font to match. DupeFont must not be called; ChatGPT explains in its own words.",
+              "prompt": "What is a font?"
+            }
+          ]
+        },
+        "demo_recording_url": "https://www.youtube.com/watch?v=u2Fhn2BJeSU",
+        "commerce": false,
+        "commerce_description": "DupeFont does not sell products or process payments."
+      },
+      "publication": {
+        "release_notes": "Initial release: identify the font in an image and find free, openly licensed alternatives to any font by name."
+      }
+    }
+  }
+}

@@ -1,6 +1,8 @@
 #!/bin/sh
 # Build the ChatGPT plugin-directory submission ZIP from this directory.
 #   dev/chatgpt-plugin/build.sh            -> dev/chatgpt-plugin/dist/dupefont-submission.zip
+# Both packages use the Codex layout (.codex-plugin/plugin.json + .mcp.json); the portal
+# rejected a root plugin.json + mcp.json ZIP ("Invalid plugin package", 2026-10-10).
 #   dev/chatgpt-plugin/build.sh devmode    -> dev/chatgpt-plugin-devmode/dist/dupefont-devmode.zip
 # The public package must NOT contain .app.json (the portal rejects app references);
 # the dev-mode package MUST keep it (it is the binding to the existing ChatGPT app).
